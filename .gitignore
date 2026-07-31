@@ -5,8 +5,14 @@ out/
 dist/
 .env
 .env.local
+.env.*.local
 *.log
 .DS_Store
+Thumbs.db
 tsconfig.tsbuildinfo
 .yarn/
 .prisma/
+*.pem
+
+# Large redistributable archives (not source)
+public/downloads/*.zip

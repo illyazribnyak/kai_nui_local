@@ -29,16 +29,22 @@ cd kai_nui_local
 ## Крок 2. Встанови залежності
 
 ```bash
-yarn install
+npm install
+# або: yarn install
 ```
 
 ## Крок 3. Підніми базу даних PostgreSQL
 
-**Варіант А — через Docker (рекомендую, найшвидше):**
+**Варіант А — через Docker Compose (рекомендую, найшвидше):**
+```bash
+docker compose up -d
+```
+Це підніме PostgreSQL 16 з логіном `kai`, паролем `kai`, базою `kai_nui` на порту 5432.
+
+Або однією командою без compose:
 ```bash
 docker run --name kai-db -e POSTGRES_USER=kai -e POSTGRES_PASSWORD=kai -e POSTGRES_DB=kai_nui -p 5432:5432 -d postgres:16
 ```
-Це підніме базу з логіном `kai`, паролем `kai`, назвою `kai_nui`.
 
 **Варіант Б — локальний PostgreSQL:**
 Створи базу `kai_nui` та користувача, а потім пропиши свій рядок підключення в `.env`.

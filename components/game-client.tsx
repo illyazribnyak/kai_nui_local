@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download } from 'lucide-react'
+import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle } from 'lucide-react'
 import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData } from '@/lib/types'
 import { Users } from 'lucide-react'
 import { toast } from 'sonner'
@@ -88,9 +88,11 @@ export default function GameClient() {
   const [multiOrgasm, setMultiOrgasm] = useState<any>(null)
   const [penisStats, setPenisStats] = useState<any>(null)
   const [activeTempo, setActiveTempo] = useState<string>('medium')
+  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
   const processedTagsRef = useRef(0)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const scrollToBottom = useCallback(() => {
     chatEndRef?.current?.scrollIntoView?.({ behavior: 'smooth' })
@@ -396,6 +398,14 @@ export default function GameClient() {
     return allCompleteTags.length
   }
 
+  const stopGeneration = () => {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setIsLoading(false)
+    setStreamingContent('')
+    toast.message('Генерацію зупинено')
+  }
+
   const sendMessage = async (overrideText?: string) => {
     const text = (overrideText ?? input)?.trim?.()
     if (!text || isLoading) return
@@ -404,6 +414,7 @@ export default function GameClient() {
     setSexChoices([])
     setLaraDialogue([])
     setMultiOrgasm(null)
+    setLastFailedMessage(null)
     // Prepend tempo context during sex scenes
     const finalText = sexScene && activeTempo ? `[Темп: ${activeTempo === 'slow' ? 'повільний' : activeTempo === 'fast' ? 'швидкий' : 'середній'}] ${text}` : text
     const userMsg: MessageData = {
@@ -418,11 +429,15 @@ export default function GameClient() {
     setStreamingContent('')
     processedTagsRef.current = 0
 
+    const controller = new AbortController()
+    abortRef.current = controller
+
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: finalText }),
+        signal: controller.signal,
       })
 
       if (!res.ok) {
@@ -434,6 +449,7 @@ export default function GameClient() {
       const decoder = new TextDecoder()
       let accumulated = ''
       let partialRead = ''
+      let streamError: string | null = null
 
       while (true) {
         const { done, value } = await reader!.read()
@@ -445,75 +461,81 @@ export default function GameClient() {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const dataStr = line.slice(6)
+            let parsed: any
             try {
-              const parsed = JSON.parse(dataStr)
-              if (parsed?.type === 'chunk') {
-                const chunk = parsed?.content ?? ''
-                accumulated += chunk
-                // Strip tags for display
-                const display = stripAllTags(accumulated)
-                setStreamingContent(display)
-                // Real-time tag parsing → optimistic sidebar updates
-                processedTagsRef.current = parseStreamTagsAndApply(accumulated, processedTagsRef.current)
-              } else if (parsed?.type === 'done') {
-                // Server ground truth ALWAYS overwrites client state
-                setGameState(parsed.gameState ?? null)
-                setRelationships(parsed.relationships ?? [])
-                setInventory(parsed.inventory ?? [])
-                setQuests(parsed.quests ?? [])
-                setDiary(parsed.diary ?? [])
-                setSkills(parsed.skills ?? [])
-                setTribeReputations(parsed.tribeReputations ?? [])
-                setLocations(parsed.locations ?? [])
-                setAchievements(parsed.achievements ?? [])
-                setDiseases(parsed.diseases ?? [])
-                if (parsed?.choices?.length > 0) setChoices(parsed.choices)
-                // Sex mechanics
-                if (parsed?.diceRolls?.length > 0) setDiceRoll(parsed.diceRolls[parsed.diceRolls.length - 1])
-                if (parsed?.sexScene) {
-                  setSexScene(parsed.sexScene); setSceneSummary(null)
-                  if (parsed.sexScene.context_bonuses) setContextBonuses(parsed.sexScene.context_bonuses)
-                  setPhase({ phase: parsed.sexScene.phase || 'foreplay', label: 'Прелюдія' })
-                  setStamina({ value: 100, tempo: 'medium' })
-                }
-                if (parsed?.phase) setPhase(parsed.phase)
-                if (parsed?.pleasure) setPleasure({ lara: Number(parsed.pleasure.lara ?? 0), partner: Number(parsed.pleasure.partner ?? 0) })
-                if (parsed?.stamina) setStamina(parsed.stamina)
-                if (parsed?.combo) setCombo(parsed.combo)
-                if (parsed?.domination !== null && parsed?.domination !== undefined) setDomination(Number(parsed.domination))
-                if (parsed?.reactions?.length > 0) setReactions(prev => [...prev, ...parsed.reactions])
-                if (parsed?.erogenousZones?.length > 0) setErogenousZone(parsed.erogenousZones[parsed.erogenousZones.length - 1])
-                if (parsed?.sexChoices?.length > 0) { setSexChoices(parsed.sexChoices); setChoices([]) }
-                if (parsed?.sceneSummary) { setSceneSummary(parsed.sceneSummary) }
-                if (parsed?.sceneMood) setSceneMood(parsed.sceneMood)
-                if (parsed?.laraDialogue?.length > 0) setLaraDialogue(parsed.laraDialogue)
-                if (parsed?.multiOrgasm) setMultiOrgasm(parsed.multiOrgasm)
-                if (parsed?.penisStats) setPenisStats(parsed.penisStats)
-              } else if (parsed?.type === 'error') {
-                throw new Error(parsed?.message ?? 'Помилка')
+              parsed = JSON.parse(dataStr)
+            } catch {
+              continue // skip incomplete/invalid JSON chunks
+            }
+            if (parsed?.type === 'chunk') {
+              const chunk = parsed?.content ?? ''
+              accumulated += chunk
+              const display = stripAllTags(accumulated)
+              setStreamingContent(display)
+              processedTagsRef.current = parseStreamTagsAndApply(accumulated, processedTagsRef.current)
+            } else if (parsed?.type === 'done') {
+              setGameState(parsed.gameState ?? null)
+              setRelationships(parsed.relationships ?? [])
+              setInventory(parsed.inventory ?? [])
+              setQuests(parsed.quests ?? [])
+              setDiary(parsed.diary ?? [])
+              setSkills(parsed.skills ?? [])
+              setTribeReputations(parsed.tribeReputations ?? [])
+              setLocations(parsed.locations ?? [])
+              setAchievements(parsed.achievements ?? [])
+              setDiseases(parsed.diseases ?? [])
+              if (parsed?.choices?.length > 0) setChoices(parsed.choices)
+              if (parsed?.diceRolls?.length > 0) setDiceRoll(parsed.diceRolls[parsed.diceRolls.length - 1])
+              if (parsed?.sexScene) {
+                setSexScene(parsed.sexScene); setSceneSummary(null)
+                if (parsed.sexScene.context_bonuses) setContextBonuses(parsed.sexScene.context_bonuses)
+                setPhase({ phase: parsed.sexScene.phase || 'foreplay', label: 'Прелюдія' })
+                setStamina({ value: 100, tempo: 'medium' })
               }
-            } catch (e: any) {
-              // skip invalid JSON
+              if (parsed?.phase) setPhase(parsed.phase)
+              if (parsed?.pleasure) setPleasure({ lara: Number(parsed.pleasure.lara ?? 0), partner: Number(parsed.pleasure.partner ?? 0) })
+              if (parsed?.stamina) setStamina(parsed.stamina)
+              if (parsed?.combo) setCombo(parsed.combo)
+              if (parsed?.domination !== null && parsed?.domination !== undefined) setDomination(Number(parsed.domination))
+              if (parsed?.reactions?.length > 0) setReactions(prev => [...prev, ...parsed.reactions])
+              if (parsed?.erogenousZones?.length > 0) setErogenousZone(parsed.erogenousZones[parsed.erogenousZones.length - 1])
+              if (parsed?.sexChoices?.length > 0) { setSexChoices(parsed.sexChoices); setChoices([]) }
+              if (parsed?.sceneSummary) { setSceneSummary(parsed.sceneSummary) }
+              if (parsed?.sceneMood) setSceneMood(parsed.sceneMood)
+              if (parsed?.laraDialogue?.length > 0) setLaraDialogue(parsed.laraDialogue)
+              if (parsed?.multiOrgasm) setMultiOrgasm(parsed.multiOrgasm)
+              if (parsed?.penisStats) setPenisStats(parsed.penisStats)
+            } else if (parsed?.type === 'error') {
+              streamError = parsed?.message ?? 'Помилка'
             }
           }
         }
       }
 
-      const finalDisplay = stripAllTags(accumulated)
+      if (streamError) throw new Error(streamError)
 
-      const aiMsg: MessageData = {
-        id: `ai-${Date.now()}`,
-        role: 'assistant',
-        content: finalDisplay,
-        createdAt: new Date().toISOString(),
+      const finalDisplay = stripAllTags(accumulated)
+      if (finalDisplay) {
+        const aiMsg: MessageData = {
+          id: `ai-${Date.now()}`,
+          role: 'assistant',
+          content: finalDisplay,
+          createdAt: new Date().toISOString(),
+        }
+        setMessages((prev) => [...(prev ?? []), aiMsg])
       }
-      setMessages((prev) => [...(prev ?? []), aiMsg])
       setStreamingContent('')
 
     } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        // user stopped — keep partial stream as message if any
+        return
+      }
       console.error('Send error:', error)
+      setLastFailedMessage(text)
       toast.error(error?.message ?? 'Помилка надсилання')
     } finally {
+      abortRef.current = null
       setIsLoading(false)
     }
   }
@@ -745,7 +767,18 @@ export default function GameClient() {
     { label: '🛡️ Оборона', text: 'Підготувати оборону' },
     { label: '💬 Говорити', text: 'Поговорити з NPC поруч' },
     { label: '🔨 Майструвати', text: 'Спробувати створити щось з наявних ресурсів' },
+    { label: '💎 Амулет', text: 'Перевірити амулет на шиї' },
   ]
+
+  const survivalWarnings = useMemo(() => {
+    const warnings: string[] = []
+    if ((gameState?.thirst ?? 0) >= 80) warnings.push('Спрага критична')
+    else if ((gameState?.thirst ?? 0) >= 60) warnings.push('Сильна спрага')
+    if ((gameState?.hunger ?? 0) >= 80) warnings.push('Голод критичний')
+    else if ((gameState?.hunger ?? 0) >= 60) warnings.push('Сильний голод')
+    if (diseases.length > 0) warnings.push(`Хвороби: ${diseases.map(d => d.name).join(', ')}`)
+    return warnings
+  }, [gameState?.thirst, gameState?.hunger, diseases])
 
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
@@ -974,21 +1007,48 @@ export default function GameClient() {
             )}
           </AnimatePresence>
 
-          {/* Quick actions */}
-          <div className="flex-shrink-0 border-t border-border bg-card/30 px-4 py-2">
-            <div className="flex gap-1.5 max-w-3xl mx-auto overflow-x-auto scrollbar-hide">
-              {QUICK_ACTIONS.map((action) => (
-                <button
-                  key={action.label}
-                  onClick={() => { setInput(action.text); inputRef.current?.focus() }}
-                  disabled={isLoading}
-                  className="flex-shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-border bg-muted/50 hover:bg-primary/10 hover:border-primary/30 text-muted-foreground hover:text-foreground transition-all disabled:opacity-40"
-                >
-                  {action.label}
-                </button>
-              ))}
+          {/* Survival warnings */}
+          {survivalWarnings.length > 0 && (
+            <div className="flex-shrink-0 border-t border-amber-500/30 bg-amber-950/20 px-4 py-2">
+              <div className="flex flex-wrap items-center gap-2 max-w-3xl mx-auto text-amber-200/90 text-xs">
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                {survivalWarnings.map((w) => (
+                  <span key={w} className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30">{w}</span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Quick actions — only when no AI choices and not loading */}
+          {choices.length === 0 && sexChoices.length === 0 && !isLoading && (
+            <div className="flex-shrink-0 border-t border-border bg-card/30 px-4 py-2">
+              <div className="flex gap-1.5 max-w-3xl mx-auto overflow-x-auto scrollbar-hide">
+                {QUICK_ACTIONS.map((action) => (
+                  <button
+                    key={action.label}
+                    onClick={() => sendMessage(action.text)}
+                    className="flex-shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-border bg-muted/50 hover:bg-primary/10 hover:border-primary/30 text-muted-foreground hover:text-foreground transition-all"
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {lastFailedMessage && !isLoading && (
+            <div className="flex-shrink-0 border-t border-red-500/20 bg-red-950/20 px-4 py-2">
+              <div className="flex items-center justify-between gap-2 max-w-3xl mx-auto">
+                <p className="text-xs text-red-300/90 truncate">Не вдалося надіслати: {lastFailedMessage}</p>
+                <button
+                  onClick={() => sendMessage(lastFailedMessage)}
+                  className="flex-shrink-0 text-xs px-3 py-1 rounded-lg border border-red-400/40 text-red-200 hover:bg-red-500/20"
+                >
+                  Повторити
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Lara dialogue cards */}
           <AnimatePresence>
@@ -1066,13 +1126,23 @@ export default function GameClient() {
                   }
                 }}
               />
-              <button
-                onClick={() => sendMessage()}
-                disabled={isLoading || !(input?.trim?.())}
-                className="flex-shrink-0 p-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                <Send className="w-4 h-4" />
-              </button>
+              {isLoading ? (
+                <button
+                  onClick={stopGeneration}
+                  className="flex-shrink-0 p-3 rounded-xl bg-red-600/90 text-white hover:bg-red-600 transition-all"
+                  title="Зупинити"
+                >
+                  <Square className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => sendMessage()}
+                  disabled={!(input?.trim?.())}
+                  className="flex-shrink-0 p-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>

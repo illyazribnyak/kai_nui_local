@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: kai-nui-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kai
+      POSTGRES_PASSWORD: kai
+      POSTGRES_DB: kai_nui
+    ports:
+      - "5432:5432"
+    volumes:
+      - kai_nui_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kai -d kai_nui"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  kai_nui_pgdata:
