@@ -3,14 +3,15 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle } from 'lucide-react'
-import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData } from '@/lib/types'
+import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData, WorldFactData } from '@/lib/types'
+import { chapterProgressPercent, ENDING_PATHS } from '@/lib/game/chapters'
 import { Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { getAvatar, getLaraAvatar, getTribeAvatar } from '@/lib/avatar-utils'
 import Image from 'next/image'
 import { DiceRollPopup, DualPleasureMeter, PhaseIndicator, StaminaBar, ComboCounter, DominationScale, PartnerReaction, SexChoiceCards, ErogenousDiscovery, ContextBonusBadges, SceneSummaryCard, SceneAtmosphere, SceneMoodIndicator, LaraDialogueCards, MultiOrgasmPopup, PenisStatsCard, TempoControlButtons } from './sex-mechanics'
 
-type SidebarTab = 'stats' | 'inventory' | 'quests' | 'diary' | 'skills' | 'map' | 'tribes' | 'achievements' | 'characters'
+type SidebarTab = 'stats' | 'inventory' | 'quests' | 'diary' | 'skills' | 'map' | 'tribes' | 'achievements' | 'characters' | 'lore'
 
 const ATTITUDE_LABELS: Record<string, { label: string, emoji: string, color: string }> = {
   hostile: { label: 'Ворожий', emoji: '😡', color: 'text-red-500' },
@@ -60,6 +61,7 @@ export default function GameClient() {
   const [tribeReputations, setTribeReputations] = useState<TribeReputationData[]>([])
   const [achievements, setAchievements] = useState<AchievementData[]>([])
   const [diseases, setDiseases] = useState<DiseaseData[]>([])
+  const [worldFacts, setWorldFacts] = useState<WorldFactData[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
@@ -121,6 +123,7 @@ export default function GameClient() {
       setTribeReputations(data?.tribeReputations ?? [])
       setAchievements(data?.achievements ?? [])
       setDiseases(data?.diseases ?? [])
+      setWorldFacts(data?.worldFacts ?? [])
       const msgs = data?.messages ?? []
       if (msgs.length === 0) {
         setMessages([{ id: 'intro', role: 'assistant', content: INTRO_MESSAGE, createdAt: new Date().toISOString() }])
@@ -139,6 +142,7 @@ export default function GameClient() {
         hunger: 20, thirst: 20, timeOfDay: 'day', mood: 'neutral',
         weather: 'clear', season: 'wet', companionName: null, companionBonus: null,
         clothing: 'клапті одягу', bodyPaint: null, accessories: null,
+        chapter: 'arrival', chapterLabel: 'Прибуття', endingPath: null,
       })
       setInitialized(true)
     }
@@ -161,6 +165,8 @@ export default function GameClient() {
       .replace(/\[ACHIEVEMENT\].*?\[\/ACHIEVEMENT\]/gs, '')
       .replace(/\[DISEASE_ADD\].*?\[\/DISEASE_ADD\]/gs, '')
       .replace(/\[DISEASE_REMOVE\].*?\[\/DISEASE_REMOVE\]/gs, '')
+      .replace(/\[FACT_ADD\].*?\[\/FACT_ADD\]/gs, '')
+      .replace(/\[FACT_REMOVE\].*?\[\/FACT_REMOVE\]/gs, '')
       .replace(/\[CHOICES\].*?\[\/CHOICES\]/gs, '')
       .replace(/\[DICE_ROLL\].*?\[\/DICE_ROLL\]/gs, '')
       .replace(/\[SEX_SCENE_START\].*?\[\/SEX_SCENE_START\]/gs, '')
@@ -188,6 +194,8 @@ export default function GameClient() {
       .replace(/\[ACHIEVEMENT\].*/gs, '')
       .replace(/\[DISEASE_ADD\].*/gs, '')
       .replace(/\[DISEASE_REMOVE\].*/gs, '')
+      .replace(/\[FACT_ADD\].*/gs, '')
+      .replace(/\[FACT_REMOVE\].*/gs, '')
       .replace(/\[CHOICES\].*/gs, '')
       .replace(/\[DICE_ROLL\].*/gs, '')
       .replace(/\[SEX_SCENE_START\].*/gs, '')
@@ -484,6 +492,7 @@ export default function GameClient() {
               setLocations(parsed.locations ?? [])
               setAchievements(parsed.achievements ?? [])
               setDiseases(parsed.diseases ?? [])
+              if (parsed?.worldFacts) setWorldFacts(parsed.worldFacts)
               if (parsed?.choices?.length > 0) setChoices(parsed.choices)
               if (parsed?.diceRolls?.length > 0) setDiceRoll(parsed.diceRolls[parsed.diceRolls.length - 1])
               if (parsed?.sexScene) {
@@ -561,11 +570,13 @@ export default function GameClient() {
         hunger: 20, thirst: 20, timeOfDay: 'day', mood: 'neutral',
         weather: 'clear', season: 'wet', companionName: null, companionBonus: null,
         clothing: 'клапті одягу', bodyPaint: null, accessories: null,
+        chapter: 'arrival', chapterLabel: 'Прибуття', endingPath: null,
       })
       setLocations([])
       setTribeReputations([])
       setAchievements([])
       setDiseases([])
+      setWorldFacts([])
       setChoices([])
       setSexScene(null)
       setPleasure({ lara: 0, partner: 0 })
@@ -841,14 +852,47 @@ export default function GameClient() {
       {/* Header */}
       <header className="flex-shrink-0 border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-3">
-            <Compass className="w-6 h-6 text-primary" />
-            <div>
+          <div className="flex items-center gap-3 min-w-0">
+            <Compass className="w-6 h-6 text-primary flex-shrink-0" />
+            <div className="min-w-0">
               <h1 className="font-display text-base font-bold tracking-tight text-foreground">Острів Кай-Нуї</h1>
-              <p className="text-[10px] text-muted-foreground">День {gameState?.dayNumber ?? 1} • {getTimeOfDayEmoji(gameState?.timeOfDay ?? 'day')} {getTimeOfDayLabel(gameState?.timeOfDay ?? 'day')} • {getMoodEmoji(gameState?.mood ?? 'neutral')} • {gameState?.location ?? 'Невідомо'}</p>
+              <p className="text-[10px] text-muted-foreground truncate">
+                День {gameState?.dayNumber ?? 1} • {gameState?.chapterLabel ?? 'Прибуття'}
+                {gameState?.endingPath ? ` • ${ENDING_PATHS[gameState.endingPath] || gameState.endingPath}` : ''}
+                {' '}• {getTimeOfDayEmoji(gameState?.timeOfDay ?? 'day')} {getTimeOfDayLabel(gameState?.timeOfDay ?? 'day')}
+                {' '}• {gameState?.location ?? 'Невідомо'}
+              </p>
+              <div className="mt-1 h-1 w-36 sm:w-48 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary/80 transition-all duration-500"
+                  style={{ width: `${chapterProgressPercent(gameState?.chapter ?? 'arrival')}%` }}
+                />
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/export-game')
+                  if (!res.ok) throw new Error('Export failed')
+                  const blob = await res.blob()
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `kai-nui-day${gameState?.dayNumber ?? 1}.json`
+                  a.click()
+                  URL.revokeObjectURL(url)
+                  toast.success('Експорт завантажено')
+                } catch {
+                  toast.error('Не вдалося експортувати')
+                }
+              }}
+              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              title="Експорт JSON"
+            >
+              <Feather className="w-4 h-4" />
+            </button>
             <button
               onClick={() => openSaveModal('save')}
               className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
@@ -1193,6 +1237,7 @@ export default function GameClient() {
                 { id: 'skills' as SidebarTab, icon: <Flame className="w-3.5 h-3.5" />, label: 'Нав.' },
                 { id: 'diary' as SidebarTab, icon: <Feather className="w-3.5 h-3.5" />, label: 'Днік' },
                 { id: 'characters' as SidebarTab, icon: <Users className="w-3.5 h-3.5" />, label: 'NPC' },
+                { id: 'lore' as SidebarTab, icon: <Scroll className="w-3.5 h-3.5" />, label: 'Лор' },
                 { id: 'achievements' as SidebarTab, icon: <Gem className="w-3.5 h-3.5" />, label: '🏆' },
               ].map((tab) => (
                 <button
@@ -1829,6 +1874,45 @@ export default function GameClient() {
                       </motion.div>
                     )
                   })
+                )}
+              </div>
+            )}
+
+            {/* LORE / WORLD FACTS TAB */}
+            {sidebarTab === 'lore' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">📜 Канон світу</h3>
+                  <span className="text-[10px] text-muted-foreground font-mono">{worldFacts.length}</span>
+                </div>
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5">
+                  <p className="text-[11px] text-primary font-medium">
+                    {gameState?.chapterLabel ?? 'Прибуття'}
+                    {gameState?.endingPath ? ` → ${ENDING_PATHS[gameState.endingPath] || gameState.endingPath}` : ''}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Прогрес сюжету: {chapterProgressPercent(gameState?.chapter ?? 'arrival')}%
+                  </p>
+                </div>
+                {worldFacts.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Scroll className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">Поки немає канонічних фактів</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Вони з&apos;являться з важливими подіями</p>
+                  </div>
+                ) : (
+                  worldFacts.map((f) => (
+                    <div key={f.id} className="bg-muted/30 rounded-lg p-2.5 border border-border/50">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/15 text-primary">{f.category}</span>
+                        <span className="text-[10px] font-mono text-muted-foreground truncate">{f.key}</span>
+                      </div>
+                      <p className="text-xs text-foreground/90 leading-relaxed">{f.content}</p>
+                      {f.dayNumber > 0 && (
+                        <p className="text-[9px] text-muted-foreground/50 mt-1">день {f.dayNumber}</p>
+                      )}
+                    </div>
+                  ))
                 )}
               </div>
             )}

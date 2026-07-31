@@ -18,3 +18,4 @@ export const VALID_ATTITUDES = ['hostile', 'wary', 'neutral', 'curious', 'friend
 export const MAX_PLAYER_MESSAGE_LENGTH = 2000
 export const MAX_CONTEXT_MESSAGES = 16
 export const COMPRESS_THRESHOLD = 30
+export const MAX_WORLD_FACTS_IN_PROMPT = 40

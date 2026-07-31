@@ -39,8 +39,9 @@ export async function POST(request: NextRequest) {
     const tribeReputations = await prisma.tribeReputation.findMany()
     const achievements = await prisma.achievement.findMany()
     const diseases = await prisma.disease.findMany()
+    const worldFacts = await prisma.worldFact.findMany()
 
-    const data = JSON.stringify({ gameState, relationships, inventory, quests, diary, skills, messages: messages.map(m => ({ role: m.role, content: m.content })), summaries: summaries.map(s => ({ content: s.content, dayRange: s.dayRange })), locations, tribeReputations, achievements, diseases })
+    const data = JSON.stringify({ gameState, relationships, inventory, quests, diary, skills, messages: messages.map(m => ({ role: m.role, content: m.content })), summaries: summaries.map(s => ({ content: s.content, dayRange: s.dayRange })), locations, tribeReputations, achievements, diseases, worldFacts })
 
     const slotName = name || `День ${gameState?.dayNumber ?? 1} — ${gameState?.location ?? 'Острів'}`
 

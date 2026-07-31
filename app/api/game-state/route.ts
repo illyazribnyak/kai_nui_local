@@ -34,6 +34,19 @@ export async function GET() {
     const tribeReputations = await prisma.tribeReputation.findMany()
     const achievements = await prisma.achievement.findMany({ orderBy: { unlockedAt: 'desc' } })
     const diseases = await prisma.disease.findMany()
+    let worldFacts: any[] = []
+    try {
+      worldFacts = await prisma.worldFact.findMany({ orderBy: { createdAt: 'asc' } })
+      if (worldFacts.length === 0) {
+        const { seedStarterFacts, seedStarterQuests } = await import('@/lib/seed-quests')
+        await seedStarterFacts()
+        const questCount = await prisma.quest.count()
+        if (questCount === 0) await seedStarterQuests()
+        worldFacts = await prisma.worldFact.findMany({ orderBy: { createdAt: 'asc' } })
+      }
+    } catch {
+      worldFacts = []
+    }
 
     return NextResponse.json({
       gameState,
@@ -45,6 +58,7 @@ export async function GET() {
       tribeReputations,
       achievements,
       diseases,
+      worldFacts,
       diary: diary?.map?.((d: any) => ({
         id: d?.id,
         title: d?.title,

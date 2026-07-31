@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
     await prisma.tribeReputation.deleteMany()
     await prisma.achievement.deleteMany()
     await prisma.disease.deleteMany()
+    await prisma.worldFact.deleteMany()
 
     // Restore game state
     if (saved.gameState) {
@@ -146,6 +147,23 @@ export async function POST(request: NextRequest) {
           },
         })
       }
+    }
+
+    // Restore world facts
+    if (saved.worldFacts?.length > 0) {
+      for (const f of saved.worldFacts) {
+        await prisma.worldFact.create({
+          data: {
+            key: f.key,
+            category: f.category ?? 'plot',
+            content: f.content ?? '',
+            dayNumber: f.dayNumber ?? 1,
+          },
+        })
+      }
+    } else {
+      const { seedStarterFacts } = await import('@/lib/seed-quests')
+      await seedStarterFacts()
     }
 
     return Response.json({ success: true })

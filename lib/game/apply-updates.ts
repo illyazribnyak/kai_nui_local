@@ -9,6 +9,7 @@ import {
   VALID_TRIBES,
   VALID_WEATHER,
 } from '@/lib/game/constants'
+import { applyFactUpdates, refreshChapterProgress } from '@/lib/game/facts'
 
 export async function applyStatUpdates(statUpdate: any) {
   if (!statUpdate || Object.keys(statUpdate).length === 0) return
@@ -18,6 +19,7 @@ export async function applyStatUpdates(statUpdate: any) {
     'pregnancyWeek', 'pregnancyFather', 'amuletEnergy', 'dayNumber',
     'isDarkLara', 'hunger', 'thirst', 'timeOfDay', 'mood', 'weather',
     'season', 'companionName', 'companionBonus', 'clothing', 'bodyPaint', 'accessories',
+    'chapter', 'chapterLabel', 'endingPath',
   ]
   const updateData: any = {}
   for (const key of validFields) {
@@ -38,7 +40,7 @@ export async function applyStatUpdates(statUpdate: any) {
       if ((VALID_WEATHER as readonly string[]).includes(statUpdate[key])) updateData[key] = statUpdate[key]
     } else if (key === 'season') {
       if ((VALID_SEASONS as readonly string[]).includes(statUpdate[key])) updateData[key] = statUpdate[key]
-    } else if (['clothing', 'bodyPaint', 'accessories', 'companionName', 'companionBonus', 'location', 'pregnancyFather'].includes(key)) {
+    } else if (['clothing', 'bodyPaint', 'accessories', 'companionName', 'companionBonus', 'location', 'pregnancyFather', 'chapter', 'chapterLabel', 'endingPath'].includes(key)) {
       updateData[key] = typeof statUpdate[key] === 'string' || statUpdate[key] === null
         ? statUpdate[key]
         : String(statUpdate[key])
@@ -318,6 +320,7 @@ export async function applyAllUpdates(
     tribe: any[]
     achievement: any[]
     disease: any[]
+    facts?: any[]
   },
   dayNumber: number
 ) {
@@ -330,7 +333,12 @@ export async function applyAllUpdates(
   await applyTribeUpdates(merged.tribe)
   await applyAchievements(merged.achievement)
   await applyDiseaseUpdates(merged.disease)
+  await applyFactUpdates(merged.facts ?? [], dayNumber)
   if (merged.stat?.location) {
     await applyLocationDiscovery(merged.stat.location)
   }
+  // Recompute story chapter after facts/location
+  const loc = merged.stat?.location
+  const explicitChapter = merged.stat?.chapter
+  await refreshChapterProgress(loc, explicitChapter)
 }

@@ -36,8 +36,25 @@ model GameState {
   clothing      String   @default("клапті одягу")
   bodyPaint     String?
   accessories   String?
+  // Story progress
+  chapter       String   @default("arrival")
+  chapterLabel  String   @default("Прибуття")
+  endingPath    String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// Structured long-term memory the AI must respect
+model WorldFact {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  category  String   @default("plot") // plot | npc | item | secret | ending | world
+  content   String
+  dayNumber Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
 }
 
 model Message {

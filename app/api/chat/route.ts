@@ -5,17 +5,30 @@ import { prisma } from '@/lib/db'
 import { getGameContext } from '@/lib/game-context'
 import { callAnalyzerLLM, callDeepSeekWithRetry } from '@/lib/llm/client'
 import { safeParseJSON } from '@/lib/game/json'
-import { SKILL_NAMES, MAX_CONTEXT_MESSAGES, COMPRESS_THRESHOLD, MAX_PLAYER_MESSAGE_LENGTH } from '@/lib/game/constants'
+import { SKILL_NAMES, MAX_CONTEXT_MESSAGES, COMPRESS_THRESHOLD, MAX_PLAYER_MESSAGE_LENGTH, MAX_WORLD_FACTS_IN_PROMPT } from '@/lib/game/constants'
 import { applyAllUpdates } from '@/lib/game/apply-updates'
 import { applySurvivalDefaults, parseNarrativeStats, tickDiseases } from '@/lib/game/survival'
+import { resolveDiceRolls } from '@/lib/game/dice'
+import { CHAPTERS, ENDING_PATHS } from '@/lib/game/chapters'
 
-function buildSystemPrompt(gameState: any, relationships: any[], inventory: any[], quests: any[], skills: any[], summaries: any[], tribeReps: any[], diseases: any[] = []): string {
+function buildSystemPrompt(
+  gameState: any,
+  relationships: any[],
+  inventory: any[],
+  quests: any[],
+  skills: any[],
+  summaries: any[],
+  tribeReps: any[],
+  diseases: any[] = [],
+  worldFacts: any[] = []
+): string {
   const gameContext = getGameContext()
 
   const statsBlock = `
 --- ПОТОЧНИЙ СТАН ЛАРИ ---
 День: ${gameState?.dayNumber ?? 1}
-Локація: ${gameState?.location ?? 'Берег острова'}
+Глава: ${gameState?.chapterLabel ?? 'Прибуття'} (${gameState?.chapter ?? 'arrival'})
+${gameState?.endingPath ? `Шлях кінцівки: ${ENDING_PATHS[gameState.endingPath] || gameState.endingPath}\n` : ''}Локація: ${gameState?.location ?? 'Берег острова'}
 Сила: ${gameState?.strength ?? 6} | Спритність: ${gameState?.agility ?? 8} | Витривалість: ${gameState?.endurance ?? 7}
 Харизма: ${gameState?.charisma ?? 7} | Воля: ${gameState?.willpower ?? 8}
 Бажання: ${gameState?.desire ?? 0}/100
@@ -32,9 +45,15 @@ function buildSystemPrompt(gameState: any, relationships: any[], inventory: any[
 ---
 `
 
+  const factsBlock = worldFacts?.length > 0
+    ? `\n--- КАНОНІЧНІ ФАКТИ СВІТУ (НЕ СУПЕРЕЧ!) ---\n${worldFacts.slice(0, MAX_WORLD_FACTS_IN_PROMPT).map((f: any) => `• [${f.category}] ${f.key}: ${f.content}`).join('\n')}\n---\n`
+    : ''
+
   const relBlock = relationships?.length > 0
     ? `\n--- СТОСУНКИ ---\n${relationships?.map?.((r: any) => `${r?.name} (${r?.tribe}, ${r?.archetype || '?'}): Bond ${r?.bond}/10, ставлення: ${r?.attitude || 'neutral'}, довіра:${r?.trust ?? 50} страх:${r?.fear ?? 0} повага:${r?.respect ?? 50}${r?.personality ? ` [риси: ${r.personality}]` : ''}${r?.notes ? ` — ${r.notes}` : ''}`).join?.('\n') ?? ''}\n---\n`
     : ''
+
+  // factsBlock already defined above
 
   const diseaseBlock = diseases?.length > 0
     ? `\n--- ХВОРОБИ ЛАРИ ---\n${diseases.map((d: any) => `• ${d.name} [${d.severity}]: ${d.effects || d.description}${d.curedBy ? ` (лікується: ${d.curedBy})` : ''}`).join('\n')}\n---\n`
@@ -69,12 +88,18 @@ ${gameContext}
 
 ${statsBlock}
 ${relBlock}
+${factsBlock}
 ${diseaseBlock}
 ${invBlock}
 ${questBlock}
 ${skillBlock}
 ${tribeBlock}
 ${summaryBlock}
+
+# === ГЛАВИ СЮЖЕТУ (прогрес) ===
+Порядок: ${CHAPTERS.map((c) => `${c.order}.${c.label}(${c.id})`).join(' → ')}
+Кінцівки (FACT keys): ending_freedom | ending_priestess | ending_goddess | ending_destroyer | ending_dark_queen
+Підштовхуй сюжет до храму і Скарбу Атлантів, не крутись вічно на березі.
 
 # === ОСНОВНІ ПРАВИЛА ===
 
@@ -260,6 +285,13 @@ ${summaryBlock}
 ### Квести:
 [QUEST_UPDATE]{"action":"add","title":"Знайти джерело води","description":"Дослідити острів","givenBy":"Лара"}[/QUEST_UPDATE]
 [QUEST_UPDATE]{"action":"complete","title":"Знайти їжу"}[/QUEST_UPDATE]
+
+### Канонічні факти світу (довгострокова пам'ять — ОБОВ'ЯЗКОВО для важливих подій):
+[FACT_ADD]{"key":"met_tane","category":"npc","content":"Лара зустріла Тане з племені Кай-Тору"}[/FACT_ADD]
+[FACT_ADD]{"key":"found_temple","category":"plot","content":"Лара знайшла вхід до храму"}[/FACT_ADD]
+[FACT_REMOVE]{"key":"temporary_curse"}[/FACT_REMOVE]
+Категорії: plot, npc, item, secret, ending, world
+Ключі латиницею snake_case. НЕ супереч існуючим фактам.
 
 ### Щоденник:
 [DIARY_UPDATE]{"title":"Перша ніч","content":"Я опинилась на невідомому острові..."}[/DIARY_UPDATE]
@@ -515,7 +547,7 @@ ${aiResponse.substring(0, 6000)}
 
 // === МЕРЖ ОНОВЛЕНЬ: DeepSeek теги + Gemini аналіз ===
 function mergeUpdates(
-  deepseekUpdates: { stat: any, inv: any[], rel: any[], quest: any[], diary: any[], skill: any[], tribe: any[], achievement: any[], disease: any[], choices: string[], diceRolls: any[], sexScene: any, phase: any, pleasure: any, stamina: any, combo: any, domination: number | null, reactions: any[], erogenousZones: any[], sexChoices: any[], sceneSummary: any, sceneMood: any, laraDialogue: any[], multiOrgasm: any, penisStats: any },
+  deepseekUpdates: { stat: any, inv: any[], rel: any[], quest: any[], diary: any[], skill: any[], tribe: any[], achievement: any[], disease: any[], facts: any[], choices: string[], diceRolls: any[], sexScene: any, phase: any, pleasure: any, stamina: any, combo: any, domination: number | null, reactions: any[], erogenousZones: any[], sexChoices: any[], sceneSummary: any, sceneMood: any, laraDialogue: any[], multiOrgasm: any, penisStats: any },
   geminiUpdates: { statUpdates: any, invUpdates: any[], relUpdates: any[], questUpdates: any[], diaryUpdates: any[], skillUpdates: any[], tribeUpdates: any[], achievementUpdates: any[] }
 ) {
   const mergedStat = { ...geminiUpdates.statUpdates, ...deepseekUpdates.stat }
@@ -560,7 +592,34 @@ function mergeUpdates(
     ...(geminiUpdates.achievementUpdates || []).filter((a: any) => !deepseekAchNames.has(a.name?.toLowerCase())),
   ]
 
-  return { stat: mergedStat, inv: mergedInv, rel: mergedRel, quest: mergedQuest, diary: mergedDiary, skill: mergedSkill, tribe: mergedTribe, achievement: mergedAchievement, disease: deepseekUpdates.disease || [], choices: deepseekUpdates.choices || [], diceRolls: deepseekUpdates.diceRolls || [], sexScene: deepseekUpdates.sexScene, phase: deepseekUpdates.phase, pleasure: deepseekUpdates.pleasure, stamina: deepseekUpdates.stamina, combo: deepseekUpdates.combo, domination: deepseekUpdates.domination, reactions: deepseekUpdates.reactions || [], erogenousZones: deepseekUpdates.erogenousZones || [], sexChoices: deepseekUpdates.sexChoices || [], sceneSummary: deepseekUpdates.sceneSummary, sceneMood: deepseekUpdates.sceneMood, laraDialogue: deepseekUpdates.laraDialogue || [], multiOrgasm: deepseekUpdates.multiOrgasm, penisStats: deepseekUpdates.penisStats }
+  return {
+    stat: mergedStat,
+    inv: mergedInv,
+    rel: mergedRel,
+    quest: mergedQuest,
+    diary: mergedDiary,
+    skill: mergedSkill,
+    tribe: mergedTribe,
+    achievement: mergedAchievement,
+    disease: deepseekUpdates.disease || [],
+    facts: deepseekUpdates.facts || [],
+    choices: deepseekUpdates.choices || [],
+    diceRolls: deepseekUpdates.diceRolls || [],
+    sexScene: deepseekUpdates.sexScene,
+    phase: deepseekUpdates.phase,
+    pleasure: deepseekUpdates.pleasure,
+    stamina: deepseekUpdates.stamina,
+    combo: deepseekUpdates.combo,
+    domination: deepseekUpdates.domination,
+    reactions: deepseekUpdates.reactions || [],
+    erogenousZones: deepseekUpdates.erogenousZones || [],
+    sexChoices: deepseekUpdates.sexChoices || [],
+    sceneSummary: deepseekUpdates.sceneSummary,
+    sceneMood: deepseekUpdates.sceneMood,
+    laraDialogue: deepseekUpdates.laraDialogue || [],
+    multiOrgasm: deepseekUpdates.multiOrgasm,
+    penisStats: deepseekUpdates.penisStats,
+  }
 }
 
 // === ПАРСИНГ ТЕГІВ З ВІДПОВІДІ DEEPSEEK (з валідацією) ===
@@ -620,6 +679,17 @@ function parseDeepSeekTags(content: string) {
   for (const m of content.matchAll(/\[DISEASE_REMOVE\](.*?)\[\/DISEASE_REMOVE\]/gs)) {
     const p = safeParseJSON(m[1].trim(), 'DISEASE_REMOVE')
     if (p?.name) { p._action = 'remove'; diseaseUpdates.push(p) }
+  }
+
+  // WORLD FACT tags
+  const facts: any[] = []
+  for (const m of content.matchAll(/\[FACT_ADD\](.*?)\[\/FACT_ADD\]/gs)) {
+    const p = safeParseJSON(m[1].trim(), 'FACT_ADD')
+    if (p?.key || p?.name) { p._action = 'add'; facts.push(p) }
+  }
+  for (const m of content.matchAll(/\[FACT_REMOVE\](.*?)\[\/FACT_REMOVE\]/gs)) {
+    const p = safeParseJSON(m[1].trim(), 'FACT_REMOVE')
+    if (p?.key || p?.name) { p._action = 'remove'; facts.push(p) }
   }
 
   // CHOICES
@@ -741,7 +811,7 @@ function parseDeepSeekTags(content: string) {
     multiOrgasm = safeParseJSON(multiOrgasmMatch[1].trim(), 'MULTI_ORGASM')
   }
 
-  return { stat: statUpdate, inv: invUpdates, rel: relUpdates, quest: questUpdates, diary: diaryUpdates, skill: skillUpdates, tribe: tribeUpdates, achievement: achievements, disease: diseaseUpdates, choices, diceRolls, sexScene, phase, pleasure, stamina, combo, domination, reactions, erogenousZones, sexChoices, sceneSummary, sceneMood, laraDialogue, multiOrgasm, penisStats }
+  return { stat: statUpdate, inv: invUpdates, rel: relUpdates, quest: questUpdates, diary: diaryUpdates, skill: skillUpdates, tribe: tribeUpdates, achievement: achievements, disease: diseaseUpdates, facts, choices, diceRolls, sexScene, phase, pleasure, stamina, combo, domination, reactions, erogenousZones, sexChoices, sceneSummary, sceneMood, laraDialogue, multiOrgasm, penisStats }
 }
 
 function cleanDisplayContent(content: string): string {
@@ -756,6 +826,8 @@ function cleanDisplayContent(content: string): string {
     .replace(/\[ACHIEVEMENT\].*?\[\/ACHIEVEMENT\]/gs, '')
     .replace(/\[DISEASE_ADD\].*?\[\/DISEASE_ADD\]/gs, '')
     .replace(/\[DISEASE_REMOVE\].*?\[\/DISEASE_REMOVE\]/gs, '')
+    .replace(/\[FACT_ADD\].*?\[\/FACT_ADD\]/gs, '')
+    .replace(/\[FACT_REMOVE\].*?\[\/FACT_REMOVE\]/gs, '')
     .replace(/\[CHOICES\].*?\[\/CHOICES\]/gs, '')
     .replace(/\[DICE_ROLL\].*?\[\/DICE_ROLL\]/gs, '')
     .replace(/\[SEX_SCENE_START\].*?\[\/SEX_SCENE_START\]/gs, '')
@@ -812,7 +884,8 @@ export async function POST(request: NextRequest) {
     await prisma.message.create({ data: { role: 'user', content: message } })
 
     const diseases = await prisma.disease.findMany()
-    const systemPrompt = buildSystemPrompt(gameState, relationships, inventory, quests, skills, summaries, tribeReps, diseases)
+    const worldFacts = await prisma.worldFact.findMany({ orderBy: { createdAt: 'asc' } })
+    const systemPrompt = buildSystemPrompt(gameState, relationships, inventory, quests, skills, summaries, tribeReps, diseases, worldFacts)
     const llmMessages = [
       { role: 'system', content: systemPrompt },
       ...(recentMessages?.map?.((m: any) => ({
@@ -877,6 +950,10 @@ export async function POST(request: NextRequest) {
           merged.stat = applySurvivalDefaults(merged.stat, gameState)
           merged.stat = parseNarrativeStats(fullContent, merged.stat)
 
+          // 5.6 Fair server-side dice re-roll
+          const resolvedDice = resolveDiceRolls(merged.diceRolls || [], gameState)
+          merged.diceRolls = resolvedDice
+
           // 6. Застосовуємо всі оновлення (clamped / validated)
           await applyAllUpdates(merged, gameState?.dayNumber ?? 1)
           await tickDiseases()
@@ -892,6 +969,7 @@ export async function POST(request: NextRequest) {
           const updatedLocations = await prisma.location.findMany()
           const updatedAchievements = await prisma.achievement.findMany({ orderBy: { unlockedAt: 'desc' } })
           const updatedDiseases = await prisma.disease.findMany()
+          const updatedFacts = await prisma.worldFact.findMany({ orderBy: { createdAt: 'asc' } })
 
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'done',
@@ -905,6 +983,7 @@ export async function POST(request: NextRequest) {
             locations: updatedLocations,
             achievements: updatedAchievements,
             diseases: updatedDiseases,
+            worldFacts: updatedFacts,
             choices: merged.choices,
             diceRolls: merged.diceRolls,
             sexScene: merged.sexScene,

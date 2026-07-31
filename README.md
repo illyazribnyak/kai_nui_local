@@ -51,9 +51,18 @@ npm run dev
 - **PostgreSQL + Prisma** — стан гри (singleton playthrough + save slots)
 - **`/api/chat`** — стрім наративу, парсинг тегів, оновлення стейту
 - **`data/game_context.txt`** — lore/rules для LLM
-- **`lib/game/*`** — parse tags, apply updates, survival ticks
+- **`lib/game/*`** — apply updates, survival, chapters, dice, world facts
+
+### Сюжетна система
+- **WorldFact** — канонічна довгострокова пам'ять (`FACT_ADD` / `FACT_REMOVE`)
+- **Глави** — arrival → jungle → tribe → depths → temple → climax → ending
+- **Dice** — d20 перекидається на сервері (чесні результати)
+- **Starter quests** — «Вижити», «Дослідити», «Амулет»
 
 Детальніша інструкція українською: [LOCAL_SETUP.md](./LOCAL_SETUP.md)
 
-## API health
-`GET /api/health` — перевірка DB і наявності ключів (без секретів).
+## API
+| Endpoint | Опис |
+|----------|------|
+| `GET /api/health` | DB + ключі |
+| `GET /api/export-game` | повний JSON-бекап сейву |

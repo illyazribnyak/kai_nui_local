@@ -27,6 +27,17 @@ export interface GameState {
   clothing: string
   bodyPaint: string | null
   accessories: string | null
+  chapter: string
+  chapterLabel: string
+  endingPath: string | null
+}
+
+export interface WorldFactData {
+  id: string
+  key: string
+  category: string
+  content: string
+  dayNumber: number
 }
 
 export interface MessageData {

@@ -25,6 +25,7 @@ export async function POST() {
     await prisma.location.deleteMany({})
     await prisma.tribeReputation.deleteMany({})
     await prisma.achievement.deleteMany({})
+    await prisma.worldFact.deleteMany({})
     // Reset game state
     await prisma.gameState.upsert({
       where: { id: 'singleton' },
@@ -56,6 +57,9 @@ export async function POST() {
         clothing: 'клапті одягу',
         bodyPaint: null,
         accessories: null,
+        chapter: 'arrival',
+        chapterLabel: 'Прибуття',
+        endingPath: null,
       },
       create: {
         id: 'singleton',
@@ -63,12 +67,15 @@ export async function POST() {
       },
     })
 
-    // Seed initial skills, locations, tribes
+    // Seed initial skills, locations, tribes, quests, facts
     const { seedSkills } = await import('@/lib/seed-skills')
     await seedSkills()
     const { seedLocations, seedTribes } = await import('@/lib/seed-locations')
     await seedLocations()
     await seedTribes()
+    const { seedStarterQuests, seedStarterFacts } = await import('@/lib/seed-quests')
+    await seedStarterQuests()
+    await seedStarterFacts()
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
