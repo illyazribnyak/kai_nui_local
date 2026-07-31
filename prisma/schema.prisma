@@ -1,0 +1,161 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model GameState {
+  id            String   @id @default("singleton")
+  strength      Int      @default(6)
+  agility       Int      @default(8)
+  endurance     Int      @default(7)
+  charisma      Int      @default(7)
+  willpower     Int      @default(8)
+  desire        Int      @default(0)
+  shame         Int      @default(0)
+  confidence    Int      @default(50)
+  hunger        Int      @default(20)
+  thirst        Int      @default(20)
+  location      String   @default("Берег острова")
+  timeOfDay     String   @default("day")
+  mood          String   @default("neutral")
+  isPregnant    Boolean  @default(false)
+  pregnancyWeek Int      @default(0)
+  pregnancyFather String? 
+  amuletEnergy  Int      @default(0)
+  dayNumber     Int      @default(1)
+  isDarkLara    Boolean  @default(false)
+  gameStarted   Boolean  @default(false)
+  weather       String   @default("clear")
+  season        String   @default("wet")
+  companionName String?
+  companionBonus String?
+  clothing      String   @default("клапті одягу")
+  bodyPaint     String?
+  accessories   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Relationship {
+  id          String @id @default(cuid())
+  name        String @unique
+  bond        Int    @default(0)
+  tribe       String @default("")
+  notes       String @default("")
+  met         Boolean @default(false)
+  personality String @default("")
+  archetype   String @default("")
+  attitude    String @default("neutral")
+  metOnDay    Int    @default(1)
+  trust       Int    @default(50)
+  fear        Int    @default(0)
+  respect     Int    @default(50)
+}
+
+model Disease {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  description   String   @default("")
+  source        String   @default("")
+  severity      String   @default("mild")
+  effects       String   @default("")
+  duration      Int      @default(-1)
+  curedBy       String   @default("")
+  turnsLeft     Int      @default(-1)
+  contractedAt  DateTime @default(now())
+}
+
+model InventoryItem {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String   @default("")
+  quantity    Int      @default(1)
+  category    String   @default("misc")
+  createdAt   DateTime @default(now())
+}
+
+model Quest {
+  id          String   @id @default(cuid())
+  title       String   @unique
+  description String   @default("")
+  status      String   @default("active")
+  givenBy     String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DiaryEntry {
+  id        String   @id @default(cuid())
+  title     String   @default("")
+  content   String
+  dayNumber Int      @default(1)
+  createdAt DateTime @default(now())
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  level       Int      @default(0)
+  xp          Int      @default(0)
+  maxXp       Int      @default(100)
+  category    String   @default("base")
+  description String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Location {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String   @default("")
+  x           Float    @default(50)
+  y           Float    @default(50)
+  type        String   @default("generic")
+  discovered  Boolean  @default(false)
+  isCurrent   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model TribeReputation {
+  id         String @id @default(cuid())
+  tribeName  String @unique
+  reputation Int    @default(0)
+  status     String @default("neutral")
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String   @default("")
+  icon        String   @default("🏆")
+  unlockedAt  DateTime @default(now())
+}
+
+model StorySummary {
+  id        String   @id @default(cuid())
+  content   String
+  dayRange  String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model SaveSlot {
+  id        String   @id @default(cuid())
+  slotNumber Int     @unique
+  name      String   @default("")
+  data      String   // JSON blob with full game state
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
