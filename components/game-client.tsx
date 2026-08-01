@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2 } from 'lucide-react'
+import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2, MoreVertical, Target } from 'lucide-react'
 import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData, WorldFactData } from '@/lib/types'
 import { chapterProgressPercent, ENDING_PATHS } from '@/lib/game/chapters'
 import { CHAPTER_MAP_GOALS } from '@/lib/prompt-mode'
@@ -112,9 +112,12 @@ export default function GameClient() {
   const [apiKeyOk, setApiKeyOk] = useState<boolean | null>(null)
   const [apiHint, setApiHint] = useState<string>('')
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false)
+  const [showMoreTabs, setShowMoreTabs] = useState(false)
   const [lastTagLog, setLastTagLog] = useState<any>(null)
   const [showTagLog, setShowTagLog] = useState(false)
   const [promptModeLabel, setPromptModeLabel] = useState<string | null>(null)
+  const headerMenuRef = useRef<HTMLDivElement>(null)
   const processedTagsRef = useRef(0)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -743,6 +746,70 @@ export default function GameClient() {
     [gameState?.thirst, gameState?.hunger, diseases]
   )
 
+  const activeQuest = useMemo(() => {
+    const active = (quests ?? []).filter((q) => q.status === 'active')
+    if (active.length === 0) return null
+    // Prefer earliest story-ladder quest still open
+    const ladderOrder = [
+      'Вижити на березі',
+      'Увійти в джунглі',
+      'Знайти людей острова',
+      'Зрозуміти амулет',
+      'Шлях до храму',
+      'Скарб Атлантів',
+    ]
+    for (const title of ladderOrder) {
+      const hit = active.find((q) => q.title === title)
+      if (hit) return hit
+    }
+    return active[0]
+  }, [quests])
+
+  const chapterPct = chapterProgressPercent(gameState?.chapter ?? 'arrival')
+
+  const PRIMARY_TABS: { id: SidebarTab; icon: React.ReactNode; label: string }[] = [
+    { id: 'stats', icon: <Shield className="w-3.5 h-3.5" />, label: 'Стати' },
+    { id: 'map', icon: <MapPin className="w-3.5 h-3.5" />, label: 'Карта' },
+    { id: 'quests', icon: <BookOpen className="w-3.5 h-3.5" />, label: 'Квести' },
+    { id: 'characters', icon: <Users className="w-3.5 h-3.5" />, label: 'NPC' },
+  ]
+  const MORE_TABS: { id: SidebarTab; icon: React.ReactNode; label: string }[] = [
+    { id: 'inventory', icon: <Package className="w-3.5 h-3.5" />, label: 'Інвентар' },
+    { id: 'lore', icon: <Scroll className="w-3.5 h-3.5" />, label: 'Лор' },
+    { id: 'skills', icon: <Flame className="w-3.5 h-3.5" />, label: 'Навички' },
+    { id: 'tribes', icon: <Compass className="w-3.5 h-3.5" />, label: 'Племена' },
+    { id: 'diary', icon: <Feather className="w-3.5 h-3.5" />, label: 'Щоденник' },
+    { id: 'achievements', icon: <Gem className="w-3.5 h-3.5" />, label: 'Нагороди' },
+  ]
+
+  useEffect(() => {
+    if (!showHeaderMenu) return
+    const onDoc = (e: MouseEvent) => {
+      if (headerMenuRef.current && !headerMenuRef.current.contains(e.target as Node)) {
+        setShowHeaderMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [showHeaderMenu])
+
+  const runExport = async () => {
+    try {
+      const res = await fetch('/api/export-game')
+      if (!res.ok) throw new Error('Export failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `kai-nui-day${gameState?.dayNumber ?? 1}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Експорт завантажено')
+    } catch {
+      toast.error('Не вдалося експортувати')
+    }
+  }
+
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
       case 'зброя': return '\u2694\ufe0f'
@@ -800,7 +867,11 @@ export default function GameClient() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-screen flex flex-col bg-background overflow-hidden relative">
+      {/* Atmosphere layers */}
+      <div className="pointer-events-none absolute inset-0 island-atmosphere" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 island-vignetting" aria-hidden />
+
       {showOnboarding && (
         <OnboardingOverlay
           onClose={dismissOnboarding}
@@ -810,28 +881,39 @@ export default function GameClient() {
           }}
         />
       )}
+
       {/* Header */}
-      <header className="flex-shrink-0 border-b border-border bg-card/80 backdrop-blur-sm">
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-3 min-w-0">
-            <Compass className="w-6 h-6 text-primary flex-shrink-0" />
-            <div className="min-w-0">
-              <h1 className="font-display text-base font-bold tracking-tight text-foreground">Острів Кай-Нуї</h1>
+      <header className="flex-shrink-0 border-b border-border/80 bg-card/70 backdrop-blur-md relative z-10">
+        <div className="flex items-center justify-between px-3 sm:px-4 h-14 gap-2">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center flex-shrink-0">
+              <Compass className="w-5 h-5 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <h1 className="font-display text-sm sm:text-base font-bold tracking-tight text-foreground truncate">
+                  Острів Кай-Нуї
+                </h1>
+                <span className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25 flex-shrink-0">
+                  {chapterPct}%
+                </span>
+              </div>
               <p className="text-[10px] text-muted-foreground truncate">
-                День {gameState?.dayNumber ?? 1} • {gameState?.chapterLabel ?? 'Прибуття'}
-                {gameState?.endingPath ? ` • ${ENDING_PATHS[gameState.endingPath] || gameState.endingPath}` : ''}
-                {' '}• {getTimeOfDayEmoji(gameState?.timeOfDay ?? 'day')} {getTimeOfDayLabel(gameState?.timeOfDay ?? 'day')}
-                {' '}• {gameState?.location ?? 'Невідомо'}
+                День {gameState?.dayNumber ?? 1}
+                {' · '}{gameState?.chapterLabel ?? 'Прибуття'}
+                {' · '}{getTimeOfDayEmoji(gameState?.timeOfDay ?? 'day')} {getTimeOfDayLabel(gameState?.timeOfDay ?? 'day')}
+                {' · '}{gameState?.location ?? 'Невідомо'}
               </p>
-              <div className="mt-1 h-1 w-36 sm:w-48 bg-muted rounded-full overflow-hidden">
+              <div className="mt-1 h-1.5 w-full max-w-[14rem] sm:max-w-xs bg-muted/80 rounded-full overflow-hidden ring-1 ring-border/50">
                 <div
-                  className="h-full bg-primary/80 transition-all duration-500"
-                  style={{ width: `${chapterProgressPercent(gameState?.chapter ?? 'arrival')}%` }}
+                  className="h-full rounded-full bg-gradient-to-r from-amber-600 via-primary to-yellow-400 transition-all duration-700 shadow-[0_0_8px_rgba(245,158,11,0.45)]"
+                  style={{ width: `${Math.max(4, chapterPct)}%` }}
                 />
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-1 flex-shrink-0">
             <input
               ref={importInputRef}
               type="file"
@@ -859,85 +941,102 @@ export default function GameClient() {
                 }
               }}
             />
-            <button
-              onClick={() => importInputRef.current?.click()}
-              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-              title="Імпорт JSON"
-            >
-              <Upload className="w-4 h-4" />
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  const res = await fetch('/api/export-game')
-                  if (!res.ok) throw new Error('Export failed')
-                  const blob = await res.blob()
-                  const url = URL.createObjectURL(blob)
-                  const a = document.createElement('a')
-                  a.href = url
-                  a.download = `kai-nui-day${gameState?.dayNumber ?? 1}.json`
-                  a.click()
-                  URL.revokeObjectURL(url)
-                  toast.success('Експорт завантажено')
-                } catch {
-                  toast.error('Не вдалося експортувати')
-                }
-              }}
-              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-              title="Експорт JSON"
-            >
-              <Feather className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => openSaveModal('save')}
-              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-              title="Зберегти"
-            >
-              <Save className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => openSaveModal('load')}
-              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-              title="Завантажити"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-            <button
-              onClick={resetGame}
-              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-              title="Нова гра"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
+
+            <div className="relative" ref={headerMenuRef}>
+              <button
+                onClick={() => setShowHeaderMenu((v) => !v)}
+                className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                title="Меню"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+              <AnimatePresence>
+                {showHeaderMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                    className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-border bg-card shadow-xl z-50 py-1 overflow-hidden"
+                  >
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
+                      onClick={() => { setShowHeaderMenu(false); openSaveModal('save') }}
+                    >
+                      <Save className="w-4 h-4 text-primary" /> Зберегти слот
+                    </button>
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
+                      onClick={() => { setShowHeaderMenu(false); openSaveModal('load') }}
+                    >
+                      <Download className="w-4 h-4 text-primary" /> Завантажити слот
+                    </button>
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
+                      onClick={() => { setShowHeaderMenu(false); void runExport() }}
+                    >
+                      <Feather className="w-4 h-4 text-primary" /> Експорт JSON
+                    </button>
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
+                      onClick={() => { setShowHeaderMenu(false); importInputRef.current?.click() }}
+                    >
+                      <Upload className="w-4 h-4 text-primary" /> Імпорт JSON
+                    </button>
+                    <div className="h-px bg-border my-1" />
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left text-red-400"
+                      onClick={() => { setShowHeaderMenu(false); void resetGame() }}
+                    >
+                      <RotateCcw className="w-4 h-4" /> Нова гра
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <button
               onClick={() => setShowSidebar(!showSidebar)}
               className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground lg:hidden"
+              title="Панель"
             >
               {showSidebar ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
           </div>
         </div>
+
+        {/* Active quest strip */}
+        {activeQuest && (
+          <div className="px-3 sm:px-4 pb-2">
+            <div className="flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 max-w-3xl">
+              <Target className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <p className="text-[11px] text-amber-100/90 truncate">
+                <span className="text-amber-400/90 font-medium">Квест: </span>
+                {activeQuest.title}
+              </p>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative z-10">
         {/* Chat area */}
         <div className="flex-1 flex flex-col min-w-0">
           {apiKeyOk === false && (
-            <div className="flex-shrink-0 border-b border-red-500/40 bg-red-950/40 px-4 py-2.5">
-              <div className="max-w-3xl mx-auto flex items-start gap-2 text-sm text-red-100">
-                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">Немає ключа DeepSeek</p>
-                  <p className="text-xs text-red-200/80 mt-0.5">
-                    {apiHint || 'Додай DEEPSEEK_API_KEY у .env і перезапусти npm run dev.'}
-                  </p>
-                </div>
+            <div className="flex-shrink-0 border-b border-red-500/30 bg-red-950/35 px-3 sm:px-4 py-1.5">
+              <div className="max-w-3xl mx-auto flex items-center gap-2 text-xs text-red-100/95">
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                <p className="truncate">
+                  <span className="font-medium">Немає DeepSeek ключа. </span>
+                  <span className="text-red-200/75">
+                    {apiHint || 'Додай DEEPSEEK_API_KEY у .env і перезапусти dev.'}
+                  </span>
+                </p>
               </div>
             </div>
           )}
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto chat-scroll px-4 py-4 space-y-4">
+          <div className="flex-1 overflow-y-auto chat-scroll px-3 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4">
             <AnimatePresence initial={false}>
               {(messages ?? []).map((msg: MessageData, index: number) => (
                 <motion.div
@@ -945,22 +1044,22 @@ export default function GameClient() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className={`flex items-end gap-2 ${msg?.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex items-start gap-2 ${msg?.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {msg?.role === 'assistant' && (
-                    <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-primary/30 flex-shrink-0 mb-1">
+                    <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-primary/35 flex-shrink-0 mt-0.5 shadow-md shadow-primary/10">
                       <Image src="/avatars/arahu.png" alt="Майстер Гри" fill className="object-cover" sizes="32px" />
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 ${
+                    className={`max-w-[82%] md:max-w-[72%] rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 shadow-sm ${
                       msg?.role === 'user'
-                        ? 'bg-primary text-primary-foreground rounded-br-sm'
-                        : 'bg-card border border-border rounded-bl-sm'
+                        ? 'bg-primary text-primary-foreground rounded-tr-md'
+                        : 'bg-card/90 border border-border/80 rounded-tl-md backdrop-blur-sm'
                     }`}
                   >
                     {msg?.role === 'assistant' && (
-                      <div className="flex items-center gap-1.5 mb-2">
+                      <div className="flex items-center gap-1.5 mb-1.5">
                         <Scroll className="w-3.5 h-3.5 text-primary" />
                         <span className="text-xs font-medium text-primary">Майстер Гри</span>
                       </div>
@@ -971,7 +1070,7 @@ export default function GameClient() {
                     />
                   </div>
                   {msg?.role === 'user' && (
-                    <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-primary/30 flex-shrink-0 mb-1">
+                    <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-primary/35 flex-shrink-0 mt-0.5 shadow-md shadow-primary/10">
                       <Image src={getLaraAvatar()} alt="Лара" fill className="object-cover" sizes="32px" />
                     </div>
                   )}
@@ -984,13 +1083,13 @@ export default function GameClient() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-end gap-2 justify-start"
+                className="flex items-start gap-2 justify-start"
               >
-                <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-primary/30 flex-shrink-0 mb-1">
+                <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-primary/35 flex-shrink-0 mt-0.5">
                   <Image src="/avatars/arahu.png" alt="Майстер Гри" fill className="object-cover" sizes="32px" />
                 </div>
-                <div className="max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 bg-card border border-border rounded-bl-sm">
-                  <div className="flex items-center gap-1.5 mb-2">
+                <div className="max-w-[82%] md:max-w-[72%] rounded-2xl rounded-tl-md px-3.5 py-2.5 bg-card/90 border border-border/80 backdrop-blur-sm">
+                  <div className="flex items-center gap-1.5 mb-1.5">
                     <Scroll className="w-3.5 h-3.5 text-primary" />
                     <span className="text-xs font-medium text-primary">Майстер Гри</span>
                   </div>
@@ -1237,15 +1336,8 @@ export default function GameClient() {
               )}
             </div>
             {/* Mobile quick nav into sidebar tabs */}
-            <div className="lg:hidden flex gap-1.5 mt-2 max-w-3xl mx-auto overflow-x-auto scrollbar-hide">
-              {([
-                { id: 'stats' as SidebarTab, label: 'Стати' },
-                { id: 'map' as SidebarTab, label: 'Карта' },
-                { id: 'quests' as SidebarTab, label: 'Квести' },
-                { id: 'characters' as SidebarTab, label: 'NPC' },
-                { id: 'inventory' as SidebarTab, label: 'Інв.' },
-                { id: 'lore' as SidebarTab, label: 'Лор' },
-              ]).map((t) => (
+            <div className="lg:hidden flex gap-1.5 mt-2 max-w-3xl mx-auto overflow-x-auto scrollbar-hide pb-0.5">
+              {[...PRIMARY_TABS, { id: 'inventory' as SidebarTab, label: 'Інв.', icon: null }, { id: 'lore' as SidebarTab, label: 'Лор', icon: null }].map((t) => (
                 <button
                   key={t.id}
                   type="button"
@@ -1253,7 +1345,7 @@ export default function GameClient() {
                   className={`flex-shrink-0 px-2.5 py-1 text-[11px] rounded-full border ${
                     sidebarTab === t.id && showSidebar
                       ? 'border-primary/50 bg-primary/15 text-primary'
-                      : 'border-border text-muted-foreground'
+                      : 'border-border/80 text-muted-foreground bg-card/40'
                   }`}
                 >
                   {t.label}
@@ -1297,35 +1389,59 @@ export default function GameClient() {
             )}
           </AnimatePresence>
 
-          {/* Sidebar Tabs */}
-          <div className="flex-shrink-0 border-b border-border overflow-x-auto scrollbar-hide">
-            <div className="flex min-w-max">
-              {[
-                { id: 'stats' as SidebarTab, icon: <Shield className="w-3.5 h-3.5" />, label: 'Стати' },
-                { id: 'map' as SidebarTab, icon: <MapPin className="w-3.5 h-3.5" />, label: 'Карта' },
-                { id: 'inventory' as SidebarTab, icon: <Package className="w-3.5 h-3.5" />, label: 'Інв.' },
-                { id: 'quests' as SidebarTab, icon: <BookOpen className="w-3.5 h-3.5" />, label: 'Квести' },
-                { id: 'tribes' as SidebarTab, icon: <Compass className="w-3.5 h-3.5" />, label: 'Плем.' },
-                { id: 'skills' as SidebarTab, icon: <Flame className="w-3.5 h-3.5" />, label: 'Нав.' },
-                { id: 'diary' as SidebarTab, icon: <Feather className="w-3.5 h-3.5" />, label: 'Днік' },
-                { id: 'characters' as SidebarTab, icon: <Users className="w-3.5 h-3.5" />, label: 'NPC' },
-                { id: 'lore' as SidebarTab, icon: <Scroll className="w-3.5 h-3.5" />, label: 'Лор' },
-                { id: 'achievements' as SidebarTab, icon: <Gem className="w-3.5 h-3.5" />, label: '🏆' },
-              ].map((tab) => (
+          {/* Sidebar Tabs — primary always labeled */}
+          <div className="flex-shrink-0 border-b border-border relative">
+            <div className="flex items-stretch">
+              {PRIMARY_TABS.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setSidebarTab(tab.id)}
-                  className={`flex-shrink-0 px-3 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium transition-colors border-b-2 ${
+                  onClick={() => { setSidebarTab(tab.id); setShowMoreTabs(false) }}
+                  className={`flex-1 min-w-0 px-1.5 sm:px-2 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors border-b-2 ${
                     sidebarTab === tab.id
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                      ? 'border-primary text-primary bg-primary/5'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
                   }`}
                 >
                   {tab.icon}
-                  <span className="hidden xl:inline">{tab.label}</span>
+                  <span>{tab.label}</span>
                 </button>
               ))}
+              <button
+                onClick={() => setShowMoreTabs((v) => !v)}
+                className={`flex-shrink-0 px-2.5 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors border-b-2 ${
+                  MORE_TABS.some((t) => t.id === sidebarTab) || showMoreTabs
+                    ? 'border-primary text-primary bg-primary/5'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+                title="Більше"
+              >
+                <MoreVertical className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Ще</span>
+              </button>
             </div>
+            <AnimatePresence>
+              {showMoreTabs && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="absolute right-1 top-full mt-0.5 z-40 w-44 rounded-xl border border-border bg-card shadow-xl py-1"
+                >
+                  {MORE_TABS.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => { setSidebarTab(tab.id); setShowMoreTabs(false) }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-muted ${
+                        sidebarTab === tab.id ? 'text-primary bg-primary/10' : 'text-foreground'
+                      }`}
+                    >
+                      {tab.icon}
+                      {tab.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Sidebar Content */}
