@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2, MoreVertical, Target } from 'lucide-react'
 import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData, WorldFactData } from '@/lib/types'
 import { chapterProgressPercent, ENDING_PATHS } from '@/lib/game/chapters'
+import { QUEST_LADDER_TITLES } from '@/lib/game/quest-ladder-data'
 import { CHAPTER_MAP_GOALS } from '@/lib/prompt-mode'
 import {
   QUICK_ACTIONS,
@@ -750,15 +751,7 @@ export default function GameClient() {
     const active = (quests ?? []).filter((q) => q.status === 'active')
     if (active.length === 0) return null
     // Prefer earliest story-ladder quest still open
-    const ladderOrder = [
-      'Вижити на березі',
-      'Увійти в джунглі',
-      'Знайти людей острова',
-      'Зрозуміти амулет',
-      'Шлях до храму',
-      'Скарб Атлантів',
-    ]
-    for (const title of ladderOrder) {
+    for (const title of QUEST_LADDER_TITLES) {
       const hit = active.find((q) => q.title === title)
       if (hit) return hit
     }
@@ -851,6 +844,7 @@ export default function GameClient() {
   )
 
   const activeQuests = quests.filter(q => q.status === 'active')
+  const lockedQuests = quests.filter(q => q.status === 'locked' || q.status === 'pending')
   const completedQuests = quests.filter(q => q.status === 'completed')
   const failedQuests = quests.filter(q => q.status === 'failed')
 
@@ -1761,6 +1755,30 @@ export default function GameClient() {
                     ))
                   )}
                 </div>
+
+                {/* Locked quests */}
+                {lockedQuests.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground/50" />
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Заблоковані</h3>
+                      <span className="text-[10px] font-mono bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">{lockedQuests.length}</span>
+                    </div>
+                    {lockedQuests.map((q: QuestData) => (
+                      <div key={q.id} className="bg-muted/20 border border-border/40 rounded-lg p-2.5 opacity-60">
+                        <div className="flex items-start gap-2">
+                          <span className="text-sm flex-shrink-0">🔒</span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-muted-foreground">{q.title}</p>
+                            {q.description && (
+                              <p className="text-[10px] text-muted-foreground/60 mt-0.5">{q.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Completed quests */}
                 {completedQuests.length > 0 && (

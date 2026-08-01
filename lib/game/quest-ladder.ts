@@ -1,87 +1,44 @@
 import { prisma } from '@/lib/db'
+import { QUEST_LADDER } from '@/lib/game/quest-ladder-data'
 
-/**
- * Story quest ladder tied to chapters.
- * Completing location/facts unlocks the next active quest.
- */
-export const QUEST_LADDER = [
-  {
-    title: 'Вижити на березі',
-    description: 'Знайти прісну воду й щось їстівне. Не померти в перший день.',
-    chapter: 'arrival',
-    givenBy: 'Система',
-    completeWhen: {
-      locations: ['водоспад', 'лагуна', 'джунгл'],
-      factKeys: ['found_fresh_water', 'found_food', 'entered_jungle'],
-      inventoryCategories: ['їжа'],
-    },
-  },
-  {
-    title: 'Увійти в джунглі',
-    description: 'Залишити берег і просунутись углиб острова.',
-    chapter: 'jungle',
-    givenBy: 'Система',
-    completeWhen: {
-      locations: ['джунгл', 'водоспад', 'мангров'],
-      factKeys: ['entered_jungle'],
-    },
-  },
-  {
-    title: 'Знайти людей острова',
-    description: 'Знайти сліди племені Кай-Тору або інших мешканців.',
-    chapter: 'tribe',
-    givenBy: 'Система',
-    completeWhen: {
-      locations: ['кай-тору', 'селищ'],
-      factKeys: ['met_kai_toru', 'entered_village', 'met_tane', 'met_leya'],
-      metNpc: ['Тане', 'Лея', 'Макаї', 'Найя'],
-    },
-  },
-  {
-    title: 'Зрозуміти амулет',
-    description: 'Дізнатися, чому амулет теплішає і як він пов\'язаний зі Скарбом Атлантів.',
-    chapter: 'depths',
-    givenBy: 'Система',
-    completeWhen: {
-      factKeys: ['amulet_awakened', 'learned_amulet_secret', 'spoke_with_naya'],
-      locations: ['храм', 'свяще', 'печер', 'руїн'],
-    },
-  },
-  {
-    title: 'Шлях до храму',
-    description: 'Дістатися храму насолоди / центрального святилища острова.',
-    chapter: 'temple',
-    givenBy: 'Система',
-    completeWhen: {
-      locations: ['храм'],
-      factKeys: ['found_temple', 'temple_opened'],
-    },
-  },
-  {
-    title: 'Скарб Атлантів',
-    description: 'Знайти артефакт і зробити вибір — свобода, влада чи руйнування.',
-    chapter: 'climax',
-    givenBy: 'Система',
-    completeWhen: {
-      factKeys: ['treasure_found', 'ending_freedom', 'ending_priestess', 'ending_goddess', 'ending_destroyer', 'ending_dark_queen'],
-    },
-  },
-] as const
+export { QUEST_LADDER, QUEST_LADDER_TITLES } from '@/lib/game/quest-ladder-data'
 
 export async function seedQuestLadder() {
-  for (const q of QUEST_LADDER) {
-    const existing = await prisma.quest.findUnique({ where: { title: q.title } })
-    if (!existing) {
-      // Only first quest starts active; rest locked as active but "pending" via description order
-      // Simpler: all active, auto-complete advances narrative
-      await prisma.quest.create({
-        data: {
-          title: q.title,
-          description: q.description,
-          status: q.title === QUEST_LADDER[0].title ? 'active' : 'active',
-          givenBy: q.givenBy,
-        },
-      })
+  for (let i = 0; i < QUEST_LADDER.length; i++) {
+    const q = QUEST_LADDER[i]
+    const status = i === 0 ? 'active' : 'locked'
+    await prisma.quest.upsert({
+      where: { title: q.title },
+      update: {},
+      create: {
+        title: q.title,
+        description: q.description,
+        status,
+        givenBy: q.givenBy,
+      },
+    })
+  }
+  await normalizeQuestLadderStatuses()
+}
+
+/**
+ * Ensure only the first non-completed ladder quest is active; later ones locked.
+ * Safe to call on load/reset.
+ */
+export async function normalizeQuestLadderStatuses(): Promise<void> {
+  const quests = await prisma.quest.findMany()
+  let openedNext = false
+  for (const step of QUEST_LADDER) {
+    const q = quests.find((x) => x.title === step.title)
+    if (!q) continue
+    if (q.status === 'completed' || q.status === 'failed') continue
+    if (!openedNext) {
+      if (q.status !== 'active') {
+        await prisma.quest.update({ where: { id: q.id }, data: { status: 'active' } })
+      }
+      openedNext = true
+    } else if (q.status !== 'locked') {
+      await prisma.quest.update({ where: { id: q.id }, data: { status: 'locked' } })
     }
   }
 }
@@ -91,8 +48,49 @@ function matchesAny(haystack: string, needles: string[]): boolean {
   return needles.some((n) => h.includes(n.toLowerCase()))
 }
 
-/** Auto-complete ladder quests from current world state. Returns newly completed titles. */
+function isStepComplete(
+  step: (typeof QUEST_LADDER)[number],
+  ctx: {
+    currentLoc: string
+    discoveredLocs: { name: string }[]
+    factKeys: Set<string>
+    metNames: Set<string>
+    inventory: { name: string; category: string }[]
+  }
+): boolean {
+  const cw = step.completeWhen as {
+    locations?: readonly string[]
+    factKeys?: readonly string[]
+    metNpc?: readonly string[]
+    inventoryCategories?: readonly string[]
+    inventoryNameHints?: readonly string[]
+  }
+
+  if (cw.locations?.length) {
+    if (matchesAny(ctx.currentLoc, [...cw.locations])) return true
+    if (ctx.discoveredLocs.some((l) => matchesAny(l.name, [...cw.locations!]))) return true
+  }
+  if (cw.factKeys?.length) {
+    if (cw.factKeys.some((k) => ctx.factKeys.has(k.toLowerCase()))) return true
+  }
+  if (cw.metNpc?.length) {
+    if (cw.metNpc.some((n) => ctx.metNames.has(n.toLowerCase()))) return true
+  }
+  if (cw.inventoryCategories?.length || cw.inventoryNameHints?.length) {
+    for (const i of ctx.inventory) {
+      const cat = (i.category || '').toLowerCase()
+      const name = (i.name || '').toLowerCase()
+      if (cw.inventoryCategories?.some((c) => cat.includes(c.toLowerCase()))) return true
+      if (cw.inventoryNameHints?.some((h) => name.includes(h.toLowerCase()))) return true
+    }
+  }
+  return false
+}
+
+/** Auto-complete ladder quests sequentially. Returns newly completed titles. */
 export async function syncQuestLadder(): Promise<string[]> {
+  await normalizeQuestLadderStatuses()
+
   const state = await prisma.gameState.findUnique({ where: { id: 'singleton' } })
   const locations = await prisma.location.findMany()
   const facts = await prisma.worldFact.findMany()
@@ -100,47 +98,46 @@ export async function syncQuestLadder(): Promise<string[]> {
   const inventory = await prisma.inventoryItem.findMany()
   const quests = await prisma.quest.findMany()
 
-  const factKeys = new Set(facts.map((f) => f.key.toLowerCase()))
-  const metNames = new Set(rels.map((r) => r.name.toLowerCase()))
-  const discoveredLocs = locations.filter((l) => l.discovered || l.isCurrent)
-  const currentLoc = state?.location ?? ''
+  const ctx = {
+    currentLoc: state?.location ?? '',
+    discoveredLocs: locations.filter((l) => l.discovered || l.isCurrent),
+    factKeys: new Set(facts.map((f) => f.key.toLowerCase())),
+    metNames: new Set(rels.map((r) => r.name.toLowerCase())),
+    inventory,
+  }
+
   const completedNow: string[] = []
 
-  for (const step of QUEST_LADDER) {
+  for (let i = 0; i < QUEST_LADDER.length; i++) {
+    const step = QUEST_LADDER[i]
     const quest = quests.find((q) => q.title === step.title)
-    if (!quest || quest.status === 'completed') continue
+    if (!quest || quest.status === 'completed' || quest.status === 'failed') continue
 
-    const cw = step.completeWhen as {
-      locations?: readonly string[]
-      factKeys?: readonly string[]
-      metNpc?: readonly string[]
-      inventoryCategories?: readonly string[]
+    if (i > 0) {
+      const prev = quests.find((q) => q.title === QUEST_LADDER[i - 1].title)
+      if (!prev || prev.status !== 'completed') break
     }
 
-    let done = false
+    if (quest.status !== 'active') continue
+    if (!isStepComplete(step, ctx)) break
 
-    if (cw.locations?.length) {
-      if (matchesAny(currentLoc, [...cw.locations])) done = true
-      if (discoveredLocs.some((l) => matchesAny(l.name, [...cw.locations!]))) done = true
-    }
-    if (cw.factKeys?.length) {
-      if (cw.factKeys.some((k) => factKeys.has(k.toLowerCase()))) done = true
-    }
-    if (cw.metNpc?.length) {
-      if (cw.metNpc.some((n) => metNames.has(n.toLowerCase()))) done = true
-    }
-    if (cw.inventoryCategories?.length) {
-      if (inventory.some((i) => cw.inventoryCategories!.some((c) => (i.category || '').includes(c) || (i.name || '').toLowerCase().includes('вод') || (i.name || '').toLowerCase().includes('фрукт') || (i.name || '').toLowerCase().includes('їж')))) {
-        done = true
+    await prisma.quest.update({
+      where: { title: step.title },
+      data: { status: 'completed' },
+    })
+    completedNow.push(step.title)
+    quest.status = 'completed'
+
+    const next = QUEST_LADDER[i + 1]
+    if (next) {
+      const nq = quests.find((q) => q.title === next.title)
+      if (nq && nq.status !== 'completed') {
+        await prisma.quest.update({
+          where: { title: next.title },
+          data: { status: 'active' },
+        })
+        nq.status = 'active'
       }
-    }
-
-    if (done) {
-      await prisma.quest.update({
-        where: { title: step.title },
-        data: { status: 'completed' },
-      })
-      completedNow.push(step.title)
     }
   }
 

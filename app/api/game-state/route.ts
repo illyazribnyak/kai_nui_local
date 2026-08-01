@@ -11,7 +11,11 @@ export async function GET() {
     }
     const messages = await prisma.message.findMany({ orderBy: { createdAt: 'asc' } })
     const inventory = await prisma.inventoryItem.findMany({ orderBy: { name: 'asc' } })
-    let quests = await prisma.quest.findMany({ orderBy: { createdAt: 'desc' } })
+    try {
+      const { normalizeQuestLadderStatuses } = await import('@/lib/game/quest-ladder')
+      await normalizeQuestLadderStatuses()
+    } catch { /* ignore if table missing */ }
+    let quests = await prisma.quest.findMany({ orderBy: { createdAt: 'asc' } })
     const diary = await prisma.diaryEntry.findMany({ orderBy: { createdAt: 'desc' }, take: 50 })
     let skills = await prisma.skill.findMany()
     if (skills.length === 0) {

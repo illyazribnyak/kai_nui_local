@@ -25,7 +25,10 @@ export async function GET() {
     checks.dbError = e?.message ?? 'unknown'
   }
 
-  if (!checks.deepseekKey) checks.ok = false
+  // DB down => 503. Missing API key => 200 with ok:false (app can still render UI)
+  if (!checks.database) checks.ok = false
+  else if (!checks.deepseekKey) checks.ok = false
 
-  return NextResponse.json(checks, { status: checks.ok ? 200 : 503 })
+  const status = checks.database ? 200 : 503
+  return NextResponse.json(checks, { status })
 }
