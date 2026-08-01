@@ -1,34 +1,8 @@
 import { prisma } from '@/lib/db'
-
-const STARTER_QUESTS = [
-  {
-    title: 'Вижити на березі',
-    description: 'Знайти воду, їжу та зрозуміти, де ти опинилась.',
-    status: 'active',
-    givenBy: 'Система',
-  },
-  {
-    title: 'Дослідити острів',
-    description: 'Піти в джунглі і знайти ознаки цивілізації.',
-    status: 'active',
-    givenBy: 'Система',
-  },
-  {
-    title: 'Зрозуміти амулет',
-    description: 'Дізнатися, чому амулет теплішає і як він пов\'язаний зі Скарбом Атлантів.',
-    status: 'active',
-    givenBy: 'Система',
-  },
-]
+import { seedQuestLadder } from '@/lib/game/quest-ladder'
 
 export async function seedStarterQuests() {
-  for (const q of STARTER_QUESTS) {
-    await prisma.quest.upsert({
-      where: { title: q.title },
-      update: {},
-      create: q,
-    })
-  }
+  await seedQuestLadder()
 }
 
 const STARTER_FACTS = [
@@ -42,6 +16,12 @@ const STARTER_FACTS = [
     key: 'goal_atlantis_treasure',
     category: 'plot',
     content: 'Мета: знайти легендарний Скарб Атлантів у центральному храмі острова.',
+    dayNumber: 1,
+  },
+  {
+    key: 'canon_cast',
+    category: 'world',
+    content: 'Канонічні постаті острова: Тане, Лея, Джек Вейн, вождь Макаї, шаманка Найя, дух Араху.',
     dayNumber: 1,
   },
 ]

@@ -76,6 +76,8 @@ export async function POST() {
     const { seedStarterQuests, seedStarterFacts } = await import('@/lib/seed-quests')
     await seedStarterQuests()
     await seedStarterFacts()
+    const { seedCanonNpcs } = await import('@/lib/seed-npcs')
+    await seedCanonNpcs()
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

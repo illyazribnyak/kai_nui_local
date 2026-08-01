@@ -5,6 +5,7 @@
 import { seedLocations, seedTribes } from '../lib/seed-locations'
 import { seedSkills } from '../lib/seed-skills'
 import { seedStarterFacts, seedStarterQuests } from '../lib/seed-quests'
+import { seedCanonNpcs } from '../lib/seed-npcs'
 
 async function main() {
   console.log('Seeding Kai-Nui world data...')
@@ -15,9 +16,11 @@ async function main() {
   await seedSkills()
   console.log('  ✓ skills')
   await seedStarterQuests()
-  console.log('  ✓ starter quests')
+  console.log('  ✓ quest ladder')
   await seedStarterFacts()
   console.log('  ✓ starter facts')
+  await seedCanonNpcs()
+  console.log('  ✓ canon NPCs')
   console.log('Done.')
 }
 

@@ -10,6 +10,7 @@ import { applyAllUpdates } from '@/lib/game/apply-updates'
 import { applySurvivalDefaults, parseNarrativeStats, tickDiseases } from '@/lib/game/survival'
 import { resolveDiceRolls } from '@/lib/game/dice'
 import { CHAPTERS, ENDING_PATHS } from '@/lib/game/chapters'
+import { syncQuestLadder } from '@/lib/game/quest-ladder'
 
 function buildSystemPrompt(
   gameState: any,
@@ -857,9 +858,15 @@ export async function POST(request: NextRequest) {
       return new Response(JSON.stringify({ error: `Повідомлення задовге (макс. ${MAX_PLAYER_MESSAGE_LENGTH} символів)` }), { status: 400 })
     }
 
-    const apiKey = process.env.DEEPSEEK_API_KEY
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API ключ не налаштовано' }), { status: 500 })
+    const apiKey = process.env.DEEPSEEK_API_KEY?.trim()
+    if (!apiKey || apiKey.includes('встав') || apiKey.length < 8) {
+      return new Response(
+        JSON.stringify({
+          error: 'Не налаштовано DEEPSEEK_API_KEY. Відкрий файл .env у корені проєкту, встав ключ з https://platform.deepseek.com/ і перезапусти npm run dev.',
+          code: 'MISSING_API_KEY',
+        }),
+        { status: 503 }
+      )
     }
 
     // Get game state
@@ -957,10 +964,25 @@ export async function POST(request: NextRequest) {
           // 6. Застосовуємо всі оновлення (clamped / validated)
           await applyAllUpdates(merged, gameState?.dayNumber ?? 1)
           await tickDiseases()
+          const completedQuests = await syncQuestLadder()
+
+          // Default choices if AI forgot
+          let finalChoices: string[] = merged.choices?.length ? [...merged.choices] : []
+          if (finalChoices.length === 0 && !merged.sexChoices?.length) {
+            finalChoices = [
+              'Оглянутися навколо',
+              'Йти далі',
+              'Пошукати їжу та воду',
+              'Перевірити амулет',
+            ]
+          }
 
           // 7. Отримуємо оновлений стан і відправляємо клієнту
           const updatedState = await prisma.gameState.findUnique({ where: { id: 'singleton' } })
-          const updatedRels = await prisma.relationship.findMany({ where: { met: true } })
+          const updatedRels = await prisma.relationship.findMany({
+            where: { OR: [{ met: true }, { name: { in: ['Тане', 'Лея', 'Джек Вейн', 'Макаї', 'Найя'] } }] },
+            orderBy: { name: 'asc' },
+          })
           const updatedInv = await prisma.inventoryItem.findMany()
           const updatedQuests = await prisma.quest.findMany()
           const updatedDiary = await prisma.diaryEntry.findMany({ orderBy: { createdAt: 'desc' }, take: 50 })
@@ -984,7 +1006,8 @@ export async function POST(request: NextRequest) {
             achievements: updatedAchievements,
             diseases: updatedDiseases,
             worldFacts: updatedFacts,
-            choices: merged.choices,
+            completedQuests,
+            choices: finalChoices,
             diceRolls: merged.diceRolls,
             sexScene: merged.sexScene,
             phase: merged.phase,

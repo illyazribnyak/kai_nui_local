@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle } from 'lucide-react'
+import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2 } from 'lucide-react'
 import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData, WorldFactData } from '@/lib/types'
 import { chapterProgressPercent, ENDING_PATHS } from '@/lib/game/chapters'
 import { Users } from 'lucide-react'
@@ -91,10 +91,14 @@ export default function GameClient() {
   const [penisStats, setPenisStats] = useState<any>(null)
   const [activeTempo, setActiveTempo] = useState<string>('medium')
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
+  const [lastPlayerMessage, setLastPlayerMessage] = useState<string | null>(null)
+  const [apiKeyOk, setApiKeyOk] = useState<boolean | null>(null)
+  const [apiHint, setApiHint] = useState<string>('')
   const processedTagsRef = useRef(0)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const importInputRef = useRef<HTMLInputElement>(null)
 
   const scrollToBottom = useCallback(() => {
     chatEndRef?.current?.scrollIntoView?.({ behavior: 'smooth' })
@@ -106,6 +110,13 @@ export default function GameClient() {
 
   useEffect(() => {
     loadGameState()
+    fetch('/api/health')
+      .then((r) => r.json())
+      .then((h) => {
+        setApiKeyOk(Boolean(h?.deepseekKey))
+        setApiHint(typeof h?.hint === 'string' ? h.hint : '')
+      })
+      .catch(() => setApiKeyOk(null))
   }, [])
 
   const loadGameState = async () => {
@@ -423,6 +434,7 @@ export default function GameClient() {
     setLaraDialogue([])
     setMultiOrgasm(null)
     setLastFailedMessage(null)
+    setLastPlayerMessage(text)
     // Prepend tempo context during sex scenes
     const finalText = sexScene && activeTempo ? `[Темп: ${activeTempo === 'slow' ? 'повільний' : activeTempo === 'fast' ? 'швидкий' : 'середній'}] ${text}` : text
     const userMsg: MessageData = {
@@ -450,6 +462,12 @@ export default function GameClient() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
+        if (err?.code === 'MISSING_API_KEY') {
+          setApiKeyOk(false)
+          setApiHint(err.error)
+        }
+        // Roll back optimistic user bubble on hard fail before stream
+        setMessages((prev) => (prev ?? []).filter((m) => m.id !== userMsg.id))
         throw new Error(err?.error ?? 'Помилка з\'єднання')
       }
 
@@ -494,6 +512,11 @@ export default function GameClient() {
               setDiseases(parsed.diseases ?? [])
               if (parsed?.worldFacts) setWorldFacts(parsed.worldFacts)
               if (parsed?.choices?.length > 0) setChoices(parsed.choices)
+              if (parsed?.completedQuests?.length > 0) {
+                for (const t of parsed.completedQuests) {
+                  toast.success(`Квест виконано: ${t}`, { icon: '✅' })
+                }
+              }
               if (parsed?.diceRolls?.length > 0) setDiceRoll(parsed.diceRolls[parsed.diceRolls.length - 1])
               if (parsed?.sexScene) {
                 setSexScene(parsed.sexScene); setSceneSummary(null)
@@ -871,6 +894,40 @@ export default function GameClient() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (!file) return
+                try {
+                  const text = await file.text()
+                  const data = JSON.parse(text)
+                  if (!confirm('Імпортувати сейв? Поточний прогрес буде перезаписано.')) return
+                  const res = await fetch('/api/import-game', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                  })
+                  const body = await res.json().catch(() => ({}))
+                  if (!res.ok) throw new Error(body?.error ?? 'Import failed')
+                  toast.success('Сейв імпортовано')
+                  await loadGameState()
+                } catch (err: any) {
+                  toast.error(err?.message ?? 'Не вдалося імпортувати')
+                }
+              }}
+            />
+            <button
+              onClick={() => importInputRef.current?.click()}
+              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              title="Імпорт JSON"
+            >
+              <Upload className="w-4 h-4" />
+            </button>
             <button
               onClick={async () => {
                 try {
@@ -928,6 +985,19 @@ export default function GameClient() {
       <div className="flex-1 flex overflow-hidden relative">
         {/* Chat area */}
         <div className="flex-1 flex flex-col min-w-0">
+          {apiKeyOk === false && (
+            <div className="flex-shrink-0 border-b border-red-500/40 bg-red-950/40 px-4 py-2.5">
+              <div className="max-w-3xl mx-auto flex items-start gap-2 text-sm text-red-100">
+                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Немає ключа DeepSeek</p>
+                  <p className="text-xs text-red-200/80 mt-0.5">
+                    {apiHint || 'Додай DEEPSEEK_API_KEY у .env і перезапусти npm run dev.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           {/* Messages */}
           <div className="flex-1 overflow-y-auto chat-scroll px-4 py-4 space-y-4">
             <AnimatePresence initial={false}>
@@ -1063,10 +1133,10 @@ export default function GameClient() {
             </div>
           )}
 
-          {/* Quick actions — only when no AI choices and not loading */}
-          {choices.length === 0 && sexChoices.length === 0 && !isLoading && (
+          {/* Quick actions — always available when not loading / not in sex choice mode */}
+          {sexChoices.length === 0 && !isLoading && (
             <div className="flex-shrink-0 border-t border-border bg-card/30 px-4 py-2">
-              <div className="flex gap-1.5 max-w-3xl mx-auto overflow-x-auto scrollbar-hide">
+              <div className="flex gap-1.5 max-w-3xl mx-auto overflow-x-auto scrollbar-hide items-center">
                 {QUICK_ACTIONS.map((action) => (
                   <button
                     key={action.label}
@@ -1076,6 +1146,15 @@ export default function GameClient() {
                     {action.label}
                   </button>
                 ))}
+                {lastPlayerMessage && (
+                  <button
+                    onClick={() => sendMessage(lastPlayerMessage)}
+                    className="flex-shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-border bg-muted/30 hover:bg-amber-500/10 hover:border-amber-500/30 text-muted-foreground hover:text-amber-200 transition-all inline-flex items-center gap-1"
+                    title="Повторити останню дію"
+                  >
+                    <Undo2 className="w-3 h-3" /> Ще раз
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -1083,7 +1162,7 @@ export default function GameClient() {
           {lastFailedMessage && !isLoading && (
             <div className="flex-shrink-0 border-t border-red-500/20 bg-red-950/20 px-4 py-2">
               <div className="flex items-center justify-between gap-2 max-w-3xl mx-auto">
-                <p className="text-xs text-red-300/90 truncate">Не вдалося надіслати: {lastFailedMessage}</p>
+                <p className="text-xs text-red-300/90 truncate">Не вдалося: {lastFailedMessage}</p>
                 <button
                   onClick={() => sendMessage(lastFailedMessage)}
                   className="flex-shrink-0 text-xs px-3 py-1 rounded-lg border border-red-400/40 text-red-200 hover:bg-red-500/20"
@@ -1827,6 +1906,9 @@ export default function GameClient() {
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-bold">{rel.name}</span>
                               <span className={`text-sm ${att.color}`}>{att.emoji}</span>
+                              {!rel.met && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">ще не зустріли</span>
+                              )}
                             </div>
                             <div className="flex items-center gap-2 mt-0.5">
                               {rel.tribe && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{rel.tribe}</span>}

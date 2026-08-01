@@ -9,10 +9,9 @@ export async function GET() {
     if (!gameState) {
       gameState = await prisma.gameState.create({ data: { id: 'singleton' } })
     }
-    const relationships = await prisma.relationship.findMany({ where: { met: true }, orderBy: { name: 'asc' } })
     const messages = await prisma.message.findMany({ orderBy: { createdAt: 'asc' } })
     const inventory = await prisma.inventoryItem.findMany({ orderBy: { name: 'asc' } })
-    const quests = await prisma.quest.findMany({ orderBy: { createdAt: 'desc' } })
+    let quests = await prisma.quest.findMany({ orderBy: { createdAt: 'desc' } })
     const diary = await prisma.diaryEntry.findMany({ orderBy: { createdAt: 'desc' }, take: 50 })
     let skills = await prisma.skill.findMany()
     if (skills.length === 0) {
@@ -42,11 +41,23 @@ export async function GET() {
         await seedStarterFacts()
         const questCount = await prisma.quest.count()
         if (questCount === 0) await seedStarterQuests()
+        quests = await prisma.quest.findMany({ orderBy: { createdAt: 'desc' } })
         worldFacts = await prisma.worldFact.findMany({ orderBy: { createdAt: 'asc' } })
+      }
+      const npcCount = await prisma.relationship.count()
+      if (npcCount === 0) {
+        const { seedCanonNpcs } = await import('@/lib/seed-npcs')
+        await seedCanonNpcs()
       }
     } catch {
       worldFacts = []
     }
+
+    // Met NPCs + canon cast for sidebar
+    const relationships = await prisma.relationship.findMany({
+      where: { OR: [{ met: true }, { name: { in: ['Тане', 'Лея', 'Джек Вейн', 'Макаї', 'Найя', 'Араху'] } }] },
+      orderBy: { name: 'asc' },
+    })
 
     return NextResponse.json({
       gameState,
