@@ -7,35 +7,35 @@
 
 ### Вимоги
 - Node.js 18+
-- Docker (для PostgreSQL) **або** локальний PostgreSQL 14+
 - API-ключ [DeepSeek](https://platform.deepseek.com/)
+- БД: **SQLite за замовчуванням** (файл, нічого ставити не треба)
 
 ### 1. Залежності
 ```bash
 npm install
 ```
 
-### 2. База даних (Docker)
+### 2. Env
 ```bash
-docker compose up -d
+copy .env.example .env
+```
+Заповни `DEEPSEEK_API_KEY`. У `.env` уже має бути:
+```
+DATABASE_URL="file:./prisma/dev.db"
 ```
 
-### 3. Env
-```bash
-cp .env.example .env
-```
-Заповни `DEEPSEEK_API_KEY`. `GEMINI_API_KEY` — опційно (аналізатор з fallback на DeepSeek).
-
-### 4. Схема + seed
+### 3. Схема + seed
 ```bash
 npm run db:setup
 ```
 
-### 5. Запуск
+### 4. Запуск
 ```bash
 npm run dev
 ```
 Відкрий http://localhost:3000
+
+> PostgreSQL/Docker більше не обов’язкові. Якщо хочеш Postgres — зміни `provider` у `prisma/schema.prisma` і `DATABASE_URL`.
 
 ## Скрипти
 | Команда | Що робить |

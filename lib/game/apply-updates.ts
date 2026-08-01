@@ -280,9 +280,12 @@ export async function applyLocationDiscovery(locationName: string) {
   if (!locationName) return
   try {
     await prisma.location.updateMany({ where: { isCurrent: true }, data: { isCurrent: false } })
-    const loc = await prisma.location.findFirst({
-      where: { name: { contains: locationName, mode: 'insensitive' } },
-    })
+    // SQLite: no mode:'insensitive' — match in app code
+    const allLocs = await prisma.location.findMany()
+    const needle = locationName.toLowerCase()
+    const loc =
+      allLocs.find((l) => l.name.toLowerCase() === needle) ||
+      allLocs.find((l) => l.name.toLowerCase().includes(needle) || needle.includes(l.name.toLowerCase()))
     if (loc) {
       await prisma.location.update({
         where: { id: loc.id },
@@ -292,9 +295,8 @@ export async function applyLocationDiscovery(locationName: string) {
     }
     const words = locationName.split(/\s+/).filter((w) => w.length > 3)
     for (const word of words) {
-      const fuzzy = await prisma.location.findFirst({
-        where: { name: { contains: word, mode: 'insensitive' } },
-      })
+      const w = word.toLowerCase()
+      const fuzzy = allLocs.find((l) => l.name.toLowerCase().includes(w))
       if (fuzzy) {
         await prisma.location.update({
           where: { id: fuzzy.id },

@@ -12,9 +12,8 @@
    ```bash
    npm install -g yarn
    ```
-3. **PostgreSQL 14+** — база даних:
-   - Windows / macOS: https://www.postgresql.org/download/
-   - або через Docker (найпростіше, див. нижче).
+3. **База даних** — за замовчуванням **SQLite** (файл `prisma/dev.db`, нічого ставити не треба).
+   PostgreSQL/Docker — опційно, лише якщо сам захочеш.
 
 ---
 
@@ -33,55 +32,29 @@ npm install
 # або: yarn install
 ```
 
-## Крок 3. Підніми базу даних PostgreSQL
+## Крок 3. Налаштуй файл оточення `.env`
 
-**Варіант А — через Docker Compose (рекомендую, найшвидше):**
 ```bash
-docker compose up -d
+copy .env.example .env
 ```
-Це підніме PostgreSQL 16 з логіном `kai`, паролем `kai`, базою `kai_nui` на порту 5432.
+Відкрий `.env` і встав:
+- `DATABASE_URL="file:./prisma/dev.db"` — уже є в example (SQLite, без сервера БД).
+- `DEEPSEEK_API_KEY` — **ОБОВ'ЯЗКОВО**. Отримати: https://platform.deepseek.com/ → API Keys.
+- `GEMINI_API_KEY` — необов'язково.
 
-Або однією командою без compose:
+> ⚠️ Ключі — секрети. Не коміть `.env` у git.
+
+## Крок 4. Створи таблиці + seed
+
 ```bash
-docker run --name kai-db -e POSTGRES_USER=kai -e POSTGRES_PASSWORD=kai -e POSTGRES_DB=kai_nui -p 5432:5432 -d postgres:16
+npm run db:setup
 ```
+Це зробить `prisma generate`, створить `prisma/dev.db` і засіє локації/квести/навички.
 
-**Варіант Б — локальний PostgreSQL:**
-Створи базу `kai_nui` та користувача, а потім пропиши свій рядок підключення в `.env`.
-
-## Крок 4. Налаштуй файл оточення `.env`
+## Крок 5. Запусти гру 🎮
 
 ```bash
-cp .env.example .env
-```
-Відкрий `.env` у редакторі та встав свої значення:
-- `DATABASE_URL` — якщо використав Docker з кроку 3, значення за замовчуванням уже підходить.
-- `DEEPSEEK_API_KEY` — **ОБОВ'ЯЗКОВО** (ця модель генерує весь текст гри).
-  Отримати: https://platform.deepseek.com/ → API Keys.
-- `GEMINI_API_KEY` — необов'язково (фоновий аналіз; якщо порожній — використається DeepSeek).
-  Отримати: https://aistudio.google.com/apikey.
-
-> ⚠️ Ключі — це секрети. Не викладай файл `.env` у публічний доступ.
-
-## Крок 5. Створи таблиці в базі та згенеруй клієнт
-
-```bash
-yarn prisma generate
-yarn prisma db push
-```
-Це створить усі таблиці гри в порожній базі.
-
-## Крок 6. (Необов'язково) Початкові дані
-
-Якщо хочеш заповнити локації/племена/навички стартовими даними:
-```bash
-yarn prisma db seed
-```
-
-## Крок 7. Запусти гру 🎮
-
-```bash
-yarn dev
+npm run dev
 ```
 Відкрий у браузері: **http://localhost:3000**
 

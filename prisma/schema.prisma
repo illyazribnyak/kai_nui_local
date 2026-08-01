@@ -3,7 +3,9 @@ generator client {
 }
 
 datasource db {
-    provider = "postgresql"
+    // SQLite for zero-config local play (no Docker/Postgres required).
+    // For Postgres later: provider = "postgresql" and a postgres DATABASE_URL.
+    provider = "sqlite"
     url      = env("DATABASE_URL")
 }
 
