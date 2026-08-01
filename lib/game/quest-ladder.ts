@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { QUEST_LADDER } from '@/lib/game/quest-ladder-data'
+import { isLadderStepComplete } from '@/lib/game/quest-step'
 
 export { QUEST_LADDER, QUEST_LADDER_TITLES } from '@/lib/game/quest-ladder-data'
 
@@ -23,7 +24,6 @@ export async function seedQuestLadder() {
 
 /**
  * Ensure only the first non-completed ladder quest is active; later ones locked.
- * Safe to call on load/reset.
  */
 export async function normalizeQuestLadderStatuses(): Promise<void> {
   const quests = await prisma.quest.findMany()
@@ -41,50 +41,6 @@ export async function normalizeQuestLadderStatuses(): Promise<void> {
       await prisma.quest.update({ where: { id: q.id }, data: { status: 'locked' } })
     }
   }
-}
-
-function matchesAny(haystack: string, needles: string[]): boolean {
-  const h = haystack.toLowerCase()
-  return needles.some((n) => h.includes(n.toLowerCase()))
-}
-
-function isStepComplete(
-  step: (typeof QUEST_LADDER)[number],
-  ctx: {
-    currentLoc: string
-    discoveredLocs: { name: string }[]
-    factKeys: Set<string>
-    metNames: Set<string>
-    inventory: { name: string; category: string }[]
-  }
-): boolean {
-  const cw = step.completeWhen as {
-    locations?: readonly string[]
-    factKeys?: readonly string[]
-    metNpc?: readonly string[]
-    inventoryCategories?: readonly string[]
-    inventoryNameHints?: readonly string[]
-  }
-
-  if (cw.locations?.length) {
-    if (matchesAny(ctx.currentLoc, [...cw.locations])) return true
-    if (ctx.discoveredLocs.some((l) => matchesAny(l.name, [...cw.locations!]))) return true
-  }
-  if (cw.factKeys?.length) {
-    if (cw.factKeys.some((k) => ctx.factKeys.has(k.toLowerCase()))) return true
-  }
-  if (cw.metNpc?.length) {
-    if (cw.metNpc.some((n) => ctx.metNames.has(n.toLowerCase()))) return true
-  }
-  if (cw.inventoryCategories?.length || cw.inventoryNameHints?.length) {
-    for (const i of ctx.inventory) {
-      const cat = (i.category || '').toLowerCase()
-      const name = (i.name || '').toLowerCase()
-      if (cw.inventoryCategories?.some((c) => cat.includes(c.toLowerCase()))) return true
-      if (cw.inventoryNameHints?.some((h) => name.includes(h.toLowerCase()))) return true
-    }
-  }
-  return false
 }
 
 /** Auto-complete ladder quests sequentially. Returns newly completed titles. */
@@ -119,7 +75,7 @@ export async function syncQuestLadder(): Promise<string[]> {
     }
 
     if (quest.status !== 'active') continue
-    if (!isStepComplete(step, ctx)) break
+    if (!isLadderStepComplete(step, ctx)) break
 
     await prisma.quest.update({
       where: { title: step.title },

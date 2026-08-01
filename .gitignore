@@ -22,3 +22,7 @@ prisma/ci.db
 
 # Large redistributable archives (not source)
 public/downloads/*.zip
+
+# Local GUI screenshots / previews
+public/gui-*.png
+public/gui-*.jpg

@@ -475,6 +475,11 @@ export default function GameClient() {
     const text = (overrideText ?? input)?.trim?.()
     if (!text || isLoading) return
 
+    if (apiKeyOk === false) {
+      toast.error('Спочатку додай DEEPSEEK_API_KEY у .env і перезапусти dev')
+      return
+    }
+
     setChoices([])
     setSexChoices([])
     setLaraDialogue([])
@@ -1017,15 +1022,20 @@ export default function GameClient() {
         {/* Chat area */}
         <div className="flex-1 flex flex-col min-w-0">
           {apiKeyOk === false && (
-            <div className="flex-shrink-0 border-b border-red-500/30 bg-red-950/35 px-3 sm:px-4 py-1.5">
-              <div className="max-w-3xl mx-auto flex items-center gap-2 text-xs text-red-100/95">
-                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                <p className="truncate">
-                  <span className="font-medium">Немає DeepSeek ключа. </span>
-                  <span className="text-red-200/75">
-                    {apiHint || 'Додай DEEPSEEK_API_KEY у .env і перезапусти dev.'}
-                  </span>
-                </p>
+            <div className="flex-shrink-0 border-b border-amber-500/30 bg-gradient-to-r from-amber-950/50 to-red-950/40 px-3 sm:px-4 py-2.5">
+              <div className="max-w-3xl mx-auto space-y-1.5">
+                <div className="flex items-center gap-2 text-sm text-amber-100">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-400" />
+                  <p className="font-medium">Щоб грати — додай API-ключ DeepSeek</p>
+                </div>
+                <ol className="text-[11px] text-amber-100/75 list-decimal list-inside space-y-0.5 pl-0.5">
+                  <li>Відкрий <span className="text-amber-200/90">platform.deepseek.com</span> → API Keys</li>
+                  <li>Встав у файл <code className="px-1 py-0.5 rounded bg-black/30 text-amber-50">.env</code>: <code className="px-1 py-0.5 rounded bg-black/30 text-amber-50">DEEPSEEK_API_KEY=sk-...</code></li>
+                  <li>Перезапусти <code className="px-1 py-0.5 rounded bg-black/30 text-amber-50">npm run dev</code></li>
+                </ol>
+                {apiHint && (
+                  <p className="text-[10px] text-amber-200/50 truncate">{apiHint}</p>
+                )}
               </div>
             </div>
           )}
@@ -1679,6 +1689,7 @@ export default function GameClient() {
                   <div className="text-center py-8">
                     <Package className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
                     <p className="text-sm text-muted-foreground">Інвентар порожній</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Збери фрукти, воду чи зброю — квест «Вижити» зрушить далі</p>
                     <p className="text-xs text-muted-foreground/60 mt-1">Знайдіть предмети на острові</p>
                   </div>
                 ) : (
@@ -1833,7 +1844,7 @@ export default function GameClient() {
                   <div className="text-center py-8">
                     <Feather className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
                     <p className="text-sm text-muted-foreground">Щоденник порожній</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">Записи з'являться після важливих подій</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Після важливих подій AI додасть записи Лари</p>
                   </div>
                 ) : (
                   <div className="space-y-3">

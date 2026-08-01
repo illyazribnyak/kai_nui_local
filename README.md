@@ -45,8 +45,9 @@ npm run dev
 | `npm run db:setup` | generate + push + seed |
 | `npm run db:seed` | лише seed |
 | `npm run db:push` | Prisma schema → DB |
-| `npm test` | unit-тести (dice, tags, chapters…) |
+| `npm test` | unit-тести (dice, tags, chapters, quests…) |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm run smoke` | API smoke (потрібен `npm run dev`) |
 | `npm run ci` | typecheck + test |
 
 ## Архітектура (коротко)
