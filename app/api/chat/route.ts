@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getGameContext } from '@/lib/game-context'
+import { detectPromptMode, type PromptMode } from '@/lib/prompt-mode'
+import { buildTagLog } from '@/lib/game/tag-log'
 import { callAnalyzerLLM, callDeepSeekWithRetry } from '@/lib/llm/client'
 import { safeParseJSON } from '@/lib/game/json'
 import { SKILL_NAMES, MAX_CONTEXT_MESSAGES, COMPRESS_THRESHOLD, MAX_PLAYER_MESSAGE_LENGTH, MAX_WORLD_FACTS_IN_PROMPT } from '@/lib/game/constants'
@@ -37,9 +39,10 @@ function buildSystemPrompt(
   summaries: any[],
   tribeReps: any[],
   diseases: any[] = [],
-  worldFacts: any[] = []
+  worldFacts: any[] = [],
+  mode: PromptMode = 'adventure'
 ): string {
-  const gameContext = getGameContext()
+  const gameContext = getGameContext(mode)
 
   const statsBlock = `
 --- ПОТОЧНИЙ СТАН ЛАРИ ---
@@ -922,7 +925,11 @@ export async function POST(request: NextRequest) {
 
     const diseases = await prisma.disease.findMany()
     const worldFacts = await prisma.worldFact.findMany({ orderBy: { createdAt: 'asc' } })
-    const systemPrompt = buildSystemPrompt(gameState, relationships, inventory, quests, skills, summaries, tribeReps, diseases, worldFacts)
+    // Heuristic: sex if player text matches or last assistant had sex scene tags is unknown here — message only
+    const promptMode = detectPromptMode(message)
+    const systemPrompt = buildSystemPrompt(
+      gameState, relationships, inventory, quests, skills, summaries, tribeReps, diseases, worldFacts, promptMode
+    )
     const llmMessages = [
       { role: 'system', content: systemPrompt },
       ...(recentMessages?.map?.((m: any) => ({
@@ -1028,6 +1035,17 @@ export async function POST(request: NextRequest) {
           const updatedDiseases = await prisma.disease.findMany()
           const updatedFacts = await prisma.worldFact.findMany({ orderBy: { createdAt: 'asc' } })
 
+          const tagLog = buildTagLog({
+            mode: promptMode,
+            merged: { ...merged, choices: finalChoices, diceRolls: resolvedDice },
+            completedQuests,
+            timeTick: {
+              phaseAdvanced: timeTick.phaseAdvanced,
+              newDay: timeTick.newDay,
+              turnCount: timeTick.turnCount,
+            },
+          })
+
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'done',
             gameState: updatedState,
@@ -1042,6 +1060,8 @@ export async function POST(request: NextRequest) {
             diseases: updatedDiseases,
             worldFacts: updatedFacts,
             completedQuests,
+            promptMode,
+            tagLog,
             timeTick: {
               phaseAdvanced: timeTick.phaseAdvanced,
               newDay: timeTick.newDay,

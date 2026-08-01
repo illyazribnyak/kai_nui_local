@@ -57,7 +57,10 @@ npm run dev
 - **WorldFact** — канонічна довгострокова пам'ять (`FACT_ADD` / `FACT_REMOVE`)
 - **Глави** — arrival → jungle → tribe → depths → temple → climax → ending
 - **Dice** — d20 перекидається на сервері (чесні результати)
-- **Starter quests** — «Вижити», «Дослідити», «Амулет»
+- **Starter quests** — ladder до храму
+- **Prompt modes** — adventure / dialogue / combat / sex (auto-detect)
+- **Layered lore** — `data/context-core.txt` + витяги з `game_context.txt`
+- **Техлог** — counts тегів після ходу (під чатом)
 
 Детальніша інструкція українською: [LOCAL_SETUP.md](./LOCAL_SETUP.md)
 

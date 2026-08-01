@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2 } from 'lucide-react'
 import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData, WorldFactData } from '@/lib/types'
 import { chapterProgressPercent, ENDING_PATHS } from '@/lib/game/chapters'
+import { CHAPTER_MAP_GOALS } from '@/lib/prompt-mode'
 import { Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { getAvatar, getLaraAvatar, getTribeAvatar } from '@/lib/avatar-utils'
@@ -96,6 +97,9 @@ export default function GameClient() {
   const [apiKeyOk, setApiKeyOk] = useState<boolean | null>(null)
   const [apiHint, setApiHint] = useState<string>('')
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [lastTagLog, setLastTagLog] = useState<any>(null)
+  const [showTagLog, setShowTagLog] = useState(false)
+  const [promptModeLabel, setPromptModeLabel] = useState<string | null>(null)
   const processedTagsRef = useRef(0)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -554,6 +558,8 @@ export default function GameClient() {
               } else if (parsed?.timeTick?.phaseAdvanced) {
                 toast.message(`Час: ${parsed.timeTick.timeOfDay}`, { icon: '🕐' })
               }
+              if (parsed?.tagLog) setLastTagLog(parsed.tagLog)
+              if (parsed?.promptMode) setPromptModeLabel(parsed.promptMode)
               if (parsed?.diceRolls?.length > 0) setDiceRoll(parsed.diceRolls[parsed.diceRolls.length - 1])
               if (parsed?.sexScene) {
                 setSexScene(parsed.sexScene); setSceneSummary(null)
@@ -1282,8 +1288,32 @@ export default function GameClient() {
             )}
           </AnimatePresence>
 
+          {/* Dev tag log */}
+          {lastTagLog && (
+            <div className="flex-shrink-0 border-t border-border/60 bg-muted/20 px-3 py-1">
+              <button
+                type="button"
+                onClick={() => setShowTagLog((v) => !v)}
+                className="w-full max-w-3xl mx-auto flex items-center justify-between text-[10px] text-muted-foreground hover:text-foreground"
+              >
+                <span>
+                  Техлог{promptModeLabel ? ` · ${promptModeLabel}` : ''}
+                  {lastTagLog.counts && (
+                    <> · {Object.entries(lastTagLog.counts).map(([k, v]) => `${k}:${v}`).join(' ')}</>
+                  )}
+                </span>
+                <span>{showTagLog ? '▲' : '▼'}</span>
+              </button>
+              {showTagLog && (
+                <pre className="max-w-3xl mx-auto mt-1 mb-1 p-2 rounded-lg bg-black/40 text-[10px] text-emerald-200/90 overflow-x-auto max-h-28">
+                  {JSON.stringify(lastTagLog, null, 2)}
+                </pre>
+              )}
+            </div>
+          )}
+
           {/* Input area */}
-          <div className="flex-shrink-0 border-t border-border bg-card/50 backdrop-blur-sm p-4">
+          <div className="flex-shrink-0 border-t border-border bg-card/50 backdrop-blur-sm p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <div className="flex gap-2 items-end max-w-3xl mx-auto">
               <textarea
                 ref={inputRef}
@@ -1320,6 +1350,30 @@ export default function GameClient() {
                 </button>
               )}
             </div>
+            {/* Mobile quick nav into sidebar tabs */}
+            <div className="lg:hidden flex gap-1.5 mt-2 max-w-3xl mx-auto overflow-x-auto scrollbar-hide">
+              {([
+                { id: 'stats' as SidebarTab, label: 'Стати' },
+                { id: 'map' as SidebarTab, label: 'Карта' },
+                { id: 'quests' as SidebarTab, label: 'Квести' },
+                { id: 'characters' as SidebarTab, label: 'NPC' },
+                { id: 'inventory' as SidebarTab, label: 'Інв.' },
+                { id: 'lore' as SidebarTab, label: 'Лор' },
+              ]).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => { setSidebarTab(t.id); setShowSidebar(true) }}
+                  className={`flex-shrink-0 px-2.5 py-1 text-[11px] rounded-full border ${
+                    sidebarTab === t.id && showSidebar
+                      ? 'border-primary/50 bg-primary/15 text-primary'
+                      : 'border-border text-muted-foreground'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -1327,7 +1381,7 @@ export default function GameClient() {
         <aside
           className={`${
             showSidebar ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
-          } absolute lg:relative right-0 top-0 h-full w-72 xl:w-80 border-l border-border bg-card overflow-hidden transition-transform duration-300 z-20 flex flex-col`}
+          } absolute lg:relative right-0 top-0 h-full w-[min(100%,20rem)] sm:w-80 border-l border-border bg-card overflow-hidden transition-transform duration-300 z-30 flex flex-col shadow-2xl lg:shadow-none`}
         >
           {/* Loading indicator */}
           <AnimatePresence>
@@ -1827,57 +1881,69 @@ export default function GameClient() {
             )}
 
             {/* MAP TAB */}
-            {sidebarTab === 'map' && (
+            {sidebarTab === 'map' && (() => {
+              const chapterId = gameState?.chapter ?? 'arrival'
+              const goal = CHAPTER_MAP_GOALS[chapterId] || CHAPTER_MAP_GOALS.arrival
+              const isGoalLoc = (name: string) =>
+                goal.locationHints.some((h) => name.toLowerCase().includes(h.toLowerCase()))
+              return (
               <div className="space-y-3">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">🗺️ Карта острова</h3>
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2">
+                  <p className="text-[10px] text-amber-200/90 font-medium">Ціль глави «{gameState?.chapterLabel ?? 'Прибуття'}»</p>
+                  <p className="text-xs text-foreground mt-0.5">{goal.label}</p>
+                </div>
                 <div className="relative w-full aspect-square bg-gradient-to-br from-blue-900/30 via-emerald-900/20 to-amber-900/20 rounded-xl border border-border overflow-hidden">
-                  {/* Ocean background */}
                   <div className="absolute inset-0 bg-blue-500/10" />
-                  {/* Island shape */}
                   <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
                     <path d="M 30 15 C 40 8, 65 5, 75 12 C 85 18, 90 30, 88 45 C 92 55, 85 70, 78 78 C 70 85, 55 92, 42 88 C 30 85, 18 75, 15 60 C 10 48, 12 35, 18 25 C 22 18, 25 15, 30 15" fill="rgba(34,197,94,0.15)" stroke="rgba(34,197,94,0.3)" strokeWidth="0.5" />
                   </svg>
-                  {/* Location dots */}
-                  {locations.map((loc) => (
+                  {locations.map((loc) => {
+                    const goalHit = isGoalLoc(loc.name)
+                    return (
                     <div
                       key={loc.id}
                       className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${
-                        loc.discovered ? 'opacity-100' : 'opacity-20'
+                        loc.discovered || goalHit ? 'opacity-100' : 'opacity-20'
                       }`}
                       style={{ left: `${loc.x}%`, top: `${loc.y}%` }}
-                      title={loc.discovered ? loc.name : '???'}
+                      title={loc.discovered ? loc.name : goalHit ? `Ціль: ${loc.name}` : '???'}
                     >
-                      <div className={`w-3 h-3 rounded-full border ${
+                      <div className={`rounded-full border ${
                         loc.isCurrent
                           ? 'bg-primary border-primary shadow-lg shadow-primary/50 animate-pulse w-4 h-4'
+                          : goalHit
+                            ? 'bg-amber-400 border-amber-200 shadow-md shadow-amber-500/40 animate-pulse w-3.5 h-3.5'
                           : loc.discovered
-                            ? 'bg-emerald-500/80 border-emerald-400/50'
-                            : 'bg-gray-600/50 border-gray-500/30'
+                            ? 'bg-emerald-500/80 border-emerald-400/50 w-3 h-3'
+                            : 'bg-gray-600/50 border-gray-500/30 w-3 h-3'
                       }`} />
-                      {loc.discovered && (
+                      {(loc.discovered || goalHit) && (
                         <span className={`absolute top-4 left-1/2 -translate-x-1/2 text-[8px] whitespace-nowrap ${
-                          loc.isCurrent ? 'text-primary font-bold' : 'text-muted-foreground'
+                          loc.isCurrent ? 'text-primary font-bold' : goalHit ? 'text-amber-300 font-semibold' : 'text-muted-foreground'
                         }`}>
-                          {loc.name}
+                          {loc.discovered ? loc.name : '★ ціль'}
                         </span>
                       )}
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-primary inline-block animate-pulse" /> Поточна локація
+                    <span className="w-2 h-2 rounded-full bg-primary inline-block animate-pulse" /> Поточна
+                  </p>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse" /> Ціль глави
                   </p>
                   <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-emerald-500/80 inline-block" /> Відкрито
                   </p>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-gray-600/50 inline-block" /> Невідомо
-                  </p>
                   <p className="text-xs font-mono text-muted-foreground mt-2">Відкрито: {locations.filter(l => l.discovered).length}/{locations.length}</p>
                 </div>
               </div>
-            )}
+              )
+            })()}
 
             {/* TRIBES TAB */}
             {sidebarTab === 'tribes' && (
