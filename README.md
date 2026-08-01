@@ -21,7 +21,7 @@ copy .env.example .env
 ```
 Заповни `DEEPSEEK_API_KEY`. У `.env` уже має бути:
 ```
-DATABASE_URL="file:./prisma/dev.db"
+DATABASE_URL="file:./dev.db"
 ```
 
 ### 3. Схема + seed
