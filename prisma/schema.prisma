@@ -42,8 +42,19 @@ model GameState {
   chapter       String   @default("arrival")
   chapterLabel  String   @default("Прибуття")
   endingPath    String?
+  /// Server-side action counter for time-of-day progression
+  turnCount     Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+/// Snapshot of playthrough before the latest turn (for redo)
+model TurnSnapshot {
+  id          String   @id @default("latest")
+  userMessage String   @default("")
+  data        String   // full JSON blob
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // Structured long-term memory the AI must respect

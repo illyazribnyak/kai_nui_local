@@ -30,6 +30,7 @@ export interface GameState {
   chapter: string
   chapterLabel: string
   endingPath: string | null
+  turnCount: number
 }
 
 export interface WorldFactData {

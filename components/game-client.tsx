@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { getAvatar, getLaraAvatar, getTribeAvatar } from '@/lib/avatar-utils'
 import Image from 'next/image'
 import { DiceRollPopup, DualPleasureMeter, PhaseIndicator, StaminaBar, ComboCounter, DominationScale, PartnerReaction, SexChoiceCards, ErogenousDiscovery, ContextBonusBadges, SceneSummaryCard, SceneAtmosphere, SceneMoodIndicator, LaraDialogueCards, MultiOrgasmPopup, PenisStatsCard, TempoControlButtons } from './sex-mechanics'
+import { OnboardingOverlay } from './onboarding'
 
 type SidebarTab = 'stats' | 'inventory' | 'quests' | 'diary' | 'skills' | 'map' | 'tribes' | 'achievements' | 'characters' | 'lore'
 
@@ -94,6 +95,7 @@ export default function GameClient() {
   const [lastPlayerMessage, setLastPlayerMessage] = useState<string | null>(null)
   const [apiKeyOk, setApiKeyOk] = useState<boolean | null>(null)
   const [apiHint, setApiHint] = useState<string>('')
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const processedTagsRef = useRef(0)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -117,7 +119,37 @@ export default function GameClient() {
         setApiHint(typeof h?.hint === 'string' ? h.hint : '')
       })
       .catch(() => setApiKeyOk(null))
+    try {
+      if (typeof window !== 'undefined' && !localStorage.getItem('kai_nui_onboarded')) {
+        setShowOnboarding(true)
+      }
+    } catch { /* ignore */ }
   }, [])
+
+  const dismissOnboarding = () => {
+    setShowOnboarding(false)
+    try { localStorage.setItem('kai_nui_onboarded', '1') } catch { /* ignore */ }
+  }
+
+  const redoLastTurn = async () => {
+    if (isLoading) return
+    if (!confirm('Переграти останній хід? Стан світу відкотиться до моменту перед ним.')) return
+    try {
+      const res = await fetch('/api/redo-turn', { method: 'POST' })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body?.error ?? 'Немає знімка')
+      await loadGameState()
+      const msg = body?.userMessage as string | undefined
+      if (msg) {
+        toast.message('Стан відкочено — повторюю хід…')
+        setTimeout(() => sendMessage(msg), 120)
+      } else {
+        toast.success('Стан відкочено')
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Не вдалося переграти')
+    }
+  }
 
   const loadGameState = async () => {
     try {
@@ -153,7 +185,7 @@ export default function GameClient() {
         hunger: 20, thirst: 20, timeOfDay: 'day', mood: 'neutral',
         weather: 'clear', season: 'wet', companionName: null, companionBonus: null,
         clothing: 'клапті одягу', bodyPaint: null, accessories: null,
-        chapter: 'arrival', chapterLabel: 'Прибуття', endingPath: null,
+        chapter: 'arrival', chapterLabel: 'Прибуття', endingPath: null, turnCount: 0,
       })
       setInitialized(true)
     }
@@ -517,6 +549,11 @@ export default function GameClient() {
                   toast.success(`Квест виконано: ${t}`, { icon: '✅' })
                 }
               }
+              if (parsed?.timeTick?.newDay) {
+                toast.message(`Новий день: ${(parsed.timeTick.dayNumber ?? '?')}`, { icon: '🌅' })
+              } else if (parsed?.timeTick?.phaseAdvanced) {
+                toast.message(`Час: ${parsed.timeTick.timeOfDay}`, { icon: '🕐' })
+              }
               if (parsed?.diceRolls?.length > 0) setDiceRoll(parsed.diceRolls[parsed.diceRolls.length - 1])
               if (parsed?.sexScene) {
                 setSexScene(parsed.sexScene); setSceneSummary(null)
@@ -593,7 +630,7 @@ export default function GameClient() {
         hunger: 20, thirst: 20, timeOfDay: 'day', mood: 'neutral',
         weather: 'clear', season: 'wet', companionName: null, companionBonus: null,
         clothing: 'клапті одягу', bodyPaint: null, accessories: null,
-        chapter: 'arrival', chapterLabel: 'Прибуття', endingPath: null,
+        chapter: 'arrival', chapterLabel: 'Прибуття', endingPath: null, turnCount: 0,
       })
       setLocations([])
       setTribeReputations([])
@@ -872,6 +909,15 @@ export default function GameClient() {
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {showOnboarding && (
+        <OnboardingOverlay
+          onClose={dismissOnboarding}
+          onStart={(text) => {
+            dismissOnboarding()
+            setTimeout(() => sendMessage(text), 80)
+          }}
+        />
+      )}
       {/* Header */}
       <header className="flex-shrink-0 border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="flex items-center justify-between px-4 h-14">
@@ -1150,11 +1196,18 @@ export default function GameClient() {
                   <button
                     onClick={() => sendMessage(lastPlayerMessage)}
                     className="flex-shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-border bg-muted/30 hover:bg-amber-500/10 hover:border-amber-500/30 text-muted-foreground hover:text-amber-200 transition-all inline-flex items-center gap-1"
-                    title="Повторити останню дію"
+                    title="Повторити останню дію (без відкату стану)"
                   >
                     <Undo2 className="w-3 h-3" /> Ще раз
                   </button>
                 )}
+                <button
+                  onClick={redoLastTurn}
+                  className="flex-shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-border bg-muted/30 hover:bg-violet-500/10 hover:border-violet-500/30 text-muted-foreground hover:text-violet-200 transition-all inline-flex items-center gap-1"
+                  title="Відкотити стан і переграти останній хід"
+                >
+                  <RotateCcw className="w-3 h-3" /> Переграти хід
+                </button>
               </div>
             </div>
           )}

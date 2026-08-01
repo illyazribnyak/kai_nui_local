@@ -19,7 +19,7 @@ export async function applyStatUpdates(statUpdate: any) {
     'pregnancyWeek', 'pregnancyFather', 'amuletEnergy', 'dayNumber',
     'isDarkLara', 'hunger', 'thirst', 'timeOfDay', 'mood', 'weather',
     'season', 'companionName', 'companionBonus', 'clothing', 'bodyPaint', 'accessories',
-    'chapter', 'chapterLabel', 'endingPath',
+    'chapter', 'chapterLabel', 'endingPath', 'turnCount',
   ]
   const updateData: any = {}
   for (const key of validFields) {
@@ -30,7 +30,7 @@ export async function applyStatUpdates(statUpdate: any) {
       updateData[key] = clamp(Number(statUpdate[key]) || 1, 1, 20)
     } else if (key === 'amuletEnergy') {
       updateData[key] = Math.max(0, Number(statUpdate[key]) || 0)
-    } else if (key === 'dayNumber' || key === 'pregnancyWeek') {
+    } else if (key === 'dayNumber' || key === 'pregnancyWeek' || key === 'turnCount') {
       updateData[key] = Math.max(0, Number(statUpdate[key]) || 0)
     } else if (key === 'mood') {
       if ((VALID_MOODS as readonly string[]).includes(statUpdate[key])) updateData[key] = statUpdate[key]

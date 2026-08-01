@@ -67,3 +67,4 @@ npm run dev
 | `GET /api/health` | DB + ключі |
 | `GET /api/export-game` | повний JSON-бекап сейву |
 | `POST /api/import-game` | імпорт JSON-сейву (тіло = export) |
+| `POST /api/redo-turn` | відкат стану + текст останньої дії для повтору |

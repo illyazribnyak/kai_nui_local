@@ -26,6 +26,7 @@ export async function POST() {
     await prisma.tribeReputation.deleteMany({})
     await prisma.achievement.deleteMany({})
     await prisma.worldFact.deleteMany({})
+    await prisma.turnSnapshot.deleteMany({}).catch(() => {})
     // Reset game state
     await prisma.gameState.upsert({
       where: { id: 'singleton' },
@@ -60,6 +61,7 @@ export async function POST() {
         chapter: 'arrival',
         chapterLabel: 'Прибуття',
         endingPath: null,
+        turnCount: 0,
       },
       create: {
         id: 'singleton',

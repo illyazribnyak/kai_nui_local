@@ -11,6 +11,22 @@ import { applySurvivalDefaults, parseNarrativeStats, tickDiseases } from '@/lib/
 import { resolveDiceRolls } from '@/lib/game/dice'
 import { CHAPTERS, ENDING_PATHS } from '@/lib/game/chapters'
 import { syncQuestLadder } from '@/lib/game/quest-ladder'
+import { applyNewDaySurvival, applyServerTimeTick } from '@/lib/game/time-tick'
+import { saveTurnSnapshot } from '@/lib/game/turn-snapshot'
+import {
+  sanitizeStatUpdate,
+  parseWithSchema,
+  RelUpdateSchema,
+  InvUpdateSchema,
+  QuestUpdateSchema,
+  DiaryUpdateSchema,
+  SkillUpdateSchema,
+  TribeUpdateSchema,
+  AchievementSchema,
+  DiseaseSchema,
+  FactSchema,
+  DiceSchema,
+} from '@/lib/game/tag-schemas'
 
 function buildSystemPrompt(
   gameState: any,
@@ -634,63 +650,74 @@ function parseDeepSeekTags(content: string) {
   const tribeUpdates: any[] = []
   const achievements: any[] = []
 
-  // STAT_UPDATE — може бути лише один
+  // STAT_UPDATE — Zod soft-sanitize
   const statMatch = content.match(/\[STAT_UPDATE\](.*?)\[\/STAT_UPDATE\]/s)
   if (statMatch?.[1]) {
     const parsed = safeParseJSON(statMatch[1].trim(), 'STAT_UPDATE')
-    if (parsed && typeof parsed === 'object') statUpdate = parsed
+    if (parsed) statUpdate = sanitizeStatUpdate(parsed)
   }
 
-  // Усі множинні теги
+  // Усі множинні теги (Zod)
   for (const m of content.matchAll(/\[REL_UPDATE\](.*?)\[\/REL_UPDATE\]/gs)) {
-    const p = safeParseJSON(m[1].trim(), 'REL_UPDATE')
+    const raw = safeParseJSON(m[1].trim(), 'REL_UPDATE')
+    const p = parseWithSchema(RelUpdateSchema, raw, 'REL_UPDATE')
     if (p?.name) relUpdates.push(p)
   }
   for (const m of content.matchAll(/\[INV_UPDATE\](.*?)\[\/INV_UPDATE\]/gs)) {
-    const p = safeParseJSON(m[1].trim(), 'INV_UPDATE')
+    const raw = safeParseJSON(m[1].trim(), 'INV_UPDATE')
+    const p = parseWithSchema(InvUpdateSchema, raw, 'INV_UPDATE')
     if (p?.name) invUpdates.push(p)
   }
   for (const m of content.matchAll(/\[QUEST_UPDATE\](.*?)\[\/QUEST_UPDATE\]/gs)) {
-    const p = safeParseJSON(m[1].trim(), 'QUEST_UPDATE')
+    const raw = safeParseJSON(m[1].trim(), 'QUEST_UPDATE')
+    const p = parseWithSchema(QuestUpdateSchema, raw, 'QUEST_UPDATE')
     if (p?.title) questUpdates.push(p)
   }
   for (const m of content.matchAll(/\[DIARY_UPDATE\](.*?)\[\/DIARY_UPDATE\]/gs)) {
-    const p = safeParseJSON(m[1].trim(), 'DIARY_UPDATE')
+    const raw = safeParseJSON(m[1].trim(), 'DIARY_UPDATE')
+    const p = parseWithSchema(DiaryUpdateSchema, raw, 'DIARY_UPDATE')
     if (p?.content) diaryUpdates.push(p)
   }
   for (const m of content.matchAll(/\[SKILL_UPDATE\](.*?)\[\/SKILL_UPDATE\]/gs)) {
-    const p = safeParseJSON(m[1].trim(), 'SKILL_UPDATE')
+    const raw = safeParseJSON(m[1].trim(), 'SKILL_UPDATE')
+    const p = parseWithSchema(SkillUpdateSchema, raw, 'SKILL_UPDATE')
     if (p?.name && p?.xp) skillUpdates.push(p)
   }
   for (const m of content.matchAll(/\[TRIBE_UPDATE\](.*?)\[\/TRIBE_UPDATE\]/gs)) {
-    const p = safeParseJSON(m[1].trim(), 'TRIBE_UPDATE')
+    const raw = safeParseJSON(m[1].trim(), 'TRIBE_UPDATE')
+    const p = parseWithSchema(TribeUpdateSchema, raw, 'TRIBE_UPDATE')
     if (p?.tribe && p?.change !== undefined) tribeUpdates.push(p)
   }
   for (const m of content.matchAll(/\[ACHIEVEMENT\](.*?)\[\/ACHIEVEMENT\]/gs)) {
-    const p = safeParseJSON(m[1].trim(), 'ACHIEVEMENT')
+    const raw = safeParseJSON(m[1].trim(), 'ACHIEVEMENT')
+    const p = parseWithSchema(AchievementSchema, raw, 'ACHIEVEMENT')
     if (p?.name) achievements.push(p)
   }
 
   // DISEASE tags
   const diseaseUpdates: any[] = []
   for (const m of content.matchAll(/\[DISEASE_ADD\](.*?)\[\/DISEASE_ADD\]/gs)) {
-    const p = safeParseJSON(m[1].trim(), 'DISEASE_ADD')
-    if (p?.name) { p._action = 'add'; diseaseUpdates.push(p) }
+    const raw = safeParseJSON(m[1].trim(), 'DISEASE_ADD')
+    const p = parseWithSchema(DiseaseSchema, { ...(raw || {}), _action: 'add' }, 'DISEASE_ADD')
+    if (p?.name) diseaseUpdates.push(p)
   }
   for (const m of content.matchAll(/\[DISEASE_REMOVE\](.*?)\[\/DISEASE_REMOVE\]/gs)) {
-    const p = safeParseJSON(m[1].trim(), 'DISEASE_REMOVE')
-    if (p?.name) { p._action = 'remove'; diseaseUpdates.push(p) }
+    const raw = safeParseJSON(m[1].trim(), 'DISEASE_REMOVE')
+    const p = parseWithSchema(DiseaseSchema, { ...(raw || {}), _action: 'remove' }, 'DISEASE_REMOVE')
+    if (p?.name) diseaseUpdates.push(p)
   }
 
   // WORLD FACT tags
   const facts: any[] = []
   for (const m of content.matchAll(/\[FACT_ADD\](.*?)\[\/FACT_ADD\]/gs)) {
-    const p = safeParseJSON(m[1].trim(), 'FACT_ADD')
-    if (p?.key || p?.name) { p._action = 'add'; facts.push(p) }
+    const raw = safeParseJSON(m[1].trim(), 'FACT_ADD')
+    const p = parseWithSchema(FactSchema, { ...(raw || {}), _action: 'add' }, 'FACT_ADD')
+    if (p) facts.push(p)
   }
   for (const m of content.matchAll(/\[FACT_REMOVE\](.*?)\[\/FACT_REMOVE\]/gs)) {
-    const p = safeParseJSON(m[1].trim(), 'FACT_REMOVE')
-    if (p?.key || p?.name) { p._action = 'remove'; facts.push(p) }
+    const raw = safeParseJSON(m[1].trim(), 'FACT_REMOVE')
+    const p = parseWithSchema(FactSchema, { ...(raw || {}), _action: 'remove' }, 'FACT_REMOVE')
+    if (p) facts.push(p)
   }
 
   // CHOICES
@@ -704,8 +731,9 @@ function parseDeepSeekTags(content: string) {
   // DICE_ROLL
   const diceRolls: any[] = []
   for (const m of content.matchAll(/\[DICE_ROLL\](.*?)\[\/DICE_ROLL\]/gs)) {
-    const p = safeParseJSON(m[1].trim(), 'DICE_ROLL')
-    if (p?.skill) diceRolls.push(p)
+    const raw = safeParseJSON(m[1].trim(), 'DICE_ROLL')
+    const p = parseWithSchema(DiceSchema, raw, 'DICE_ROLL')
+    if (p && (p.skill || p.stat)) diceRolls.push(p)
   }
 
   // SEX_SCENE_START
@@ -888,6 +916,8 @@ export async function POST(request: NextRequest) {
     })
     recentMessages.reverse()
 
+    // Snapshot BEFORE this turn mutates world (for redo)
+    await saveTurnSnapshot(message)
     await prisma.message.create({ data: { role: 'user', content: message } })
 
     const diseases = await prisma.disease.findMany()
@@ -953,9 +983,14 @@ export async function POST(request: NextRequest) {
           // 5. Зберігаємо повідомлення
           await prisma.message.create({ data: { role: 'assistant', content: displayContent } })
 
-          // 5.5 Server-side survival defaults + narrative fallbacks
+          // 5.5 Server-side survival + narrative fallbacks + time tick
           merged.stat = applySurvivalDefaults(merged.stat, gameState)
           merged.stat = parseNarrativeStats(fullContent, merged.stat)
+          const timeTick = applyServerTimeTick(merged.stat, gameState)
+          merged.stat = timeTick.stat
+          if (timeTick.newDay) {
+            merged.stat = applyNewDaySurvival(merged.stat)
+          }
 
           // 5.6 Fair server-side dice re-roll
           const resolvedDice = resolveDiceRolls(merged.diceRolls || [], gameState)
@@ -1007,6 +1042,13 @@ export async function POST(request: NextRequest) {
             diseases: updatedDiseases,
             worldFacts: updatedFacts,
             completedQuests,
+            timeTick: {
+              phaseAdvanced: timeTick.phaseAdvanced,
+              newDay: timeTick.newDay,
+              turnCount: timeTick.turnCount,
+              timeOfDay: merged.stat.timeOfDay,
+              dayNumber: merged.stat.dayNumber,
+            },
             choices: finalChoices,
             diceRolls: merged.diceRolls,
             sexScene: merged.sexScene,

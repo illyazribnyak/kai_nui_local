@@ -18,6 +18,7 @@ export async function clearPlaythrough() {
   await prisma.achievement.deleteMany()
   await prisma.disease.deleteMany()
   await prisma.worldFact.deleteMany()
+  await prisma.turnSnapshot.deleteMany().catch(() => {})
 }
 
 /** Restore full export/slot JSON into the singleton playthrough. */
@@ -40,7 +41,7 @@ export async function restorePlaythrough(saved: any) {
       'timeOfDay', 'mood', 'isPregnant', 'pregnancyWeek', 'pregnancyFather',
       'amuletEnergy', 'dayNumber', 'isDarkLara', 'gameStarted', 'weather',
       'season', 'companionName', 'companionBonus', 'clothing', 'bodyPaint',
-      'accessories', 'chapter', 'chapterLabel', 'endingPath',
+      'accessories', 'chapter', 'chapterLabel', 'endingPath', 'turnCount',
     ]
     const data: any = {}
     for (const k of allowed) {
