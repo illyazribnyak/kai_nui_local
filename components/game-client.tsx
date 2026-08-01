@@ -6,6 +6,21 @@ import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin
 import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData, WorldFactData } from '@/lib/types'
 import { chapterProgressPercent, ENDING_PATHS } from '@/lib/game/chapters'
 import { CHAPTER_MAP_GOALS } from '@/lib/prompt-mode'
+import {
+  QUICK_ACTIONS,
+  buildSurvivalWarnings,
+  createDefaultGameState,
+  formatMessageHtml,
+  getDesireColor,
+  getDesireLabel,
+  getHungerColor,
+  getMoodEmoji,
+  getMoodLabel,
+  getTimeOfDayEmoji,
+  getTimeOfDayLabel,
+  getTribeStatusColor,
+  getTribeStatusLabel,
+} from '@/lib/game/ui-labels'
 import { Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { getAvatar, getLaraAvatar, getTribeAvatar } from '@/lib/avatar-utils'
@@ -181,16 +196,7 @@ export default function GameClient() {
     } catch (error: any) {
       console.error('Load error:', error)
       setMessages([{ id: 'intro', role: 'assistant', content: INTRO_MESSAGE, createdAt: new Date().toISOString() }])
-      setGameState({
-        id: 'singleton', strength: 6, agility: 8, endurance: 7, charisma: 7, willpower: 8,
-        desire: 0, shame: 0, confidence: 50, location: 'Берег острова',
-        isPregnant: false, pregnancyWeek: 0, pregnancyFather: null,
-        amuletEnergy: 0, dayNumber: 1, isDarkLara: false, gameStarted: false,
-        hunger: 20, thirst: 20, timeOfDay: 'day', mood: 'neutral',
-        weather: 'clear', season: 'wet', companionName: null, companionBonus: null,
-        clothing: 'клапті одягу', bodyPaint: null, accessories: null,
-        chapter: 'arrival', chapterLabel: 'Прибуття', endingPath: null, turnCount: 0,
-      })
+      setGameState(createDefaultGameState({ gameStarted: false }) as any)
       setInitialized(true)
     }
   }
@@ -628,16 +634,7 @@ export default function GameClient() {
       setSkills([])
       // Reload to get seeded skills
       loadGameState()
-      setGameState({
-        id: 'singleton', strength: 6, agility: 8, endurance: 7, charisma: 7, willpower: 8,
-        desire: 0, shame: 0, confidence: 50, location: 'Берег острова',
-        isPregnant: false, pregnancyWeek: 0, pregnancyFather: null,
-        amuletEnergy: 0, dayNumber: 1, isDarkLara: false, gameStarted: true,
-        hunger: 20, thirst: 20, timeOfDay: 'day', mood: 'neutral',
-        weather: 'clear', season: 'wet', companionName: null, companionBonus: null,
-        clothing: 'клапті одягу', bodyPaint: null, accessories: null,
-        chapter: 'arrival', chapterLabel: 'Прибуття', endingPath: null, turnCount: 0,
-      })
+      setGameState(createDefaultGameState({ gameStarted: true }) as any)
       setLocations([])
       setTribeReputations([])
       setAchievements([])
@@ -734,128 +731,17 @@ export default function GameClient() {
     }
   }
 
-  const formatMessage = (content: string) => {
-    if (!content) return ''
-    return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\n/g, '<br/>')
-  }
+  const formatMessage = formatMessageHtml
 
-  const getDesireColor = (desire: number) => {
-    const d = desire ?? 0
-    if (d <= 15) return 'bg-sky-500'
-    if (d <= 35) return 'bg-emerald-500'
-    if (d <= 55) return 'bg-yellow-500'
-    if (d <= 75) return 'bg-orange-500'
-    if (d <= 90) return 'bg-red-500'
-    return 'bg-red-700 animate-pulse'
-  }
-
-  const getDesireLabel = (desire: number) => {
-    const d = desire ?? 0
-    if (d <= 15) return 'Спокій'
-    if (d <= 35) return 'Цікавість'
-    if (d <= 55) return 'Збудження'
-    if (d <= 75) return 'Жага'
-    if (d <= 90) return 'Голод'
-    return 'Шаленство'
-  }
-
-  const getTimeOfDayEmoji = (tod: string) => {
-    switch (tod) {
-      case 'morning': return '🌅'
-      case 'day': return '☀️'
-      case 'evening': return '🌇'
-      case 'night': return '🌙'
-      default: return '☀️'
-    }
-  }
-
-  const getTimeOfDayLabel = (tod: string) => {
-    switch (tod) {
-      case 'morning': return 'Ранок'
-      case 'day': return 'День'
-      case 'evening': return 'Вечір'
-      case 'night': return 'Ніч'
-      default: return 'День'
-    }
-  }
-
-  const getMoodEmoji = (mood: string) => {
-    switch (mood) {
-      case 'happy': return '😊'
-      case 'neutral': return '😐'
-      case 'sad': return '😢'
-      case 'scared': return '😨'
-      case 'aroused': return '🥵'
-      case 'angry': return '😠'
-      case 'exhausted': return '😵'
-      default: return '😐'
-    }
-  }
-
-  const getMoodLabel = (mood: string) => {
-    switch (mood) {
-      case 'happy': return 'Щаслива'
-      case 'neutral': return 'Спокійна'
-      case 'sad': return 'Сумна'
-      case 'scared': return 'Налякана'
-      case 'aroused': return 'Збуджена'
-      case 'angry': return 'Зла'
-      case 'exhausted': return 'Виснажена'
-      default: return 'Спокійна'
-    }
-  }
-
-  const getTribeStatusLabel = (status: string) => {
-    switch (status) {
-      case 'hostile': return 'Вороже'
-      case 'unfriendly': return 'Недружнє'
-      case 'neutral': return 'Нейтральне'
-      case 'friendly': return 'Дружнє'
-      case 'ally': return 'Союзник'
-      default: return 'Нейтральне'
-    }
-  }
-
-  const getTribeStatusColor = (status: string) => {
-    switch (status) {
-      case 'hostile': return 'text-red-500'
-      case 'unfriendly': return 'text-orange-400'
-      case 'neutral': return 'text-gray-400'
-      case 'friendly': return 'text-emerald-400'
-      case 'ally': return 'text-blue-400'
-      default: return 'text-gray-400'
-    }
-  }
-
-  const getHungerColor = (val: number) => {
-    if (val <= 30) return 'bg-emerald-500'
-    if (val <= 60) return 'bg-yellow-500'
-    if (val <= 80) return 'bg-orange-500'
-    return 'bg-red-500 animate-pulse'
-  }
-
-  const QUICK_ACTIONS = [
-    { label: '👀 Оглянутися', text: 'Оглянутися навколо' },
-    { label: '🚶 Йти далі', text: 'Йти далі углиб острова' },
-    { label: '🍎 Шукати їжу', text: 'Пошукати їжу та воду' },
-    { label: '🛡️ Оборона', text: 'Підготувати оборону' },
-    { label: '💬 Говорити', text: 'Поговорити з NPC поруч' },
-    { label: '🔨 Майструвати', text: 'Спробувати створити щось з наявних ресурсів' },
-    { label: '💎 Амулет', text: 'Перевірити амулет на шиї' },
-  ]
-
-  const survivalWarnings = useMemo(() => {
-    const warnings: string[] = []
-    if ((gameState?.thirst ?? 0) >= 80) warnings.push('Спрага критична')
-    else if ((gameState?.thirst ?? 0) >= 60) warnings.push('Сильна спрага')
-    if ((gameState?.hunger ?? 0) >= 80) warnings.push('Голод критичний')
-    else if ((gameState?.hunger ?? 0) >= 60) warnings.push('Сильний голод')
-    if (diseases.length > 0) warnings.push(`Хвороби: ${diseases.map(d => d.name).join(', ')}`)
-    return warnings
-  }, [gameState?.thirst, gameState?.hunger, diseases])
+  const survivalWarnings = useMemo(
+    () =>
+      buildSurvivalWarnings(
+        gameState?.hunger ?? 0,
+        gameState?.thirst ?? 0,
+        diseases.map((d) => d.name)
+      ),
+    [gameState?.thirst, gameState?.hunger, diseases]
+  )
 
   const getCategoryIcon = (cat: string) => {
     switch (cat) {

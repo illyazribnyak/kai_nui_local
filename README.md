@@ -45,6 +45,9 @@ npm run dev
 | `npm run db:setup` | generate + push + seed |
 | `npm run db:seed` | лише seed |
 | `npm run db:push` | Prisma schema → DB |
+| `npm test` | unit-тести (dice, tags, chapters…) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run ci` | typecheck + test |
 
 ## Архітектура (коротко)
 - **Next.js 14** App Router — UI + API

@@ -5,6 +5,8 @@ import { prisma } from '@/lib/db'
 import { getGameContext } from '@/lib/game-context'
 import { detectPromptMode, type PromptMode } from '@/lib/prompt-mode'
 import { buildTagLog } from '@/lib/game/tag-log'
+import { rateLimit } from '@/lib/game/rate-limit'
+import { DEFAULT_TURN_CHOICES } from '@/lib/game/ui-labels'
 import { callAnalyzerLLM, callDeepSeekWithRetry } from '@/lib/llm/client'
 import { safeParseJSON } from '@/lib/game/json'
 import { SKILL_NAMES, MAX_CONTEXT_MESSAGES, COMPRESS_THRESHOLD, MAX_PLAYER_MESSAGE_LENGTH, MAX_WORLD_FACTS_IN_PROMPT } from '@/lib/game/constants'
@@ -881,6 +883,18 @@ function cleanDisplayContent(content: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // Soft rate limit: 20 requests / minute per process (local single-player)
+    const rl = rateLimit('chat:global', { limit: 20, windowMs: 60_000 })
+    if (!rl.ok) {
+      return new Response(
+        JSON.stringify({
+          error: `Забагато запитів. Зачекай ~${Math.ceil(rl.retryAfterMs / 1000)} с.`,
+          code: 'RATE_LIMIT',
+        }),
+        { status: 429 }
+      )
+    }
+
     const { message } = await request.json()
     if (!message || typeof message !== 'string') {
       return new Response(JSON.stringify({ error: 'Повідомлення обов\'язкове' }), { status: 400 })
@@ -1011,12 +1025,7 @@ export async function POST(request: NextRequest) {
           // Default choices if AI forgot
           let finalChoices: string[] = merged.choices?.length ? [...merged.choices] : []
           if (finalChoices.length === 0 && !merged.sexChoices?.length) {
-            finalChoices = [
-              'Оглянутися навколо',
-              'Йти далі',
-              'Пошукати їжу та воду',
-              'Перевірити амулет',
-            ]
+            finalChoices = [...DEFAULT_TURN_CHOICES]
           }
 
           // 7. Отримуємо оновлений стан і відправляємо клієнту

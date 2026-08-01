@@ -9,8 +9,12 @@ import {
   VALID_WEATHER,
 } from '@/lib/game/constants'
 
+/** Coerce + clamp (AI often sends out-of-range values). */
 const num = (min: number, max: number) =>
-  z.coerce.number().finite().min(min).max(max)
+  z.coerce
+    .number()
+    .finite()
+    .transform((n) => Math.max(min, Math.min(max, Number.isFinite(n) ? n : min)))
 
 const oneOf = (allowed: readonly string[]) =>
   z.string().refine((s) => allowed.includes(s), { message: 'invalid enum' })
