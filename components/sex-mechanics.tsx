@@ -166,19 +166,19 @@ export function PartnerReaction({ text, emotion }: { text: string; emotion: stri
 // ====== 8. SEX CHOICE CARDS (with risk) ======
 export function SexChoiceCards({ options, onSelect }: { options: { text: string; bonus: string; risk?: boolean }[]; onSelect: (text: string) => void }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 min-w-0">
       <p className="text-xs text-pink-300/80 text-center mb-1">🎭 Оберіть дію:</p>
-      <div className="grid grid-cols-2 gap-2 max-w-lg mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-lg mx-auto">
         {options.map((opt, i) => (
           <motion.button key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
             onClick={() => onSelect(opt.text)}
-            className={`text-left p-3 rounded-xl border transition-all active:scale-95 ${
+            className={`text-left p-3 rounded-xl border transition-all active:scale-95 min-w-0 ${
               opt.risk
                 ? 'border-red-500/50 bg-red-950/40 hover:bg-red-900/50 hover:border-red-400/70 hover:shadow-lg hover:shadow-red-500/20'
                 : 'border-pink-500/30 bg-pink-950/30 hover:bg-pink-900/40 hover:border-pink-400/50'
             }`}>
-            <p className="text-sm font-medium text-white">{opt.text}</p>
-            <p className={`text-[10px] mt-1 ${opt.risk ? 'text-red-300' : 'text-pink-300/70'}`}>{opt.bonus}</p>
+            <p className="text-sm font-medium text-white break-words">{opt.text}</p>
+            <p className={`text-[10px] mt-1 break-words ${opt.risk ? 'text-red-300' : 'text-pink-300/70'}`}>{opt.bonus}</p>
             {opt.risk && <span className="text-[9px] text-red-400 font-bold">⚠️ РИЗИК</span>}
           </motion.button>
         ))}
@@ -235,22 +235,22 @@ export function SceneSummaryCard({ summary, onDismiss }: { summary: any; onDismi
 
   return (
     <motion.div initial={{ opacity: 0, y: 30, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20 }}
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onDismiss}>
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto" onClick={onDismiss}>
       <motion.div onClick={e => e.stopPropagation()}
-        className="bg-gradient-to-b from-pink-950/95 to-purple-950/95 border border-pink-500/40 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4">
-        <h3 className="text-lg font-bold text-center text-pink-200 mb-4">📊 Підсумок сцени</h3>
-        <div className="grid grid-cols-2 gap-2">
+        className="bg-gradient-to-b from-pink-950/95 to-purple-950/95 border border-pink-500/40 rounded-2xl p-6 shadow-2xl max-w-sm w-full max-h-[min(90dvh,32rem)] flex flex-col min-h-0 my-auto">
+        <h3 className="text-lg font-bold text-center text-pink-200 mb-4 flex-shrink-0">📊 Підсумок сцени</h3>
+        <div className="grid grid-cols-2 gap-2 overflow-y-auto panel-scroll min-h-0 pr-0.5">
           {rows.map((r, i) => (
-            <div key={i} className="bg-white/5 rounded-xl p-2.5 border border-white/10">
-              <div className="flex items-center gap-1">
-                <span className="text-sm">{r.icon}</span>
-                <span className="text-[10px] text-white/50">{r.label}</span>
+            <div key={i} className="bg-white/5 rounded-xl p-2.5 border border-white/10 min-w-0">
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="text-sm flex-shrink-0">{r.icon}</span>
+                <span className="text-[10px] text-white/50 truncate">{r.label}</span>
               </div>
-              <p className="text-sm font-bold text-white mt-0.5">{r.value}</p>
+              <p className="text-sm font-bold text-white mt-0.5 break-words">{r.value}</p>
             </div>
           ))}
         </div>
-        <button onClick={onDismiss} className="mt-4 w-full py-2 text-sm text-pink-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-all">Закрити</button>
+        <button onClick={onDismiss} className="mt-4 w-full py-2 text-sm text-pink-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-all flex-shrink-0">Закрити</button>
       </motion.div>
     </motion.div>
   )
@@ -296,17 +296,17 @@ export function SceneMoodIndicator({ mood, label, intensity }: { mood: string; l
 export function LaraDialogueCards({ options, onSelect }: { options: { text: string; effect: string; mood: string }[]; onSelect: (text: string) => void }) {
   const moodIcon: Record<string, string> = { tender: '🌸', passionate: '🔥', dominant: '👑', submissive: '🦋', playful: '😏', provocative: '😈', romantic: '💕' }
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 min-w-0">
       <p className="text-xs text-purple-300/80 text-center mb-1">💬 Що скаже Лара:</p>
       <div className="space-y-1.5 max-w-lg mx-auto">
         {options.map((opt, i) => (
           <motion.button key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
             onClick={() => onSelect(opt.text)}
-            className="w-full text-left p-2.5 rounded-xl border border-purple-500/30 bg-purple-950/30 hover:bg-purple-900/40 hover:border-purple-400/50 transition-all active:scale-[0.98] flex items-start gap-2">
-            <span className="text-lg mt-0.5">{moodIcon[opt.mood] || '💬'}</span>
-            <div className="flex-1">
-              <p className="text-sm text-purple-100 italic">«{opt.text}»</p>
-              <p className="text-[10px] text-purple-300/60 mt-0.5">{opt.effect}</p>
+            className="w-full text-left p-2.5 rounded-xl border border-purple-500/30 bg-purple-950/30 hover:bg-purple-900/40 hover:border-purple-400/50 transition-all active:scale-[0.98] flex items-start gap-2 min-w-0">
+            <span className="text-lg mt-0.5 flex-shrink-0">{moodIcon[opt.mood] || '💬'}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-purple-100 italic break-words">«{opt.text}»</p>
+              <p className="text-[10px] text-purple-300/60 mt-0.5 break-words">{opt.effect}</p>
             </div>
           </motion.button>
         ))}
@@ -378,31 +378,31 @@ export function PenisStatsCard({ stats, onDismiss }: { stats: any; onDismiss: ()
 
   return (
     <motion.div initial={{ opacity: 0, y: 30, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20 }}
-      className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onDismiss}>
+      className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto" onClick={onDismiss}>
       <motion.div onClick={e => e.stopPropagation()}
-        className="bg-gradient-to-b from-slate-900/95 to-indigo-950/95 border border-indigo-500/40 rounded-2xl p-5 shadow-2xl max-w-sm w-full mx-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-bold text-indigo-200">🍆 {stats.name}</h3>
-          <span className="text-[10px] px-2 py-0.5 bg-white/10 rounded-full text-white/60">{stats.race} • {stats.type}</span>
+        className="bg-gradient-to-b from-slate-900/95 to-indigo-950/95 border border-indigo-500/40 rounded-2xl p-5 shadow-2xl max-w-sm w-full max-h-[min(90dvh,32rem)] flex flex-col min-h-0 my-auto">
+        <div className="flex items-center justify-between gap-2 mb-3 flex-shrink-0 min-w-0">
+          <h3 className="text-base font-bold text-indigo-200 truncate min-w-0">🍆 {stats.name}</h3>
+          <span className="text-[10px] px-2 py-0.5 bg-white/10 rounded-full text-white/60 flex-shrink-0 whitespace-nowrap">{stats.race} • {stats.type}</span>
         </div>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5 overflow-y-auto panel-scroll min-h-0 pr-0.5">
           {rows.map((r, i) => (
-            <div key={i} className="bg-white/5 rounded-lg px-2.5 py-1.5 border border-white/10">
-              <div className="flex items-center gap-1">
-                <span className="text-xs">{r.icon}</span>
-                <span className="text-[9px] text-white/50">{r.label}</span>
+            <div key={i} className="bg-white/5 rounded-lg px-2.5 py-1.5 border border-white/10 min-w-0">
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="text-xs flex-shrink-0">{r.icon}</span>
+                <span className="text-[9px] text-white/50 truncate">{r.label}</span>
               </div>
-              <p className="text-xs font-medium text-white mt-0.5">{r.value}</p>
+              <p className="text-xs font-medium text-white mt-0.5 break-words">{r.value}</p>
             </div>
           ))}
         </div>
         {stats.risk_for_lara && (
-          <div className="mt-2.5 flex items-center justify-between bg-black/30 rounded-lg px-3 py-2">
-            <span className="text-[10px] text-white/50">⚠️ Ризик для Лари:</span>
-            <span className={`text-xs font-bold ${riskColor[stats.risk_for_lara] || 'text-white/70'}`}>{stats.risk_for_lara}</span>
+          <div className="mt-2.5 flex items-center justify-between gap-2 bg-black/30 rounded-lg px-3 py-2 flex-shrink-0 min-w-0">
+            <span className="text-[10px] text-white/50 flex-shrink-0">⚠️ Ризик для Лари:</span>
+            <span className={`text-xs font-bold truncate ${riskColor[stats.risk_for_lara] || 'text-white/70'}`}>{stats.risk_for_lara}</span>
           </div>
         )}
-        <button onClick={onDismiss} className="mt-3 w-full py-1.5 text-xs text-indigo-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-all">Закрити</button>
+        <button onClick={onDismiss} className="mt-3 w-full py-1.5 text-xs text-indigo-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-all flex-shrink-0">Закрити</button>
       </motion.div>
     </motion.div>
   )

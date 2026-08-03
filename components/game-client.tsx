@@ -855,7 +855,7 @@ export default function GameClient() {
 
   if (!initialized) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
+      <div className="h-dvh flex items-center justify-center bg-background">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
@@ -866,7 +866,7 @@ export default function GameClient() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden relative">
+    <div className="h-dvh max-h-dvh flex flex-col bg-background overflow-hidden relative">
       {/* Atmosphere layers */}
       <div className="pointer-events-none absolute inset-0 island-atmosphere" aria-hidden />
       <div className="pointer-events-none absolute inset-0 island-vignetting" aria-hidden />
@@ -1018,9 +1018,9 @@ export default function GameClient() {
       </header>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden relative z-10">
+      <div className="flex-1 flex min-h-0 overflow-hidden relative z-10">
         {/* Chat area */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {apiKeyOk === false && (
             <div className="flex-shrink-0 border-b border-amber-500/30 bg-gradient-to-r from-amber-950/50 to-red-950/40 px-3 sm:px-4 py-2.5">
               <div className="max-w-3xl mx-auto space-y-1.5">
@@ -1040,7 +1040,7 @@ export default function GameClient() {
             </div>
           )}
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto chat-scroll px-3 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden chat-scroll px-3 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4">
             <AnimatePresence initial={false}>
               {(messages ?? []).map((msg: MessageData, index: number) => (
                 <motion.div
@@ -1133,184 +1133,190 @@ export default function GameClient() {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Sex scene HUD */}
-          <AnimatePresence>
-            {sexScene && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                className="flex-shrink-0 border-t border-pink-500/20 bg-pink-950/10 backdrop-blur-sm px-4 py-2 space-y-1.5">
-                <div className="flex flex-wrap items-center justify-center gap-2 max-w-3xl mx-auto">
-                  <PhaseIndicator phase={phase?.phase || 'foreplay'} label={phase?.label} />
-                  {stamina && <StaminaBar value={stamina.value} tempo={stamina.tempo} />}
-                  <DominationScale value={domination} />
-                  {sceneMood && <SceneMoodIndicator mood={sceneMood.mood} label={sceneMood.label} intensity={sceneMood.intensity} />}
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-2 max-w-3xl mx-auto">
-                  <TempoControlButtons activeTempo={activeTempo} onChange={setActiveTempo} />
-                </div>
-                {contextBonuses.length > 0 && <ContextBonusBadges bonuses={contextBonuses} />}
-                {/* Partner reactions */}
-                {reactions.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 justify-center max-w-3xl mx-auto">
-                    <AnimatePresence>
-                      {reactions.slice(-3).map((r, i) => (
-                        <PartnerReaction key={`reaction-${i}`} text={r.text} emotion={r.emotion} />
-                      ))}
-                    </AnimatePresence>
+          {/* Action chrome: max height + scroll so buttons never overflow the viewport */}
+          <div className="flex-shrink-0 min-h-0 max-h-[min(42vh,22rem)] overflow-y-auto overflow-x-hidden panel-scroll overscroll-contain border-t border-border/60 bg-card/20">
+            {/* Sex scene HUD */}
+            <AnimatePresence>
+              {sexScene && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                  className="border-b border-pink-500/20 bg-pink-950/10 backdrop-blur-sm px-3 sm:px-4 py-2 space-y-1.5">
+                  <div className="flex flex-wrap items-center justify-center gap-2 max-w-3xl mx-auto">
+                    <PhaseIndicator phase={phase?.phase || 'foreplay'} label={phase?.label} />
+                    {stamina && <StaminaBar value={stamina.value} tempo={stamina.tempo} />}
+                    <DominationScale value={domination} />
+                    {sceneMood && <SceneMoodIndicator mood={sceneMood.mood} label={sceneMood.label} intensity={sceneMood.intensity} />}
                   </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Survival warnings */}
-          {survivalWarnings.length > 0 && (
-            <div className="flex-shrink-0 border-t border-amber-500/30 bg-amber-950/20 px-4 py-2">
-              <div className="flex flex-wrap items-center gap-2 max-w-3xl mx-auto text-amber-200/90 text-xs">
-                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                {survivalWarnings.map((w) => (
-                  <span key={w} className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30">{w}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Quick actions — always available when not loading / not in sex choice mode */}
-          {sexChoices.length === 0 && !isLoading && (
-            <div className="flex-shrink-0 border-t border-border bg-card/30 px-4 py-2">
-              <div className="flex gap-1.5 max-w-3xl mx-auto overflow-x-auto scrollbar-hide items-center">
-                {QUICK_ACTIONS.map((action) => (
-                  <button
-                    key={action.label}
-                    onClick={() => sendMessage(action.text)}
-                    className="flex-shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-border bg-muted/50 hover:bg-primary/10 hover:border-primary/30 text-muted-foreground hover:text-foreground transition-all"
-                  >
-                    {action.label}
-                  </button>
-                ))}
-                {lastPlayerMessage && (
-                  <button
-                    onClick={() => sendMessage(lastPlayerMessage)}
-                    className="flex-shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-border bg-muted/30 hover:bg-amber-500/10 hover:border-amber-500/30 text-muted-foreground hover:text-amber-200 transition-all inline-flex items-center gap-1"
-                    title="Повторити останню дію (без відкату стану)"
-                  >
-                    <Undo2 className="w-3 h-3" /> Ще раз
-                  </button>
-                )}
-                <button
-                  onClick={redoLastTurn}
-                  className="flex-shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-border bg-muted/30 hover:bg-violet-500/10 hover:border-violet-500/30 text-muted-foreground hover:text-violet-200 transition-all inline-flex items-center gap-1"
-                  title="Відкотити стан і переграти останній хід"
-                >
-                  <RotateCcw className="w-3 h-3" /> Переграти хід
-                </button>
-              </div>
-            </div>
-          )}
-
-          {lastFailedMessage && !isLoading && (
-            <div className="flex-shrink-0 border-t border-red-500/20 bg-red-950/20 px-4 py-2">
-              <div className="flex items-center justify-between gap-2 max-w-3xl mx-auto">
-                <p className="text-xs text-red-300/90 truncate">Не вдалося: {lastFailedMessage}</p>
-                <button
-                  onClick={() => sendMessage(lastFailedMessage)}
-                  className="flex-shrink-0 text-xs px-3 py-1 rounded-lg border border-red-400/40 text-red-200 hover:bg-red-500/20"
-                >
-                  Повторити
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Lara dialogue cards */}
-          <AnimatePresence>
-            {laraDialogue.length > 0 && !isLoading && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="flex-shrink-0 border-t border-purple-500/30 bg-purple-950/20 backdrop-blur-sm px-4 pt-3 pb-1"
-              >
-                <LaraDialogueCards options={laraDialogue} onSelect={(text) => { setLaraDialogue([]); sendChoice(text) }} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Sex choice cards */}
-          <AnimatePresence>
-            {sexChoices.length > 0 && !isLoading && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="flex-shrink-0 border-t border-pink-500/30 bg-pink-950/20 backdrop-blur-sm px-4 pt-3 pb-1"
-              >
-                <SexChoiceCards options={sexChoices} onSelect={(text) => { setSexChoices([]); sendChoice(text) }} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Choice buttons */}
-          <AnimatePresence>
-            {choices.length > 0 && sexChoices.length === 0 && !isLoading && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="flex-shrink-0 border-t border-border bg-card/30 backdrop-blur-sm px-4 pt-3 pb-1"
-              >
-                <p className="text-xs text-muted-foreground mb-2 text-center">Оберіть дію:</p>
-                <div className="flex flex-wrap gap-2 justify-center max-w-3xl mx-auto">
-                  {choices.map((choice, i) => (
-                    <motion.button
-                      key={i}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: i * 0.08 }}
-                      onClick={() => sendChoice(choice)}
-                      className="px-4 py-2 text-sm rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/25 text-primary hover:border-primary/70 transition-all active:scale-95"
-                    >
-                      {choice}
-                    </motion.button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Dev tag log */}
-          {lastTagLog && (
-            <div className="flex-shrink-0 border-t border-border/60 bg-muted/20 px-3 py-1">
-              <button
-                type="button"
-                onClick={() => setShowTagLog((v) => !v)}
-                className="w-full max-w-3xl mx-auto flex items-center justify-between text-[10px] text-muted-foreground hover:text-foreground"
-              >
-                <span>
-                  Техлог{promptModeLabel ? ` · ${promptModeLabel}` : ''}
-                  {lastTagLog.counts && (
-                    <> · {Object.entries(lastTagLog.counts).map(([k, v]) => `${k}:${v}`).join(' ')}</>
+                  <div className="panel-scroll-x flex gap-2 max-w-3xl mx-auto pb-1 items-center justify-start sm:justify-center">
+                    <div className="flex items-center gap-2 flex-shrink-0 mx-auto">
+                      <TempoControlButtons activeTempo={activeTempo} onChange={setActiveTempo} />
+                    </div>
+                  </div>
+                  {contextBonuses.length > 0 && <ContextBonusBadges bonuses={contextBonuses} />}
+                  {reactions.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 justify-center max-w-3xl mx-auto">
+                      <AnimatePresence>
+                        {reactions.slice(-3).map((r, i) => (
+                          <PartnerReaction key={`reaction-${i}`} text={r.text} emotion={r.emotion} />
+                        ))}
+                      </AnimatePresence>
+                    </div>
                   )}
-                </span>
-                <span>{showTagLog ? '▲' : '▼'}</span>
-              </button>
-              {showTagLog && (
-                <pre className="max-w-3xl mx-auto mt-1 mb-1 p-2 rounded-lg bg-black/40 text-[10px] text-emerald-200/90 overflow-x-auto max-h-28">
-                  {JSON.stringify(lastTagLog, null, 2)}
-                </pre>
+                </motion.div>
               )}
-            </div>
-          )}
+            </AnimatePresence>
 
-          {/* Input area */}
+            {/* Survival warnings */}
+            {survivalWarnings.length > 0 && (
+              <div className="border-b border-amber-500/30 bg-amber-950/20 px-3 sm:px-4 py-2">
+                <div className="flex items-center gap-2 max-w-3xl mx-auto text-amber-200/90 text-xs min-w-0">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <div className="panel-scroll-x flex gap-1.5 min-w-0 pb-0.5">
+                    {survivalWarnings.map((w) => (
+                      <span key={w} className="flex-shrink-0 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 whitespace-nowrap">{w}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Quick actions */}
+            {sexChoices.length === 0 && !isLoading && (
+              <div className="border-b border-border bg-card/30 px-3 sm:px-4 py-2">
+                <div className="panel-scroll-x flex gap-1.5 max-w-3xl mx-auto items-center pb-1">
+                  {QUICK_ACTIONS.map((action) => (
+                    <button
+                      key={action.label}
+                      onClick={() => sendMessage(action.text)}
+                      className="flex-shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-border bg-muted/50 hover:bg-primary/10 hover:border-primary/30 text-muted-foreground hover:text-foreground transition-all whitespace-nowrap"
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                  {lastPlayerMessage && (
+                    <button
+                      onClick={() => sendMessage(lastPlayerMessage)}
+                      className="flex-shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-border bg-muted/30 hover:bg-amber-500/10 hover:border-amber-500/30 text-muted-foreground hover:text-amber-200 transition-all inline-flex items-center gap-1 whitespace-nowrap"
+                      title="Повторити останню дію (без відкату стану)"
+                    >
+                      <Undo2 className="w-3 h-3" /> Ще раз
+                    </button>
+                  )}
+                  <button
+                    onClick={redoLastTurn}
+                    className="flex-shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-border bg-muted/30 hover:bg-violet-500/10 hover:border-violet-500/30 text-muted-foreground hover:text-violet-200 transition-all inline-flex items-center gap-1 whitespace-nowrap"
+                    title="Відкотити стан і переграти останній хід"
+                  >
+                    <RotateCcw className="w-3 h-3" /> Переграти хід
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {lastFailedMessage && !isLoading && (
+              <div className="border-b border-red-500/20 bg-red-950/20 px-3 sm:px-4 py-2">
+                <div className="flex items-center justify-between gap-2 max-w-3xl mx-auto min-w-0">
+                  <p className="text-xs text-red-300/90 truncate min-w-0">Не вдалося: {lastFailedMessage}</p>
+                  <button
+                    onClick={() => sendMessage(lastFailedMessage)}
+                    className="flex-shrink-0 text-xs px-3 py-1 rounded-lg border border-red-400/40 text-red-200 hover:bg-red-500/20"
+                  >
+                    Повторити
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Lara dialogue cards */}
+            <AnimatePresence>
+              {laraDialogue.length > 0 && !isLoading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="border-b border-purple-500/30 bg-purple-950/20 backdrop-blur-sm px-3 sm:px-4 pt-3 pb-2"
+                >
+                  <LaraDialogueCards options={laraDialogue} onSelect={(text) => { setLaraDialogue([]); sendChoice(text) }} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Sex choice cards */}
+            <AnimatePresence>
+              {sexChoices.length > 0 && !isLoading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="border-b border-pink-500/30 bg-pink-950/20 backdrop-blur-sm px-3 sm:px-4 pt-3 pb-2"
+                >
+                  <SexChoiceCards options={sexChoices} onSelect={(text) => { setSexChoices([]); sendChoice(text) }} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Choice buttons */}
+            <AnimatePresence>
+              {choices.length > 0 && sexChoices.length === 0 && !isLoading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="border-b border-border bg-card/30 backdrop-blur-sm px-3 sm:px-4 pt-3 pb-2"
+                >
+                  <p className="text-xs text-muted-foreground mb-2 text-center">Оберіть дію:</p>
+                  <div className="flex flex-wrap gap-2 justify-center max-w-3xl mx-auto">
+                    {choices.map((choice, i) => (
+                      <motion.button
+                        key={i}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: i * 0.08 }}
+                        onClick={() => sendChoice(choice)}
+                        className="max-w-full px-4 py-2 text-sm rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/25 text-primary hover:border-primary/70 transition-all active:scale-95 text-left break-words"
+                      >
+                        {choice}
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Dev tag log */}
+            {lastTagLog && (
+              <div className="bg-muted/20 px-3 py-1">
+                <button
+                  type="button"
+                  onClick={() => setShowTagLog((v) => !v)}
+                  className="w-full max-w-3xl mx-auto flex items-center justify-between gap-2 text-[10px] text-muted-foreground hover:text-foreground min-w-0"
+                >
+                  <span className="truncate min-w-0">
+                    Техлог{promptModeLabel ? ` · ${promptModeLabel}` : ''}
+                    {lastTagLog.counts && (
+                      <> · {Object.entries(lastTagLog.counts).map(([k, v]) => `${k}:${v}`).join(' ')}</>
+                    )}
+                  </span>
+                  <span className="flex-shrink-0">{showTagLog ? '▲' : '▼'}</span>
+                </button>
+                {showTagLog && (
+                  <pre className="max-w-3xl mx-auto mt-1 mb-1 p-2 rounded-lg bg-black/40 text-[10px] text-emerald-200/90 overflow-x-auto panel-scroll max-h-28">
+                    {JSON.stringify(lastTagLog, null, 2)}
+                  </pre>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Input area — always pinned above the fold */}
           <div className="flex-shrink-0 border-t border-border bg-card/50 backdrop-blur-sm p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-            <div className="flex gap-2 items-end max-w-3xl mx-auto">
+            <div className="flex gap-2 items-end max-w-3xl mx-auto min-w-0">
               <textarea
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e?.target?.value ?? '')}
                 onKeyDown={handleKeyDown}
                 placeholder="Що робить Лара?..."
-                className="flex-1 resize-none bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all min-h-[44px] max-h-[120px] text-foreground placeholder:text-muted-foreground"
+                className="flex-1 min-w-0 resize-none bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all min-h-[44px] max-h-[120px] overflow-y-auto panel-scroll text-foreground placeholder:text-muted-foreground"
                 rows={1}
                 disabled={isLoading}
                 onInput={(e: React.FormEvent<HTMLTextAreaElement>) => {
@@ -1340,13 +1346,13 @@ export default function GameClient() {
               )}
             </div>
             {/* Mobile quick nav into sidebar tabs */}
-            <div className="lg:hidden flex gap-1.5 mt-2 max-w-3xl mx-auto overflow-x-auto scrollbar-hide pb-0.5">
+            <div className="lg:hidden panel-scroll-x flex gap-1.5 mt-2 max-w-3xl mx-auto pb-1">
               {[...PRIMARY_TABS, { id: 'inventory' as SidebarTab, label: 'Інв.', icon: null }, { id: 'lore' as SidebarTab, label: 'Лор', icon: null }].map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => { setSidebarTab(t.id); setShowSidebar(true) }}
-                  className={`flex-shrink-0 px-2.5 py-1 text-[11px] rounded-full border ${
+                  className={`flex-shrink-0 px-2.5 py-1 text-[11px] rounded-full border whitespace-nowrap ${
                     sidebarTab === t.id && showSidebar
                       ? 'border-primary/50 bg-primary/15 text-primary'
                       : 'border-border/80 text-muted-foreground bg-card/40'
@@ -1363,7 +1369,7 @@ export default function GameClient() {
         <aside
           className={`${
             showSidebar ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
-          } absolute lg:relative right-0 top-0 h-full w-[min(100%,20rem)] sm:w-80 border-l border-border bg-card overflow-hidden transition-transform duration-300 z-30 flex flex-col shadow-2xl lg:shadow-none`}
+          } absolute lg:relative right-0 top-0 h-full max-h-full w-[min(100%,20rem)] sm:w-80 border-l border-border bg-card overflow-hidden transition-transform duration-300 z-30 flex flex-col min-h-0 shadow-2xl lg:shadow-none`}
         >
           {/* Loading indicator */}
           <AnimatePresence>
@@ -1393,21 +1399,21 @@ export default function GameClient() {
             )}
           </AnimatePresence>
 
-          {/* Sidebar Tabs — primary always labeled */}
+          {/* Sidebar Tabs — primary always labeled; scroll if tight */}
           <div className="flex-shrink-0 border-b border-border relative">
-            <div className="flex items-stretch">
+            <div className="panel-scroll-x flex items-stretch min-w-0">
               {PRIMARY_TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => { setSidebarTab(tab.id); setShowMoreTabs(false) }}
-                  className={`flex-1 min-w-0 px-1.5 sm:px-2 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors border-b-2 ${
+                  className={`flex-1 min-w-[3.5rem] px-1.5 sm:px-2 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors border-b-2 whitespace-nowrap ${
                     sidebarTab === tab.id
                       ? 'border-primary text-primary bg-primary/5'
                       : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
                   }`}
                 >
                   {tab.icon}
-                  <span>{tab.label}</span>
+                  <span className="truncate max-w-[4.5rem]">{tab.label}</span>
                 </button>
               ))}
               <button
@@ -1449,7 +1455,7 @@ export default function GameClient() {
           </div>
 
           {/* Sidebar Content */}
-          <div className="flex-1 overflow-y-auto chat-scroll p-4">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden panel-scroll p-4">
             {/* STATS TAB */}
             {sidebarTab === 'stats' && (
               <div className="space-y-5">
@@ -2198,17 +2204,17 @@ export default function GameClient() {
 
       {/* Save/Load Modal */}
       {showSaveModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowSaveModal(false)}>
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto panel-scroll" onClick={() => setShowSaveModal(false)}>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-xl"
+            className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-xl max-h-[min(90dvh,36rem)] flex flex-col min-h-0 my-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-bold text-foreground mb-4">
+            <h2 className="text-lg font-bold text-foreground mb-4 flex-shrink-0">
               {saveMode === 'save' ? '💾 Зберегти гру' : '📥 Завантажити гру'}
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-3 overflow-y-auto panel-scroll min-h-0 flex-1 pr-0.5">
               {[1, 2, 3, 4, 5].map(slotNum => {
                 const slot = saveSlots.find(s => s.slotNumber === slotNum)
                 return (
@@ -2243,7 +2249,7 @@ export default function GameClient() {
             </div>
             <button
               onClick={() => setShowSaveModal(false)}
-              className="mt-4 w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="mt-4 w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
             >
               Скасувати
             </button>
