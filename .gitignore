@@ -34,5 +34,5 @@ public/downloads/*.zip
 public/gui-*.png
 public/gui-*.jpg
 
-# Full-resolution stock downloads (cropped tiles are committed)
-public/avatars/body/stock/raw/
+# Local-only body stock / nude packs (never commit)
+public/avatars/body/stock/

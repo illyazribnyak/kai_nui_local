@@ -1,15 +1,13 @@
 /**
- * Lara body kit (constructor): modular part tiles for bust / waist / hips / legs.
+ * Lara body kit (constructor): modular AI part tiles for bust / waist / hips / legs.
  *
- * Sources:
- * - AI-generated style-matched tiles (public/avatars/body/*.png)
- * - Free stock under Pexels / Unsplash licenses (public/avatars/body/stock/*)
- *   See public/avatars/body/stock/ATTRIBUTION.md
+ * Only AI tiles under public/avatars/body/*.png are committed.
+ * Optional local stock (not in git): public/avatars/body/stock/ — ignored by .gitignore.
  */
 
 export type BodySlot = 'bust' | 'waist' | 'hips' | 'legs'
 
-export type BodyPartSource = 'ai' | 'pexels' | 'unsplash' | 'cc0'
+export type BodyPartSource = 'ai'
 
 export type BodyPartOption = {
   id: string
@@ -20,18 +18,14 @@ export type BodyPartOption = {
   /** Soft tags for auto-pick from game state */
   tags: string[]
   source: BodyPartSource
-  /** License / page URL for free stock */
-  licenseUrl?: string
-  licenseName?: string
 }
 
 export const BODY_PARTS: BodyPartOption[] = [
-  // ── Bust (AI + stock crop) ──────────────────────────────────────────────
   {
     id: 'bust_athletic',
     slot: 'bust',
-    label: 'Атлетичні (AI)',
-    description: 'Спортивний середній розмір, стиль гри',
+    label: 'Атлетичні',
+    description: 'Спортивний середній розмір',
     image: '/avatars/body/bust_athletic.png',
     tags: ['default', 'athletic', 'ragged'],
     source: 'ai',
@@ -39,84 +33,25 @@ export const BODY_PARTS: BodyPartOption[] = [
   {
     id: 'bust_full',
     slot: 'bust',
-    label: 'Повні (AI)',
+    label: 'Повні',
     description: 'Більш виражений об\'єм',
     image: '/avatars/body/bust_full.png',
     tags: ['full', 'seductive', 'aroused', 'curvy'],
     source: 'ai',
   },
   {
-    id: 'bust_stock_beach',
-    slot: 'bust',
-    label: 'Пляж (Pexels)',
-    description: 'Кроп з free stock, Pexels License (не nude)',
-    image: '/avatars/body/stock/stock_bust_pexels_beach.png',
-    tags: ['beach', 'stock', 'photo'],
-    source: 'pexels',
-    licenseName: 'Pexels License',
-    licenseUrl: 'https://www.pexels.com/license/',
-  },
-  {
-    id: 'bust_cc0_nude',
-    slot: 'bust',
-    label: 'Оголені (CC0)',
-    description: 'Wikimedia Commons · CC0 Public Domain · nude crop',
-    image: '/avatars/body/stock/stock_bust_cc0_nude.png',
-    tags: ['nude', 'cc0', 'stock', 'photo', 'seductive', 'aroused'],
-    source: 'cc0',
-    licenseName: 'CC0 1.0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-  },
-
-  // ── Waist ───────────────────────────────────────────────────────────────
-  {
     id: 'waist_toned',
     slot: 'waist',
-    label: 'Підтягнута (AI)',
-    description: 'Тон, midriff, стиль гри',
+    label: 'Підтягнута талія',
+    description: 'Тон, midriff',
     image: '/avatars/body/waist_toned.png',
     tags: ['default', 'athletic', 'confident'],
     source: 'ai',
   },
   {
-    id: 'waist_stock_abs',
-    slot: 'waist',
-    label: 'Фітнес прес (Unsplash)',
-    description: 'Free stock, Unsplash License',
-    image: '/avatars/body/stock/stock_waist_unsplash_abs.png',
-    tags: ['athletic', 'toned', 'stock', 'photo'],
-    source: 'unsplash',
-    licenseName: 'Unsplash License',
-    licenseUrl: 'https://unsplash.com/license',
-  },
-  {
-    id: 'waist_stock_fitness',
-    slot: 'waist',
-    label: 'Тренування (Unsplash)',
-    description: 'Free stock, Unsplash License',
-    image: '/avatars/body/stock/stock_waist_unsplash_fitness.png',
-    tags: ['athletic', 'stock', 'photo'],
-    source: 'unsplash',
-    licenseName: 'Unsplash License',
-    licenseUrl: 'https://unsplash.com/license',
-  },
-  {
-    id: 'waist_cc0_nude',
-    slot: 'waist',
-    label: 'Оголена талія (CC0)',
-    description: 'Wikimedia Commons · CC0 · nude midriff crop',
-    image: '/avatars/body/stock/stock_waist_cc0_nude.png',
-    tags: ['nude', 'cc0', 'stock', 'photo'],
-    source: 'cc0',
-    licenseName: 'CC0 1.0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-  },
-
-  // ── Hips ────────────────────────────────────────────────────────────────
-  {
     id: 'hips_athletic',
     slot: 'hips',
-    label: 'Атлетичні (AI)',
+    label: 'Атлетичні стегна',
     description: 'Спортивні форми',
     image: '/avatars/body/hips_athletic.png',
     tags: ['default', 'athletic'],
@@ -125,7 +60,7 @@ export const BODY_PARTS: BodyPartOption[] = [
   {
     id: 'hips_slim',
     slot: 'hips',
-    label: 'Стрункі (AI)',
+    label: 'Стрункі',
     description: 'Більш вузькі стегна',
     image: '/avatars/body/hips_slim.png',
     tags: ['slim'],
@@ -134,52 +69,17 @@ export const BODY_PARTS: BodyPartOption[] = [
   {
     id: 'hips_curvy',
     slot: 'hips',
-    label: 'Пишні (AI)',
+    label: 'Пишні',
     description: 'Виражені стегна / сідниці',
     image: '/avatars/body/hips_curvy.png',
     tags: ['curvy', 'seductive', 'aroused', 'full'],
     source: 'ai',
   },
   {
-    id: 'hips_stock_beach',
-    slot: 'hips',
-    label: 'Пляж (Pexels)',
-    description: 'Кроп нижньої частини, Pexels License',
-    image: '/avatars/body/stock/stock_hips_pexels_beach.png',
-    tags: ['beach', 'stock', 'photo'],
-    source: 'pexels',
-    licenseName: 'Pexels License',
-    licenseUrl: 'https://www.pexels.com/license/',
-  },
-  {
-    id: 'hips_cc0_nude',
-    slot: 'hips',
-    label: 'Оголені стегна (CC0)',
-    description: 'Wikimedia Commons · CC0 · hips crop',
-    image: '/avatars/body/stock/stock_hips_cc0_nude.png',
-    tags: ['nude', 'cc0', 'stock', 'photo', 'curvy'],
-    source: 'cc0',
-    licenseName: 'CC0 1.0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-  },
-  {
-    id: 'hips_cc0_butt',
-    slot: 'hips',
-    label: 'Сідниці (CC0)',
-    description: 'Wikimedia Commons · CC0 · butt photo',
-    image: '/avatars/body/stock/stock_hips_cc0_butt.png',
-    tags: ['nude', 'cc0', 'stock', 'photo', 'curvy', 'seductive'],
-    source: 'cc0',
-    licenseName: 'CC0 1.0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-  },
-
-  // ── Legs ────────────────────────────────────────────────────────────────
-  {
     id: 'legs_beach',
     slot: 'legs',
-    label: 'Пляжні (AI)',
-    description: 'Стиль гри, берег',
+    label: 'Пляжні ноги',
+    description: 'Довгі ноги, берег',
     image: '/avatars/body/legs_beach.png',
     tags: ['default', 'beach', 'ragged'],
     source: 'ai',
@@ -187,55 +87,11 @@ export const BODY_PARTS: BodyPartOption[] = [
   {
     id: 'legs_toned',
     slot: 'legs',
-    label: 'Рельєфні (AI)',
+    label: 'Рельєфні ноги',
     description: 'Сильні, треновані',
     image: '/avatars/body/legs_toned.png',
     tags: ['athletic', 'confident', 'toned'],
     source: 'ai',
-  },
-  {
-    id: 'legs_stock_pexels_beach',
-    slot: 'legs',
-    label: 'Ноги · пляж (Pexels)',
-    description: 'Nati — woman legs on sandy beach · free commercial',
-    image: '/avatars/body/stock/stock_legs_pexels_beach.png',
-    tags: ['beach', 'stock', 'photo', 'default'],
-    source: 'pexels',
-    licenseName: 'Pexels License',
-    licenseUrl: 'https://www.pexels.com/photo/woman-legs-on-sandy-beach-9872348/',
-  },
-  {
-    id: 'legs_stock_pexels_walk',
-    slot: 'legs',
-    label: 'Ноги · хода (Pexels)',
-    description: 'Yan Krukau — walking barefoot · free commercial',
-    image: '/avatars/body/stock/stock_legs_pexels_walk.png',
-    tags: ['beach', 'stock', 'photo'],
-    source: 'pexels',
-    licenseName: 'Pexels License',
-    licenseUrl: 'https://www.pexels.com/photo/legs-of-woman-in-shorts-walking-barefoot-on-beach-5215385/',
-  },
-  {
-    id: 'legs_stock_unsplash_yoga',
-    slot: 'legs',
-    label: 'Ноги · йога (Unsplash)',
-    description: 'Free stock, Unsplash License',
-    image: '/avatars/body/stock/stock_legs_unsplash_yoga.png',
-    tags: ['athletic', 'toned', 'stock', 'photo'],
-    source: 'unsplash',
-    licenseName: 'Unsplash License',
-    licenseUrl: 'https://unsplash.com/license',
-  },
-  {
-    id: 'legs_cc0_nude',
-    slot: 'legs',
-    label: 'Оголені ноги (CC0)',
-    description: 'Wikimedia Commons · CC0 · legs crop',
-    image: '/avatars/body/stock/stock_legs_cc0_nude.png',
-    tags: ['nude', 'cc0', 'stock', 'photo'],
-    source: 'cc0',
-    licenseName: 'CC0 1.0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
   },
 ]
 
@@ -245,7 +101,7 @@ export const DEFAULT_BODY_KIT: BodyKitSelection = {
   bust: 'bust_athletic',
   waist: 'waist_toned',
   hips: 'hips_athletic',
-  legs: 'legs_stock_pexels_beach',
+  legs: 'legs_beach',
 }
 
 export const BODY_SLOT_LABELS: Record<BodySlot, string> = {
@@ -280,17 +136,15 @@ export function suggestBodyKit(opts: {
   const kit = { ...DEFAULT_BODY_KIT }
 
   if (look.includes('aroused') || look.includes('seductive') || desire >= 60) {
-    kit.bust = 'bust_cc0_nude'
-    kit.hips = 'hips_cc0_butt'
-    kit.waist = 'waist_cc0_nude'
-    kit.legs = 'legs_cc0_nude'
+    kit.bust = 'bust_full'
+    kit.hips = 'hips_curvy'
   }
   if (look.includes('confident') || conf >= 70) {
-    kit.legs = 'legs_stock_unsplash_yoga'
-    kit.waist = 'waist_stock_abs'
+    kit.legs = 'legs_toned'
+    kit.waist = 'waist_toned'
   }
   if (look.includes('exhausted') || look.includes('default')) {
-    kit.legs = 'legs_stock_pexels_beach'
+    kit.legs = 'legs_beach'
     kit.bust = 'bust_athletic'
   }
   return kit
@@ -323,28 +177,3 @@ export function saveBodyKitToStorage(kit: BodyKitSelection): void {
     /* ignore */
   }
 }
-
-/** Free stock sources used in the kit (for UI / docs). */
-export const STOCK_REFERENCE_NOTES = [
-  {
-    region: 'Ноги / beach',
-    source: 'Pexels',
-    url: 'https://www.pexels.com/photo/woman-legs-on-sandy-beach-9872348/',
-    license: 'Pexels License (free commercial)',
-    note: 'Використано як stock_legs_pexels_beach',
-  },
-  {
-    region: 'Ноги / beach walk',
-    source: 'Pexels',
-    url: 'https://www.pexels.com/photo/legs-of-woman-in-shorts-walking-barefoot-on-beach-5215385/',
-    license: 'Pexels License',
-    note: 'Використано як stock_legs_pexels_walk',
-  },
-  {
-    region: 'Талія / fitness',
-    source: 'Unsplash',
-    url: 'https://unsplash.com/license',
-    license: 'Unsplash License',
-    note: 'Кропи abs/fitness → waist stock tiles',
-  },
-] as const
