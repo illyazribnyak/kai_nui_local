@@ -14,11 +14,18 @@ tsconfig.tsbuildinfo
 .prisma/
 *.pem
 
+# IDE
+.idea/
+.vscode/
+*.iml
+
 # SQLite local DB
 prisma/*.db
 prisma/*.db-journal
 prisma/dev.db
 prisma/ci.db
+dev.db
+*.db-journal
 
 # Large redistributable archives (not source)
 public/downloads/*.zip

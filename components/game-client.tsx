@@ -2424,15 +2424,27 @@ export default function GameClient() {
       </AnimatePresence>
       <AnimatePresence>
         {penisStats && <PenisStatsCard stats={penisStats} onDismiss={() => setPenisStats(null)} />}
-        {penisStats && <PenisStatsCard stats={penisStats} onDismiss={() => penisStats(null)} />}
       </AnimatePresence>
       <AnimatePresence>
         {sceneSummary && <SceneSummaryCard summary={sceneSummary} onDismiss={() => {
           setSceneSummary(null); setSexScene(null); setPleasure({ lara: 0, partner: 0 })
           setPhase(null); setStamina(null); setCombo(null); setDomination(0); setReactions([]); setContextBonuses([])
-          setSceneMood(null); setLaraDialogue([]); setMultiOrgasm(null); penisStats(null); setActiveTempo('medium')
+          setSceneMood(null); setLaraDialogue([]); setMultiOrgasm(null); setPenisStats(null); setActiveTempo('medium')
         }} />}
       </AnimatePresence>
+      <CraftingModal
+        isOpen={showCraftingModal}
+        inventory={inventory}
+        onClose={() => setShowCraftingModal(false)}
+        onCraft={(text) => {
+          setShowCraftingModal(false)
+          sendMessage(text)
+        }}
+        onConsumeItem={(text) => {
+          setShowCraftingModal(false)
+          sendMessage(text)
+        }}
+      />
       <TimelineModal
         isOpen={showTimelineModal}
         messages={messages}
