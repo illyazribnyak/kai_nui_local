@@ -45,4 +45,25 @@ describe('crafting recipes', () => {
       assert.ok(formatRecipeLine(r).includes(r.name))
     }
   })
+
+  it('UI recipe names match prompt block (craft match)', () => {
+    const prompt = formatRecipesForPrompt()
+    for (const r of CRAFTING_RECIPES) {
+      for (const ing of r.ingredients) {
+        assert.ok(
+          prompt.includes(ing.name),
+          `prompt missing ingredient "${ing.name}" for ${r.name}`
+        )
+      }
+      assert.ok(prompt.includes(formatRecipeLine(r).split(' → ')[1].replace(/ x\d+$/, '') || r.name) || prompt.includes(r.name))
+    }
+  })
+
+  it('every recipe has at least one ingredient and positive result qty', () => {
+    for (const r of CRAFTING_RECIPES) {
+      assert.ok(r.ingredients.length >= 1)
+      assert.ok(r.resultQuantity >= 1)
+      assert.ok(r.name.trim().length > 0)
+    }
+  })
 })

@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2, MoreVertical, Target, Volume2, VolumeX } from 'lucide-react'
+import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2, MoreVertical, Target, Volume2, VolumeX, Users, Hammer, History } from 'lucide-react'
 import { soundEngine } from '@/lib/audio'
 import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData, WorldFactData } from '@/lib/types'
+import type { ClientTokenUsage, TagLogData } from '@/lib/game/sex-types'
 import { chapterProgressPercent, ENDING_PATHS } from '@/lib/game/chapters'
 import { QUEST_LADDER_TITLES } from '@/lib/game/quest-ladder-data'
 import { CHAPTER_MAP_GOALS } from '@/lib/prompt-mode'
@@ -23,7 +24,7 @@ import {
   getTribeStatusColor,
   getTribeStatusLabel,
 } from '@/lib/game/ui-labels'
-import { Users } from 'lucide-react'
+import { collectCompleteTags, safeParseJSON, stripAllTags } from '@/lib/game/stream-tags'
 import { toast } from 'sonner'
 import { getAvatar, getLaraAvatar, getTribeAvatar } from '@/lib/avatar-utils'
 import Image from 'next/image'
@@ -35,45 +36,9 @@ import { TimelineModal } from './timeline-modal'
 import { LocationBanner } from './location-banner'
 import { AchievementsGallery } from './achievements-gallery'
 import { SkillTree } from './skill-tree'
-import { Hammer, History } from 'lucide-react'
-
-type SidebarTab = 'stats' | 'inventory' | 'quests' | 'diary' | 'skills' | 'map' | 'tribes' | 'achievements' | 'characters' | 'lore'
-
-const ATTITUDE_LABELS: Record<string, { label: string, emoji: string, color: string }> = {
-  hostile: { label: 'Ворожий', emoji: '😡', color: 'text-red-500' },
-  wary: { label: 'Насторожений', emoji: '😒', color: 'text-orange-400' },
-  neutral: { label: 'Нейтральний', emoji: '😐', color: 'text-gray-400' },
-  curious: { label: 'Зацікавлений', emoji: '🤔', color: 'text-yellow-400' },
-  friendly: { label: 'Дружній', emoji: '😊', color: 'text-green-400' },
-  devoted: { label: 'Відданий', emoji: '😍', color: 'text-pink-400' },
-}
-
-const SKILL_CATEGORY_NAMES: Record<string, string> = {
-  seduction: '🌹 Зваблення',
-  technique: '💋 Техніка',
-  endurance: '🔥 Витривалість',
-  domination: '⛓️ Домінування',
-  submission: '🦋 Підкорення',
-  body_magic: '✨ Магія тіла',
-}
-
-const INTRO_MESSAGE = `🌊 **Шторм. Темрява. Сіль на губах.**
-
-Останній удар хвилі перевертає човен, і Лара Крафт летить у крижану безодню Тихого океану. Вода б'є в обличчя, ламає дихання, тягне на дно. Рюкзак зі спорядженням — втрачено. Зброя — на дні. Залишився лише стародавній амулет на шиї, який пульсує дивним теплом навіть у крижаній воді.
-
-Хвилі виносять її на берег. Пісок. Теплий, білий пісок. Лара кашляє, випльовуючи солону воду, і відкриває очі.
-
-**Острів.**
-
-Перед нею — стіна тропічних джунглів. Повітря важке, вологе, пахне квітами та чимось... стародавнім. Амулет на грудях теплішає, його символи ледь помітно мерехтять блакитним.
-
-Лара здіймається на ноги. Одяг порваний — від шортів та майки залишились клапті. Тіло подряпане, але нічого не зламано. Босоніж. Без зброї. Без їжі. Без зв'язку із зовнішнім світом.
-
-Тільки амулет. І джунглі попереду.
-
-*Хвилі позаду розбиваються об рифи. Уламки човна розкидані вздовж берега. Десь далеко в джунглях чути барабани...*
-
-**Що робить Лара?**`
+import { ATTITUDE_LABELS, INTRO_MESSAGE, SKILL_CATEGORY_NAMES, type LlmProviderChoice, type SidebarTab } from './game/constants'
+import { StatBar } from './game/stat-bar'
+import { useSexSceneState } from './game/use-sex-scene-state'
 
 export default function GameClient() {
   const [messages, setMessages] = useState<MessageData[]>([])
@@ -99,23 +64,17 @@ export default function GameClient() {
   const [saveMode, setSaveMode] = useState<'save' | 'load'>('save')
   const [recentlyChanged, setRecentlyChanged] = useState<Set<string>>(new Set())
   const [choices, setChoices] = useState<string[]>([])
-  const [sexScene, setSexScene] = useState<any>(null)
-  const [pleasure, setPleasure] = useState<any>({ lara: 0, partner: 0 })
-  const [diceRoll, setDiceRoll] = useState<any>(null)
-  const [sceneSummary, setSceneSummary] = useState<any>(null)
-  const [sexChoices, setSexChoices] = useState<any[]>([])
-  const [phase, setPhase] = useState<any>(null)
-  const [stamina, setStamina] = useState<any>(null)
-  const [combo, setCombo] = useState<any>(null)
-  const [domination, setDomination] = useState<number>(0)
-  const [reactions, setReactions] = useState<any[]>([])
-  const [erogenousZone, setErogenousZone] = useState<any>(null)
-  const [contextBonuses, setContextBonuses] = useState<any[]>([])
-  const [sceneMood, setSceneMood] = useState<any>(null)
-  const [laraDialogue, setLaraDialogue] = useState<any[]>([])
-  const [multiOrgasm, setMultiOrgasm] = useState<any>(null)
-  const [penisStats, setPenisStats] = useState<any>(null)
-  const [activeTempo, setActiveTempo] = useState<string>('medium')
+  const sex = useSexSceneState()
+  const {
+    sexScene, setSexScene, pleasure, setPleasure, diceRoll, setDiceRoll,
+    sceneSummary, setSceneSummary, sexChoices, setSexChoices, phase, setPhase,
+    stamina, setStamina, combo, setCombo, domination, setDomination,
+    reactions, setReactions, erogenousZone, setErogenousZone,
+    contextBonuses, setContextBonuses, sceneMood, setSceneMood,
+    laraDialogue, setLaraDialogue, multiOrgasm, setMultiOrgasm,
+    penisStats, setPenisStats, activeTempo, setActiveTempo,
+    clearTurnChoices, applySexSceneStart, clearAfterSceneSummary,
+  } = sex
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
   const [lastPlayerMessage, setLastPlayerMessage] = useState<string | null>(null)
   const [apiKeyOk, setApiKeyOk] = useState<boolean | null>(null)
@@ -123,13 +82,13 @@ export default function GameClient() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showHeaderMenu, setShowHeaderMenu] = useState(false)
   const [showMoreTabs, setShowMoreTabs] = useState(false)
-  const [lastTagLog, setLastTagLog] = useState<any>(null)
+  const [lastTagLog, setLastTagLog] = useState<TagLogData | null>(null)
   const [showTagLog, setShowTagLog] = useState(false)
-  const [tokenUsage, setTokenUsage] = useState<any>(null)
+  const [tokenUsage, setTokenUsage] = useState<ClientTokenUsage | null>(null)
   const [isMuted, setIsMuted] = useState(false)
   const [showCraftingModal, setShowCraftingModal] = useState(false)
   const [showTimelineModal, setShowTimelineModal] = useState(false)
-  const [selectedProvider, setSelectedProvider] = useState<'auto' | 'dual' | 'gemini' | 'deepseek'>('auto')
+  const [selectedProvider, setSelectedProvider] = useState<LlmProviderChoice>('auto')
   const [promptModeLabel, setPromptModeLabel] = useState<string | null>(null)
   const headerMenuRef = useRef<HTMLDivElement>(null)
   const processedTagsRef = useRef(0)
@@ -204,7 +163,7 @@ export default function GameClient() {
       setDiseases(data?.diseases ?? [])
       setWorldFacts(data?.worldFacts ?? [])
       if (data?.gameState?.totalTokensUsed !== undefined) {
-        setTokenUsage((prev: any) => ({
+        setTokenUsage((prev) => ({
           ...(prev || {}),
           cumulativeTotalTokens: data.gameState.totalTokensUsed,
         }))
@@ -225,108 +184,8 @@ export default function GameClient() {
   }
 
   // === Client-side tag parsing for real-time sidebar updates ===
-  const safeParseJSON = (str: string): any => {
-    try { return JSON.parse(str) } catch { return null }
-  }
-
-  const stripAllTags = (text: string): string => {
-    return text
-      .replace(/\[STAT_UPDATE\].*?\[\/STAT_UPDATE\]/gs, '')
-      .replace(/\[REL_UPDATE\].*?\[\/REL_UPDATE\]/gs, '')
-      .replace(/\[INV_UPDATE\].*?\[\/INV_UPDATE\]/gs, '')
-      .replace(/\[QUEST_UPDATE\].*?\[\/QUEST_UPDATE\]/gs, '')
-      .replace(/\[DIARY_UPDATE\].*?\[\/DIARY_UPDATE\]/gs, '')
-      .replace(/\[SKILL_UPDATE\].*?\[\/SKILL_UPDATE\]/gs, '')
-      .replace(/\[TRIBE_UPDATE\].*?\[\/TRIBE_UPDATE\]/gs, '')
-      .replace(/\[ACHIEVEMENT\].*?\[\/ACHIEVEMENT\]/gs, '')
-      .replace(/\[DISEASE_ADD\].*?\[\/DISEASE_ADD\]/gs, '')
-      .replace(/\[DISEASE_REMOVE\].*?\[\/DISEASE_REMOVE\]/gs, '')
-      .replace(/\[FACT_ADD\].*?\[\/FACT_ADD\]/gs, '')
-      .replace(/\[FACT_REMOVE\].*?\[\/FACT_REMOVE\]/gs, '')
-      .replace(/\[CHOICES\].*?\[\/CHOICES\]/gs, '')
-      .replace(/\[DICE_ROLL\].*?\[\/DICE_ROLL\]/gs, '')
-      .replace(/\[SEX_SCENE_START\].*?\[\/SEX_SCENE_START\]/gs, '')
-      .replace(/\[PHASE\].*?\[\/PHASE\]/gs, '')
-      .replace(/\[PLEASURE\].*?\[\/PLEASURE\]/gs, '')
-      .replace(/\[STAMINA\].*?\[\/STAMINA\]/gs, '')
-      .replace(/\[COMBO\].*?\[\/COMBO\]/gs, '')
-      .replace(/\[DOMINATION\].*?\[\/DOMINATION\]/gs, '')
-      .replace(/\[REACTION\].*?\[\/REACTION\]/gs, '')
-      .replace(/\[EROGENOUS\].*?\[\/EROGENOUS\]/gs, '')
-      .replace(/\[SEX_CHOICES\].*?\[\/SEX_CHOICES\]/gs, '')
-      .replace(/\[SEX_SCENE_END\].*?\[\/SEX_SCENE_END\]/gs, '')
-      .replace(/\[SCENE_MOOD\].*?\[\/SCENE_MOOD\]/gs, '')
-      .replace(/\[LARA_DIALOGUE\].*?\[\/LARA_DIALOGUE\]/gs, '')
-      .replace(/\[MULTI_ORGASM\].*?\[\/MULTI_ORGASM\]/gs, '')
-      .replace(/\[PENIS_STATS\].*?\[\/PENIS_STATS\]/gs, '')
-      // incomplete tags (still streaming)
-      .replace(/\[STAT_UPDATE\].*/gs, '')
-      .replace(/\[REL_UPDATE\].*/gs, '')
-      .replace(/\[INV_UPDATE\].*/gs, '')
-      .replace(/\[QUEST_UPDATE\].*/gs, '')
-      .replace(/\[DIARY_UPDATE\].*/gs, '')
-      .replace(/\[SKILL_UPDATE\].*/gs, '')
-      .replace(/\[TRIBE_UPDATE\].*/gs, '')
-      .replace(/\[ACHIEVEMENT\].*/gs, '')
-      .replace(/\[DISEASE_ADD\].*/gs, '')
-      .replace(/\[DISEASE_REMOVE\].*/gs, '')
-      .replace(/\[FACT_ADD\].*/gs, '')
-      .replace(/\[FACT_REMOVE\].*/gs, '')
-      .replace(/\[CHOICES\].*/gs, '')
-      .replace(/\[DICE_ROLL\].*/gs, '')
-      .replace(/\[SEX_SCENE_START\].*/gs, '')
-      .replace(/\[PHASE\].*/gs, '')
-      .replace(/\[PLEASURE\].*/gs, '')
-      .replace(/\[STAMINA\].*/gs, '')
-      .replace(/\[COMBO\].*/gs, '')
-      .replace(/\[DOMINATION\].*/gs, '')
-      .replace(/\[REACTION\].*/gs, '')
-      .replace(/\[EROGENOUS\].*/gs, '')
-      .replace(/\[SEX_CHOICES\].*/gs, '')
-      .replace(/\[SEX_SCENE_END\].*/gs, '')
-      .replace(/\[SCENE_MOOD\].*/gs, '')
-      .replace(/\[LARA_DIALOGUE\].*/gs, '')
-      .replace(/\[MULTI_ORGASM\].*/gs, '')
-      .replace(/\[PENIS_STATS\].*/gs, '')
-      .trim()
-  }
-
   const parseStreamTagsAndApply = (accumulated: string, alreadyParsedCount: number): number => {
-    // Find all complete tags in accumulated content, skip already-processed ones
-    const allCompleteTags: { type: string; json: string }[] = []
-    const tagPatterns = [
-      { pattern: /\[STAT_UPDATE\](.*?)\[\/STAT_UPDATE\]/gs, type: 'stat' },
-      { pattern: /\[REL_UPDATE\](.*?)\[\/REL_UPDATE\]/gs, type: 'rel' },
-      { pattern: /\[INV_UPDATE\](.*?)\[\/INV_UPDATE\]/gs, type: 'inv' },
-      { pattern: /\[QUEST_UPDATE\](.*?)\[\/QUEST_UPDATE\]/gs, type: 'quest' },
-      { pattern: /\[DIARY_UPDATE\](.*?)\[\/DIARY_UPDATE\]/gs, type: 'diary' },
-      { pattern: /\[SKILL_UPDATE\](.*?)\[\/SKILL_UPDATE\]/gs, type: 'skill' },
-      { pattern: /\[TRIBE_UPDATE\](.*?)\[\/TRIBE_UPDATE\]/gs, type: 'tribe' },
-      { pattern: /\[ACHIEVEMENT\](.*?)\[\/ACHIEVEMENT\]/gs, type: 'achievement' },
-      { pattern: /\[DISEASE_ADD\](.*?)\[\/DISEASE_ADD\]/gs, type: 'disease_add' },
-      { pattern: /\[DISEASE_REMOVE\](.*?)\[\/DISEASE_REMOVE\]/gs, type: 'disease_remove' },
-      { pattern: /\[DICE_ROLL\](.*?)\[\/DICE_ROLL\]/gs, type: 'dice_roll' },
-      { pattern: /\[SEX_SCENE_START\](.*?)\[\/SEX_SCENE_START\]/gs, type: 'sex_scene_start' },
-      { pattern: /\[PHASE\](.*?)\[\/PHASE\]/gs, type: 'phase' },
-      { pattern: /\[PLEASURE\](.*?)\[\/PLEASURE\]/gs, type: 'pleasure' },
-      { pattern: /\[STAMINA\](.*?)\[\/STAMINA\]/gs, type: 'stamina' },
-      { pattern: /\[COMBO\](.*?)\[\/COMBO\]/gs, type: 'combo' },
-      { pattern: /\[DOMINATION\](.*?)\[\/DOMINATION\]/gs, type: 'domination' },
-      { pattern: /\[REACTION\](.*?)\[\/REACTION\]/gs, type: 'reaction' },
-      { pattern: /\[EROGENOUS\](.*?)\[\/EROGENOUS\]/gs, type: 'erogenous' },
-      { pattern: /\[SEX_CHOICES\](.*?)\[\/SEX_CHOICES\]/gs, type: 'sex_choices' },
-      { pattern: /\[SEX_SCENE_END\](.*?)\[\/SEX_SCENE_END\]/gs, type: 'sex_scene_end' },
-      { pattern: /\[SCENE_MOOD\](.*?)\[\/SCENE_MOOD\]/gs, type: 'scene_mood' },
-      { pattern: /\[LARA_DIALOGUE\](.*?)\[\/LARA_DIALOGUE\]/gs, type: 'lara_dialogue' },
-      { pattern: /\[MULTI_ORGASM\](.*?)\[\/MULTI_ORGASM\]/gs, type: 'multi_orgasm' },
-      { pattern: /\[PENIS_STATS\](.*?)\[\/PENIS_STATS\]/gs, type: 'penis_stats' },
-    ]
-
-    for (const { pattern, type } of tagPatterns) {
-      for (const m of accumulated.matchAll(pattern)) {
-        allCompleteTags.push({ type, json: m[1].trim() })
-      }
-    }
+    const allCompleteTags = collectCompleteTags(accumulated)
 
     if (allCompleteTags.length <= alreadyParsedCount) return alreadyParsedCount
 
@@ -335,7 +194,7 @@ export default function GameClient() {
     const changedKeys = new Set<string>()
 
     for (const tag of newTags) {
-      const data = safeParseJSON(tag.json)
+      const data = safeParseJSON(tag.json) as any
       if (!data) continue
 
       if (tag.type === 'stat' && typeof data === 'object') {
@@ -422,21 +281,7 @@ export default function GameClient() {
       } else if (tag.type === 'dice_roll' && data?.skill) {
         setDiceRoll(data)
       } else if (tag.type === 'sex_scene_start' && data?.type) {
-        setSexScene(data)
-        setPleasure({ lara: 0, partner: 0 })
-        setSexChoices([])
-        setSceneSummary(null)
-        setPenisStats(null)
-        setPhase({ phase: data.phase || 'foreplay', label: 'Прелюдія' })
-        setStamina({ value: 100, tempo: 'medium' })
-        setCombo(null)
-        setDomination(0)
-        setReactions([])
-        setSceneMood(null)
-        setLaraDialogue([])
-        setMultiOrgasm(null)
-        setActiveTempo('medium')
-        if (data.context_bonuses) setContextBonuses(data.context_bonuses)
+        applySexSceneStart(data as any)
       } else if (tag.type === 'phase' && data?.phase) {
         setPhase(data)
       } else if (tag.type === 'pleasure') {
@@ -500,9 +345,7 @@ export default function GameClient() {
     }
 
     setChoices([])
-    setSexChoices([])
-    setLaraDialogue([])
-    setMultiOrgasm(null)
+    clearTurnChoices()
     setLastFailedMessage(null)
     setLastPlayerMessage(text)
     // Prepend tempo context during sex scenes
@@ -847,34 +690,6 @@ export default function GameClient() {
     }
   }
 
-  const StatBar = ({ label, value, max, icon, color, glowing }: { label: string; value: number; max: number; icon: React.ReactNode; color: string; glowing?: boolean }) => (
-    <div className={`flex items-center gap-2 rounded-lg px-1 py-0.5 transition-all duration-700 ${glowing ? 'bg-primary/10 ring-1 ring-primary/30' : ''}`}>
-      <div className="text-muted-foreground w-5 flex-shrink-0">{icon}</div>
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between text-xs mb-0.5">
-          <span className="text-foreground/80">{label}</span>
-          <motion.span
-            className="font-mono text-foreground/60"
-            key={value}
-            initial={glowing ? { scale: 1.4, color: 'rgb(var(--primary))' } : false}
-            animate={{ scale: 1, color: 'inherit' }}
-            transition={{ duration: 0.5 }}
-          >
-            {value ?? 0}/{max}
-          </motion.span>
-        </div>
-        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-          <motion.div
-            className={`h-full rounded-full ${color}`}
-            initial={{ width: 0 }}
-            animate={{ width: `${((value ?? 0) / max) * 100}%` }}
-            transition={{ duration: 0.5 }}
-          />
-        </div>
-      </div>
-    </div>
-  )
-
   const activeQuests = quests.filter(q => q.status === 'active')
   const lockedQuests = quests.filter(q => q.status === 'locked' || q.status === 'pending')
   const completedQuests = quests.filter(q => q.status === 'completed')
@@ -1008,9 +823,9 @@ export default function GameClient() {
                     <div className="px-3 py-2 border-b border-border bg-muted/40 text-xs">
                       <div className="font-medium text-muted-foreground mb-1.5 flex items-center justify-between">
                         <span>Провайдер AI:</span>
-                        {tokenUsage?.cumulativeTotalTokens > 0 && (
+                        {(tokenUsage?.cumulativeTotalTokens ?? 0) > 0 && (
                           <span className="text-[10px] text-emerald-400 font-mono" title="Загальна кількість токениів гри">
-                            🎟️ {tokenUsage.cumulativeTotalTokens.toLocaleString()}
+                            🎟️ {(tokenUsage?.cumulativeTotalTokens ?? 0).toLocaleString()}
                           </span>
                         )}
                       </div>
@@ -1256,13 +1071,13 @@ export default function GameClient() {
                   className="border-b border-pink-500/20 bg-pink-950/10 backdrop-blur-sm px-3 sm:px-4 py-2 space-y-1.5">
                   <div className="flex flex-wrap items-center justify-center gap-2 max-w-3xl mx-auto">
                     <PhaseIndicator phase={phase?.phase || 'foreplay'} label={phase?.label} />
-                    {stamina && <StaminaBar value={stamina.value} tempo={stamina.tempo} />}
+                    {stamina && <StaminaBar value={stamina.value} tempo={stamina.tempo ?? 'medium'} />}
                     <DominationScale value={domination} />
                     {sceneMood && <SceneMoodIndicator mood={sceneMood.mood} label={sceneMood.label} intensity={sceneMood.intensity} />}
                   </div>
                   <div className="panel-scroll-x flex gap-2 max-w-3xl mx-auto pb-1 items-center justify-start sm:justify-center">
                     <div className="flex items-center gap-2 flex-shrink-0 mx-auto">
-                      <TempoControlButtons activeTempo={activeTempo} onChange={setActiveTempo} />
+                      <TempoControlButtons activeTempo={String(activeTempo)} onChange={(t) => setActiveTempo(t)} />
                     </div>
                   </div>
                   {contextBonuses.length > 0 && <ContextBonusBadges bonuses={contextBonuses} />}
@@ -1270,7 +1085,7 @@ export default function GameClient() {
                     <div className="flex flex-wrap gap-1.5 justify-center max-w-3xl mx-auto">
                       <AnimatePresence>
                         {reactions.slice(-3).map((r, i) => (
-                          <PartnerReaction key={`reaction-${i}`} text={r.text} emotion={r.emotion} />
+                          <PartnerReaction key={`reaction-${i}`} text={r.text} emotion={r.emotion ?? '💬'} />
                         ))}
                       </AnimatePresence>
                     </div>
@@ -1427,9 +1242,9 @@ export default function GameClient() {
                   <span className="truncate min-w-0 flex items-center gap-1.5">
                     <span className="font-semibold text-primary/90">Техлог</span>
                     {promptModeLabel ? ` · ${promptModeLabel}` : ''}
-                    {tokenUsage?.totalTokens > 0 && (
+                    {(tokenUsage?.totalTokens ?? 0) > 0 && (
                       <span className="text-emerald-400/90 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/40 font-mono">
-                        ⚡ {tokenUsage.provider || 'AI'} · 🎟️ {tokenUsage.totalTokens.toLocaleString()} токенів
+                        ⚡ {tokenUsage?.provider || 'AI'} · 🎟️ {(tokenUsage?.totalTokens ?? 0).toLocaleString()} токенів
                       </span>
                     )}
                     {lastTagLog?.counts && (
@@ -2405,10 +2220,10 @@ export default function GameClient() {
         {diceRoll && <DiceRollPopup roll={diceRoll} onDone={() => setDiceRoll(null)} />}
       </AnimatePresence>
       <AnimatePresence>
-        {combo && combo.count > 1 && <ComboCounter count={combo.count} label={combo.label} />}
+        {combo && combo.count > 1 && <ComboCounter count={combo.count} label={combo.label ?? `🔥 x${combo.count}`} />}
       </AnimatePresence>
       <AnimatePresence>
-        {erogenousZone && <ErogenousDiscovery zone={erogenousZone.zone} race={erogenousZone.race} bonus={erogenousZone.bonus} onDone={() => setErogenousZone(null)} />}
+        {erogenousZone && <ErogenousDiscovery zone={erogenousZone.zone} race={erogenousZone.race ?? ''} bonus={erogenousZone.bonus ?? 0} onDone={() => setErogenousZone(null)} />}
       </AnimatePresence>
       <AnimatePresence>
         {multiOrgasm && (
@@ -2426,11 +2241,7 @@ export default function GameClient() {
         {penisStats && <PenisStatsCard stats={penisStats} onDismiss={() => setPenisStats(null)} />}
       </AnimatePresence>
       <AnimatePresence>
-        {sceneSummary && <SceneSummaryCard summary={sceneSummary} onDismiss={() => {
-          setSceneSummary(null); setSexScene(null); setPleasure({ lara: 0, partner: 0 })
-          setPhase(null); setStamina(null); setCombo(null); setDomination(0); setReactions([]); setContextBonuses([])
-          setSceneMood(null); setLaraDialogue([]); setMultiOrgasm(null); setPenisStats(null); setActiveTempo('medium')
-        }} />}
+        {sceneSummary && <SceneSummaryCard summary={sceneSummary} onDismiss={clearAfterSceneSummary} />}
       </AnimatePresence>
       <CraftingModal
         isOpen={showCraftingModal}

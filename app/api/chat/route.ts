@@ -32,6 +32,7 @@ import {
   DiceSchema,
 } from '@/lib/game/tag-schemas'
 import { formatRecipesForPrompt } from '@/lib/game/crafting'
+import { needsDeepAnalysis } from '@/lib/game/needs-analysis'
 
 function buildSystemPrompt(
   gameState: any,
@@ -590,21 +591,7 @@ ${aiResponse.substring(0, 6000)}
   }
 }
 
-function needsDeepAnalysis(fullContent: string, deepseekParsed: any): boolean {
-  const hasChoices = deepseekParsed.choices && deepseekParsed.choices.length > 0
-  const hasStat = deepseekParsed.stat && Object.keys(deepseekParsed.stat).length > 0
-  const hasInv = deepseekParsed.inv && deepseekParsed.inv.length > 0
-  const hasRel = deepseekParsed.rel && deepseekParsed.rel.length > 0
-
-  const mentionsItem = /знайш|підібр|взял|отрим|з'їл|випи|втрати|одяг|знахідк/i.test(fullContent)
-  const mentionsNpc = /зустріч|сказав|відповід|воїн|шаман|тане|лея|джек|вождь/i.test(fullContent)
-
-  if (mentionsItem && !hasInv) return true
-  if (mentionsNpc && !hasRel) return true
-  if (!hasChoices || !hasStat) return true
-
-  return false
-}
+// needsDeepAnalysis → lib/game/needs-analysis.ts
 
 // === МЕРЖ ОНОВЛЕНЬ: DeepSeek теги + Gemini аналіз ===
 function mergeUpdates(

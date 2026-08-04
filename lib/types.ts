@@ -31,6 +31,8 @@ export interface GameState {
   chapterLabel: string
   endingPath: string | null
   turnCount: number
+  /** Cumulative LLM tokens for this playthrough (server-tracked). */
+  totalTokensUsed?: number
 }
 
 export interface WorldFactData {
