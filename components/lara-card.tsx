@@ -10,7 +10,6 @@ import {
   LARA_LOOKS,
   type LaraLookKey,
 } from '@/lib/game/lara-appearance'
-import { LaraBodyKit } from './lara-body-kit'
 import { getDesireLabel, getMoodEmoji, getMoodLabel } from '@/lib/game/ui-labels'
 
 type Props = {
@@ -193,13 +192,6 @@ export function LaraCard({ gameState, skills, compact }: Props) {
           ))}
         </div>
       )}
-
-      {/* Body kit constructor */}
-      <LaraBodyKit
-        lookKey={appearance.look.key}
-        desire={gameState?.desire}
-        confidence={gameState?.confidence}
-      />
 
       {/* Body capacity */}
       <div className="space-y-2 bg-muted/20 rounded-xl p-2.5 border border-border/40">

@@ -6,6 +6,7 @@ export type SidebarTab =
   | 'skills'
   | 'kinks'
   | 'gallery'
+  | 'body'
   | 'map'
   | 'tribes'
   | 'achievements'

@@ -262,31 +262,172 @@ export function resolvePartImage(selection: BodyKitSelection, slot: BodySlot): s
   return getPart(id)?.image || partsForSlot(slot)[0]?.image || '/avatars/lara.png'
 }
 
-export function suggestBodyKit(opts: {
-  lookKey?: string
-  desire?: number
-  confidence?: number
-}): BodyKitSelection {
-  const look = (opts.lookKey || '').toLowerCase()
-  const desire = opts.desire ?? 0
-  const conf = opts.confidence ?? 50
-  const kit = { ...DEFAULT_BODY_KIT }
+export type BodyKitContext = {
+  lookKey?: string | null
+  desire?: number | null
+  confidence?: number | null
+  shame?: number | null
+  location?: string | null
+  clothing?: string | null
+  mood?: string | null
+  timeOfDay?: string | null
+  weather?: string | null
+  isDarkLara?: boolean
+  isPregnant?: boolean
+  /** Sex scene active or recent climax */
+  inSexScene?: boolean
+  sexAtmosphere?: string | null
+  sexSceneType?: string | null
+}
 
-  if (look.includes('aroused') || look.includes('seductive') || desire >= 60) {
+/**
+ * Auto-pick body parts from game events / state.
+ * Player does not choose tiles — kit follows narrative context.
+ */
+export function suggestBodyKit(opts: BodyKitContext = {}): BodyKitSelection {
+  const look = (opts.lookKey || '').toLowerCase()
+  const desire = Number(opts.desire ?? 0)
+  const conf = Number(opts.confidence ?? 50)
+  const shame = Number(opts.shame ?? 0)
+  const loc = (opts.location || '').toLowerCase()
+  const cloth = (opts.clothing || '').toLowerCase()
+  const mood = (opts.mood || '').toLowerCase()
+  const time = (opts.timeOfDay || '').toLowerCase()
+  const atmo = (opts.sexAtmosphere || '').toLowerCase()
+  const sceneType = (opts.sexSceneType || '').toLowerCase()
+  const kit = { ...DEFAULT_BODY_KIT }
+  const reasons: string[] = []
+
+  // Base: beach / ragged arrival
+  if (loc.includes('берег') || loc.includes('пляж') || cloth.includes('клапт')) {
+    kit.legs = 'legs_stock_pexels_beach'
+    kit.bust = 'bust_stock_beach'
+    kit.hips = 'hips_stock_beach'
+    reasons.push('берег/пляж')
+  }
+
+  // Athletic / confident exploration
+  if (look.includes('confident') || conf >= 70 || mood === 'confident' || mood === 'happy') {
+    kit.legs = 'legs_stock_unsplash_yoga'
+    kit.waist = 'waist_stock_abs'
+    kit.hips = 'hips_athletic'
+    reasons.push('впевненість')
+  }
+
+  // Tribal / jungle clothing
+  if (look.includes('tribal') || cloth.includes('ліан') || cloth.includes('шкір') || cloth.includes('пояс')) {
+    kit.bust = 'bust_full'
+    kit.hips = 'hips_curvy'
+    kit.legs = 'legs_toned'
+    reasons.push('племʼя/одяг')
+  }
+
+  // Exhausted / low stamina vibes
+  if (look.includes('exhausted') || mood === 'scared' || mood === 'exhausted') {
+    kit.bust = 'bust_athletic'
+    kit.hips = 'hips_slim'
+    kit.legs = 'legs_beach'
+    kit.waist = 'waist_toned'
+    reasons.push('втома/страх')
+  }
+
+  // Night / dark Lara
+  if (opts.isDarkLara || look.includes('dark') || time === 'night') {
+    kit.bust = 'bust_full'
+    kit.hips = 'hips_curvy'
+    reasons.push('ніч/темна')
+  }
+
+  // Rising desire → more body emphasis (butt/hips)
+  if (desire >= 35 && desire < 60) {
+    kit.hips = 'hips_curvy'
+    kit.bust = 'bust_full'
+    reasons.push('бажання↑')
+  }
+
+  // High desire / seductive looks → nude stock emphasis
+  if (
+    look.includes('aroused') ||
+    look.includes('seductive') ||
+    look.includes('intimate') ||
+    desire >= 60 ||
+    cloth.includes('гола') ||
+    cloth.includes('nude') ||
+    cloth.includes('роздяг')
+  ) {
     kit.bust = 'bust_cc0_nude'
     kit.hips = 'hips_cc0_butt'
     kit.waist = 'waist_cc0_nude'
     kit.legs = 'legs_cc0_nude'
+    reasons.push('високе бажання / оголеність')
   }
-  if (look.includes('confident') || conf >= 70) {
-    kit.legs = 'legs_stock_unsplash_yoga'
-    kit.waist = 'waist_stock_abs'
+
+  // Sex scene active — strongest override
+  if (opts.inSexScene) {
+    kit.bust = 'bust_cc0_nude'
+    kit.waist = 'waist_cc0_nude'
+    kit.legs = 'legs_cc0_nude'
+    // Coercion / rough → more exposed hips emphasis
+    if (
+      sceneType === 'coercion' ||
+      sceneType === 'trap' ||
+      atmo.includes('rough') ||
+      atmo.includes('dark')
+    ) {
+      kit.hips = 'hips_cc0_butt'
+      reasons.push('секс: примус/жорстко')
+    } else if (atmo.includes('romantic') || atmo.includes('tender')) {
+      kit.hips = 'hips_cc0_nude'
+      reasons.push('секс: ніжно')
+    } else {
+      kit.hips = 'hips_cc0_butt'
+      reasons.push('секс-сцена')
+    }
   }
-  if (look.includes('exhausted') || look.includes('default')) {
-    kit.legs = 'legs_stock_pexels_beach'
+
+  // Pregnant
+  if (opts.isPregnant || look.includes('pregnant')) {
+    kit.bust = 'bust_full'
+    kit.waist = 'waist_toned'
+    kit.hips = 'hips_curvy'
+    reasons.push('вагітність')
+  }
+
+  // High shame after events — slightly more covered default AI
+  if (shame >= 70 && !opts.inSexScene && desire < 50) {
     kit.bust = 'bust_athletic'
+    kit.hips = 'hips_athletic'
+    kit.legs = 'legs_beach'
+    reasons.push('сором')
   }
+
+  void reasons // available for UI via suggestBodyKitWithReasons
   return kit
+}
+
+export function suggestBodyKitWithReasons(opts: BodyKitContext = {}): {
+  kit: BodyKitSelection
+  reasons: string[]
+} {
+  // Re-run logic collecting reasons (duplicate light pass)
+  const kit = suggestBodyKit(opts)
+  const reasons: string[] = []
+  const desire = Number(opts.desire ?? 0)
+  const loc = (opts.location || '').toLowerCase()
+  if (opts.inSexScene) reasons.push('активна секс-сцена')
+  else if (desire >= 60) reasons.push(`бажання ${desire}`)
+  else if (desire >= 35) reasons.push('зростаюче бажання')
+  if (loc.includes('берег') || loc.includes('пляж')) reasons.push('локація: берег')
+  if (opts.isDarkLara) reasons.push('темна Лара')
+  if (opts.isPregnant) reasons.push('вагітність')
+  if ((opts.lookKey || '').includes('tribal')) reasons.push('look: tribal')
+  if (!reasons.length) reasons.push('стан за замовчуванням')
+  return { kit, reasons }
+}
+
+/** True if two kits differ */
+export function bodyKitChanged(a: BodyKitSelection, b: BodyKitSelection): boolean {
+  return (['bust', 'waist', 'hips', 'legs'] as BodySlot[]).some((s) => a[s] !== b[s])
 }
 
 const STORAGE_KEY = 'kai_nui_lara_body_kit'

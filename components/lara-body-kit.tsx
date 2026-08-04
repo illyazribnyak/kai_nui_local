@@ -1,158 +1,168 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+/**
+ * Auto body composition module — no manual tile picking.
+ * Parts switch from game events (desire, sex, location, dark, pregnant…).
+ * Lives only on its own sidebar tab.
+ */
+
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
+import type { GameState } from '@/lib/types'
 import {
   BODY_SLOT_LABELS,
-  DEFAULT_BODY_KIT,
-  loadBodyKitFromStorage,
-  partsForSlot,
+  bodyKitChanged,
+  getPart,
   resolvePartImage,
   saveBodyKitToStorage,
-  suggestBodyKit,
+  suggestBodyKitWithReasons,
   type BodyKitSelection,
   type BodySlot,
 } from '@/lib/game/lara-body-kit'
+import { resolveLaraLookKey } from '@/lib/game/lara-appearance'
 
 const SLOTS: BodySlot[] = ['bust', 'waist', 'hips', 'legs']
 
 type Props = {
-  lookKey?: string
-  desire?: number
-  confidence?: number
+  gameState?: GameState | null
+  inSexScene?: boolean
+  sexAtmosphere?: string | null
+  sexSceneType?: string | null
 }
 
-export function LaraBodyKit({ lookKey, desire, confidence }: Props) {
-  const [kit, setKit] = useState<BodyKitSelection>(DEFAULT_BODY_KIT)
-  const [slot, setSlot] = useState<BodySlot>('bust')
-  const [hydrated, setHydrated] = useState(false)
+export function LaraBodyKit({
+  gameState,
+  inSexScene,
+  sexAtmosphere,
+  sexSceneType,
+}: Props) {
+  const [kit, setKit] = useState<BodyKitSelection | null>(null)
+  const [reasons, setReasons] = useState<string[]>([])
+  const [flash, setFlash] = useState(false)
+  const prevKey = useRef('')
+
+  const contextKey = useMemo(() => {
+    const look = resolveLaraLookKey(gameState as any)
+    return [
+      look,
+      gameState?.desire,
+      gameState?.confidence,
+      gameState?.shame,
+      gameState?.location,
+      gameState?.clothing,
+      gameState?.mood,
+      gameState?.timeOfDay,
+      gameState?.isDarkLara ? 1 : 0,
+      gameState?.isPregnant ? 1 : 0,
+      inSexScene ? 1 : 0,
+      sexAtmosphere || '',
+      sexSceneType || '',
+    ].join('|')
+  }, [gameState, inSexScene, sexAtmosphere, sexSceneType])
 
   useEffect(() => {
-    setKit(loadBodyKitFromStorage())
-    setHydrated(true)
-  }, [])
-
-  const update = useCallback((next: BodyKitSelection) => {
-    setKit(next)
+    if (contextKey === prevKey.current) return
+    const lookKey = resolveLaraLookKey(gameState as any)
+    const { kit: next, reasons: r } = suggestBodyKitWithReasons({
+      lookKey,
+      desire: gameState?.desire,
+      confidence: gameState?.confidence,
+      shame: gameState?.shame,
+      location: gameState?.location,
+      clothing: gameState?.clothing,
+      mood: gameState?.mood,
+      timeOfDay: gameState?.timeOfDay,
+      weather: gameState?.weather,
+      isDarkLara: gameState?.isDarkLara,
+      isPregnant: gameState?.isPregnant,
+      inSexScene,
+      sexAtmosphere,
+      sexSceneType,
+    })
+    setKit((prev) => {
+      const changed = !prev || bodyKitChanged(prev, next)
+      if (changed) {
+        setFlash(true)
+        setTimeout(() => setFlash(false), 1200)
+      }
+      return next
+    })
+    setReasons(r)
     saveBodyKitToStorage(next)
-  }, [])
+    prevKey.current = contextKey
+  }, [contextKey, gameState, inSexScene, sexAtmosphere, sexSceneType])
 
-  const pick = (partId: string) => {
-    update({ ...kit, [slot]: partId })
-  }
-
-  const auto = () => {
-    update(suggestBodyKit({ lookKey, desire, confidence }))
-  }
-
-  if (!hydrated) {
+  if (!kit) {
     return (
       <div className="text-[10px] text-muted-foreground animate-pulse py-2">
-        Завантаження конструктора тіла…
+        Збираємо образ тіла…
       </div>
     )
   }
 
-  const options = partsForSlot(slot)
-
   return (
-    <div className="space-y-2 bg-muted/20 rounded-xl p-2.5 border border-border/40">
-      <div className="flex items-center justify-between gap-2">
-        <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Конструктор тіла
-        </h4>
-        <button
-          type="button"
-          onClick={auto}
-          className="text-[9px] px-2 py-0.5 rounded-md bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+    <div
+      className={`space-y-3 transition-shadow duration-500 ${
+        flash ? 'ring-2 ring-rose-400/50 rounded-xl' : ''
+      }`}
+    >
+      <div className="space-y-1">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          🧍 Тіло Лари
+        </h3>
+        <p className="text-[10px] text-muted-foreground leading-snug">
+          Автоматично за подіями — <strong className="text-foreground/80">ти не обираєш</strong> частини.
+          Змінюється від бажання, локації, сексу, одягу, «темної» Лари тощо.
+        </p>
+      </div>
+
+      {reasons.length > 0 && (
+        <div
+          className={`text-[9px] rounded-lg px-2 py-1.5 border ${
+            flash
+              ? 'bg-rose-950/50 border-rose-500/40 text-rose-100'
+              : 'bg-muted/30 border-border/40 text-muted-foreground'
+          }`}
         >
-          Авто за станом
-        </button>
-      </div>
-      <p className="text-[9px] text-muted-foreground/80 leading-snug">
-        Слоти: груди / талія / стегна / ноги. У репо: <strong className="text-foreground/70">AI</strong> +{' '}
-        <strong className="text-emerald-500">Pexels</strong> / <strong className="text-sky-400">Unsplash</strong> /{' '}
-        <strong className="text-rose-400">CC0</strong> (ліцензії в stock/ATTRIBUTION.md). Порн/Reddit — не в git.
-      </p>
+          <span className="font-semibold text-foreground/80">Чому так: </span>
+          {reasons.join(' · ')}
+        </div>
+      )}
 
-      {/* Composite preview */}
-      <div className="grid grid-cols-2 gap-1.5">
-        {SLOTS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setSlot(s)}
-            className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-              slot === s ? 'border-primary ring-1 ring-primary/40' : 'border-border/40 opacity-90 hover:opacity-100'
-            }`}
-          >
-            <Image
-              src={resolvePartImage(kit, s)}
-              alt={BODY_SLOT_LABELS[s]}
-              fill
-              className="object-cover"
-              sizes="120px"
-            />
-            <span className="absolute bottom-0 inset-x-0 text-[8px] bg-black/75 text-center text-white/90 py-0.5">
-              {BODY_SLOT_LABELS[s]}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Slot tabs */}
-      <div className="flex flex-wrap gap-1">
-        {SLOTS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setSlot(s)}
-            className={`text-[9px] px-2 py-1 rounded-full border transition-colors ${
-              slot === s
-                ? 'bg-primary/25 border-primary/50 text-primary'
-                : 'border-border/50 text-muted-foreground hover:bg-muted/50'
-            }`}
-          >
-            {BODY_SLOT_LABELS[s]}
-          </button>
-        ))}
-      </div>
-
-      {/* Options for active slot */}
-      <div className="flex gap-1.5 overflow-x-auto panel-scroll pb-0.5">
-        {options.map((p) => {
-          const selected = kit[slot] === p.id
+      <div className="grid grid-cols-2 gap-2">
+        {SLOTS.map((s) => {
+          const part = getPart(kit[s])
           return (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => pick(p.id)}
-              className={`relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 ring-2 transition-all ${
-                selected ? 'ring-pink-500 ring-offset-1 ring-offset-background' : 'ring-transparent opacity-75 hover:opacity-100'
-              }`}
-              title={p.description}
+            <div
+              key={s}
+              className="relative aspect-square rounded-xl overflow-hidden border border-border/50 bg-black/20"
             >
-              <Image src={p.image} alt={p.label} fill className="object-cover" sizes="64px" />
-              <span className="absolute bottom-0 inset-x-0 text-[7px] bg-black/70 text-center text-white truncate px-0.5">
-                {p.label}
-              </span>
-              {p.source !== 'ai' && (
-                <span
-                  className={`absolute top-0 left-0 text-[6px] px-0.5 text-white rounded-br ${
-                    p.source === 'cc0'
-                      ? 'bg-rose-700/90'
-                      : p.source === 'pexels'
-                        ? 'bg-emerald-700/90'
-                        : 'bg-sky-700/90'
-                  }`}
-                >
-                  {p.source === 'cc0' ? 'CC0' : p.source === 'pexels' ? 'Pexels' : 'Unsplash'}
+              <Image
+                src={resolvePartImage(kit, s)}
+                alt={BODY_SLOT_LABELS[s]}
+                fill
+                className="object-cover"
+                sizes="160px"
+                unoptimized={resolvePartImage(kit, s).includes('/stock/')}
+              />
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent px-1.5 pt-4 pb-1.5">
+                <p className="text-[9px] font-semibold text-white">{BODY_SLOT_LABELS[s]}</p>
+                <p className="text-[8px] text-white/75 truncate">{part?.label || kit[s]}</p>
+              </div>
+              {part?.source && part.source !== 'ai' && (
+                <span className="absolute top-1 left-1 text-[7px] px-1 py-0.5 rounded bg-black/70 text-white/90">
+                  {part.source === 'cc0' ? 'CC0' : part.source}
                 </span>
               )}
-            </button>
+            </div>
           )
         })}
       </div>
+
+      <p className="text-[8px] text-muted-foreground/70 leading-snug">
+        Приклад: desire≥60 або секс → nude/сідниці CC0; берег → пляжні stock; tribal → curvy AI.
+        Файли: <code className="bg-black/30 px-0.5 rounded">public/avatars/body/</code>
+      </p>
     </div>
   )
 }

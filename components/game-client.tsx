@@ -31,6 +31,7 @@ import { toast } from 'sonner'
 import { getAvatar, getLaraAvatar, getTribeAvatar } from '@/lib/avatar-utils'
 import { LaraCard } from './lara-card'
 import { LaraGalleryPanel } from './lara-gallery-panel'
+import { LaraBodyKit } from './lara-body-kit'
 import Image from 'next/image'
 import { DiceRollPopup, DualPleasureMeter, PhaseIndicator, StaminaBar, ComboCounter, DominationScale, PartnerReaction, SexChoiceCards, ErogenousDiscovery, ContextBonusBadges, SkillSynergyBadges, SceneSummaryCard, SceneAtmosphere, SceneMoodIndicator, LaraDialogueCards, MultiOrgasmPopup, PenisStatsCard, TempoControlButtons } from './sex-mechanics'
 import { SexSkillMovesBar, type HudMove } from './sex-skill-moves'
@@ -136,16 +137,27 @@ export default function GameClient() {
   const headerMenuRef = useRef<HTMLDivElement>(null)
   const processedTagsRef = useRef(0)
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const chatScrollRef = useRef<HTMLDivElement>(null)
+  const stickToBottomRef = useRef(true)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
 
-  const scrollToBottom = useCallback(() => {
-    chatEndRef?.current?.scrollIntoView?.({ behavior: 'smooth' })
+  const scrollToBottom = useCallback((force = false) => {
+    if (!force && !stickToBottomRef.current) return
+    chatEndRef?.current?.scrollIntoView?.({ behavior: force ? 'smooth' : 'auto' })
+  }, [])
+
+  const onChatScroll = useCallback(() => {
+    const el = chatScrollRef.current
+    if (!el) return
+    // Near bottom (±80px) → keep auto-follow; else allow reading history
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight
+    stickToBottomRef.current = dist < 80
   }, [])
 
   useEffect(() => {
-    scrollToBottom()
+    scrollToBottom(false)
   }, [messages, streamingContent, scrollToBottom])
 
   useEffect(() => {
@@ -388,6 +400,7 @@ export default function GameClient() {
   }
 
   const sendMessage = async (overrideText?: string) => {
+    stickToBottomRef.current = true
     const text = (overrideText ?? input)?.trim?.()
     if (!text || isLoading) return
 
@@ -738,6 +751,7 @@ export default function GameClient() {
     { id: 'skills', icon: <Flame className="w-3.5 h-3.5" />, label: 'Навички' },
     { id: 'kinks', icon: <Heart className="w-3.5 h-3.5" />, label: 'Кінки' },
     { id: 'gallery', icon: <Images className="w-3.5 h-3.5" />, label: 'Галерея' },
+    { id: 'body', icon: <Users className="w-3.5 h-3.5" />, label: 'Тіло' },
     { id: 'tribes', icon: <Compass className="w-3.5 h-3.5" />, label: 'Племена' },
     { id: 'diary', icon: <Feather className="w-3.5 h-3.5" />, label: 'Щоденник' },
     { id: 'achievements', icon: <Gem className="w-3.5 h-3.5" />, label: 'Нагороди' },
@@ -1349,7 +1363,11 @@ export default function GameClient() {
             </div>
           )}
           {/* Messages */}
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden chat-scroll px-3 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4">
+          <div
+            ref={chatScrollRef}
+            onScroll={onChatScroll}
+            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden chat-scroll px-3 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4 overscroll-contain"
+          >
             {/* Location Banner */}
             <LocationBanner
               locationName={gameState?.location || 'Берег острова'}
@@ -2356,6 +2374,16 @@ export default function GameClient() {
               <LaraGalleryPanel
                 gameState={gameState}
                 inSexScene={Boolean(sexScene)}
+              />
+            )}
+
+            {/* BODY TAB — auto body parts from events (no manual pick) */}
+            {sidebarTab === 'body' && (
+              <LaraBodyKit
+                gameState={gameState}
+                inSexScene={Boolean(sexScene)}
+                sexAtmosphere={sexScene?.atmosphere ? String(sexScene.atmosphere) : null}
+                sexSceneType={sexScene?.type ? String(sexScene.type) : null}
               />
             )}
 
