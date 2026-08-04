@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2, MoreVertical, Target, Volume2, VolumeX, Users, Hammer, History } from 'lucide-react'
+import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2, MoreVertical, Target, Volume2, VolumeX, Users, Hammer, History, Images } from 'lucide-react'
 import { soundEngine } from '@/lib/audio'
 import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData, WorldFactData, KinkData } from '@/lib/types'
 import { KinksPanel } from './kinks-panel'
@@ -30,6 +30,7 @@ import { sanitizePenisStats } from '@/lib/game/race-sex-stats'
 import { toast } from 'sonner'
 import { getAvatar, getLaraAvatar, getTribeAvatar } from '@/lib/avatar-utils'
 import { LaraCard } from './lara-card'
+import { LaraGalleryPanel } from './lara-gallery-panel'
 import Image from 'next/image'
 import { DiceRollPopup, DualPleasureMeter, PhaseIndicator, StaminaBar, ComboCounter, DominationScale, PartnerReaction, SexChoiceCards, ErogenousDiscovery, ContextBonusBadges, SkillSynergyBadges, SceneSummaryCard, SceneAtmosphere, SceneMoodIndicator, LaraDialogueCards, MultiOrgasmPopup, PenisStatsCard, TempoControlButtons } from './sex-mechanics'
 import { SexSkillMovesBar, type HudMove } from './sex-skill-moves'
@@ -736,6 +737,7 @@ export default function GameClient() {
     { id: 'lore', icon: <Scroll className="w-3.5 h-3.5" />, label: 'Лор' },
     { id: 'skills', icon: <Flame className="w-3.5 h-3.5" />, label: 'Навички' },
     { id: 'kinks', icon: <Heart className="w-3.5 h-3.5" />, label: 'Кінки' },
+    { id: 'gallery', icon: <Images className="w-3.5 h-3.5" />, label: 'Галерея' },
     { id: 'tribes', icon: <Compass className="w-3.5 h-3.5" />, label: 'Племена' },
     { id: 'diary', icon: <Feather className="w-3.5 h-3.5" />, label: 'Щоденник' },
     { id: 'achievements', icon: <Gem className="w-3.5 h-3.5" />, label: 'Нагороди' },
@@ -2347,6 +2349,14 @@ export default function GameClient() {
             {/* KINKS TAB */}
             {sidebarTab === 'kinks' && (
               <KinksPanel kinks={kinks} />
+            )}
+
+            {/* GALLERY TAB — loads photos only when this tab is open */}
+            {sidebarTab === 'gallery' && (
+              <LaraGalleryPanel
+                gameState={gameState}
+                inSexScene={Boolean(sexScene)}
+              />
             )}
 
             {/* MAP TAB */}

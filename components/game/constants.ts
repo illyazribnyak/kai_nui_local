@@ -5,6 +5,7 @@ export type SidebarTab =
   | 'diary'
   | 'skills'
   | 'kinks'
+  | 'gallery'
   | 'map'
   | 'tribes'
   | 'achievements'

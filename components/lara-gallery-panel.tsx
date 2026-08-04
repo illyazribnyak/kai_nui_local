@@ -1,6 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+/**
+ * Standalone Lara photo gallery module.
+ * Loads ONLY when mounted (open the «Галерея» tab) — never auto-injects into chat portrait.
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { GameState } from '@/lib/types'
@@ -18,8 +23,6 @@ type ActiveInfo = {
 type Props = {
   gameState?: GameState | null
   inSexScene?: boolean
-  /** Called when server picks a new active gallery image */
-  onActiveChange?: (src: string | null, meta?: ActiveInfo | null) => void
 }
 
 function buildQuery(gs?: GameState | null, inSexScene?: boolean): string {
@@ -42,58 +45,118 @@ function buildQuery(gs?: GameState | null, inSexScene?: boolean): string {
   return q ? `?${q}` : ''
 }
 
-export function LaraGalleryPanel({ gameState, inSexScene, onActiveChange }: Props) {
+/** Stable key so we don't refetch on every object identity change */
+function contextKey(gs?: GameState | null, inSexScene?: boolean): string {
+  if (!gs) return `empty|${inSexScene ? 1 : 0}`
+  return [
+    gs.location,
+    gs.timeOfDay,
+    gs.mood,
+    gs.weather,
+    gs.clothing,
+    gs.chapter,
+    gs.desire,
+    gs.shame,
+    gs.confidence,
+    gs.dayNumber,
+    gs.isDarkLara ? 1 : 0,
+    gs.isPregnant ? 1 : 0,
+    inSexScene ? 1 : 0,
+  ].join('|')
+}
+
+export function LaraGalleryPanel({ gameState, inSexScene }: Props) {
   const [items, setItems] = useState<LaraGalleryItem[]>([])
   const [active, setActive] = useState<ActiveInfo | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [loadedOnce, setLoadedOnce] = useState(false)
   const [lightbox, setLightbox] = useState<LaraGalleryItem | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [autoPickHint, setAutoPickHint] = useState(true)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetch(`/api/lara-gallery${buildQuery(gameState, inSexScene)}`, {
-        cache: 'no-store',
-      })
-      const data = await res.json()
-      setItems(Array.isArray(data?.items) ? data.items : [])
-      const act = data?.active ?? null
-      setActive(act)
-      onActiveChange?.(act?.src ?? null, act)
-      if (!data?.ok && data?.error) setError(String(data.error))
-    } catch (e: any) {
-      setError(e?.message || 'Не вдалося завантажити галерею')
-      setItems([])
-      setActive(null)
-      onActiveChange?.(null, null)
-    } finally {
-      setLoading(false)
-    }
-  }, [gameState, inSexScene, onActiveChange])
+  const key = useMemo(() => contextKey(gameState, inSexScene), [gameState, inSexScene])
+  const lastKey = useRef<string>('')
+  const abortRef = useRef<AbortController | null>(null)
 
+  const load = useCallback(
+    async (force = false) => {
+      if (!force && lastKey.current === key && loadedOnce) return
+      abortRef.current?.abort()
+      const ac = new AbortController()
+      abortRef.current = ac
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetch(`/api/lara-gallery${buildQuery(gameState, inSexScene)}`, {
+          cache: 'no-store',
+          signal: ac.signal,
+        })
+        const data = await res.json()
+        if (ac.signal.aborted) return
+        setItems(Array.isArray(data?.items) ? data.items : [])
+        setActive(data?.active ?? null)
+        lastKey.current = key
+        setLoadedOnce(true)
+        if (!data?.ok && data?.error) setError(String(data.error))
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return
+        setError(e?.message || 'Не вдалося завантажити галерею')
+        setItems([])
+        setActive(null)
+      } finally {
+        if (!ac.signal.aborted) setLoading(false)
+      }
+    },
+    [gameState, inSexScene, key, loadedOnce]
+  )
+
+  // Single fetch on mount + when game context key actually changes (debounced)
   useEffect(() => {
-    void load()
-  }, [load])
+    const t = setTimeout(() => {
+      void load(false)
+    }, 200)
+    return () => {
+      clearTimeout(t)
+      abortRef.current?.abort()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run on key
+  }, [key])
 
   return (
-    <div className="space-y-2 bg-muted/20 rounded-xl p-2.5 border border-border/40">
-      <div className="flex items-center justify-between gap-2">
-        <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Галерея Лари
-        </h4>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="text-[9px] px-2 py-0.5 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
-        >
-          Оновити
-        </button>
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            🖼️ Галерея Лари
+          </h3>
+          <button
+            type="button"
+            onClick={() => void load(true)}
+            disabled={loading}
+            className="text-[9px] px-2 py-0.5 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground disabled:opacity-50"
+          >
+            {loading ? '…' : 'Оновити'}
+          </button>
+        </div>
+        <p className="text-[10px] text-muted-foreground leading-snug">
+          Окремий модуль — не підміняє портрет у «Статах». Файли:{' '}
+          <code className="text-[8px] bg-black/30 px-1 rounded">public/avatars/lara-gallery/</code>
+        </p>
       </div>
 
-      {active && (
+      <label className="flex items-center gap-2 text-[10px] text-muted-foreground cursor-pointer select-none">
+        <input
+          type="checkbox"
+          className="rounded border-border"
+          checked={autoPickHint}
+          onChange={(e) => setAutoPickHint(e.target.checked)}
+        />
+        Показувати підказку «найкращий збіг» за станом гри
+      </label>
+
+      {autoPickHint && active && (
         <div className="text-[9px] rounded-lg bg-rose-950/40 border border-rose-500/25 px-2 py-1.5 text-rose-100/90">
-          <span className="font-semibold text-rose-300">Зараз у портреті: </span>
+          <span className="font-semibold text-rose-300">Найкращий збіг: </span>
           {active.label}
           {active.reasons?.length > 0 && (
             <span className="text-rose-200/70"> — {active.reasons.slice(0, 3).join(' · ')}</span>
@@ -103,49 +166,48 @@ export function LaraGalleryPanel({ gameState, inSexScene, onActiveChange }: Prop
       )}
 
       <p className="text-[9px] text-muted-foreground/80 leading-snug">
-        Фото обираються за <strong className="text-foreground/70">іменем файлу</strong> + стан гри
-        (desire, локація, ніч, dark, вагітність, секс-сцена…). Приклад:{' '}
-        <code className="text-[8px] bg-black/30 px-1 rounded">lara_sexy_beach_night.jpg</code>
+        Імена файлів з тегами: sexy, beach, night, dark, pregnant, boudoir, wet, tribal…
+        Приклад: <code className="text-[8px] bg-black/30 px-1 rounded">lara_sexy_beach_night.jpg</code>
       </p>
 
-      {loading && (
+      {loading && !loadedOnce && (
         <p className="text-[10px] text-muted-foreground animate-pulse">Завантаження…</p>
       )}
       {error && <p className="text-[10px] text-amber-400/90">{error}</p>}
-      {!loading && items.length === 0 && (
-        <p className="text-[10px] text-muted-foreground">Поки порожньо — додай файли в папку.</p>
+      {!loading && loadedOnce && items.length === 0 && (
+        <p className="text-[10px] text-muted-foreground">Поки порожньо — додай файли в папку галереї.</p>
       )}
 
       {items.length > 0 && (
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {items.map((it) => {
-            const isActive = active?.file === it.file
+            const isBest = autoPickHint && active?.file === it.file
             return (
               <button
                 key={it.file}
                 type="button"
                 onClick={() => setLightbox(it)}
-                className={`relative aspect-square rounded-lg overflow-hidden border transition-colors group ${
-                  isActive
+                className={`relative aspect-[3/4] rounded-lg overflow-hidden border transition-colors group ${
+                  isBest
                     ? 'border-rose-400 ring-1 ring-rose-400/50'
                     : 'border-border/40 hover:border-primary/50'
                 }`}
-                title={`${it.label}${(it as any).tags?.length ? ` [${(it as any).tags.join(', ')}]` : ''}`}
+                title={it.label}
               >
                 <Image
                   src={it.src}
                   alt={it.label}
                   fill
                   className="object-cover group-hover:scale-105 transition-transform"
-                  sizes="100px"
+                  sizes="140px"
                   unoptimized
                 />
-                {isActive && (
+                {isBest && (
                   <span className="absolute top-0 left-0 text-[7px] bg-rose-600/95 text-white px-1 py-0.5 rounded-br">
-                    зараз
+                    збіг
                   </span>
                 )}
-                <span className="absolute bottom-0 inset-x-0 text-[7px] bg-black/75 text-white/90 truncate px-0.5 py-0.5 text-center">
+                <span className="absolute bottom-0 inset-x-0 text-[8px] bg-black/75 text-white/90 truncate px-1 py-0.5 text-center">
                   {it.label}
                 </span>
               </button>
@@ -184,11 +246,6 @@ export function LaraGalleryPanel({ gameState, inSexScene, onActiveChange }: Prop
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{lightbox.label}</p>
                   <p className="text-[10px] text-muted-foreground truncate">{lightbox.file}</p>
-                  {(lightbox as any).tags?.length > 0 && (
-                    <p className="text-[9px] text-rose-300/80 mt-0.5">
-                      теги: {(lightbox as any).tags.join(', ')}
-                    </p>
-                  )}
                 </div>
                 <button
                   type="button"
