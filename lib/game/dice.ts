@@ -1,4 +1,6 @@
 import { clamp } from '@/lib/game/json'
+import { resolveSexSkillDiceBonus, type SkillLike } from '@/lib/game/skill-effects'
+import { computeSkillModifiers } from '@/lib/game/skill-effects'
 
 const STAT_MAP: Record<string, string> = {
   сила: 'strength',
@@ -34,6 +36,8 @@ export interface ResolvedDice {
   roll: number
   total: number
   result: 'critical_success' | 'success' | 'failure' | 'critical_failure'
+  skillBonus?: number
+  matchedSkill?: string | null
 }
 
 function resolveStatBonus(
@@ -46,23 +50,37 @@ function resolveStatBonus(
     // Convert 1-20 style stat to d20 bonus-ish: (stat - 5) clamped
     return clamp((gameState[key] as number) - 5, -2, 10)
   }
-  // Named skill: use as free-form, bonus from AI or 0
   return 0
 }
 
 /** Re-roll dice on the server so outcomes are fair and consistent. */
 export function resolveDiceRolls(
   rolls: DiceInput[],
-  gameState: Record<string, any> | null
+  gameState: Record<string, any> | null,
+  skills?: SkillLike[] | null
 ): ResolvedDice[] {
+  const mods = computeSkillModifiers(skills)
+
   return (rolls ?? []).map((r) => {
     const skill = r.skill || r.stat || 'перевірка'
     const dc = clamp(Number(r.dc) || 12, 1, 30)
+
+    const skillPart = resolveSexSkillDiceBonus(skill, skills)
+    // Also match against description keywords
+    const descPart = r.description
+      ? resolveSexSkillDiceBonus(r.description, skills)
+      : { bonus: 0, matchedSkill: null }
+    const skillBonus = Math.max(skillPart.bonus, descPart.bonus)
+    const matchedSkill = skillPart.bonus >= descPart.bonus ? skillPart.matchedSkill : descPart.matchedSkill
+
     let bonus = Number(r.bonus)
     if (Number.isNaN(bonus)) {
-      bonus = resolveStatBonus(gameState, skill)
+      bonus = resolveStatBonus(gameState, skill) + skillBonus
+    } else {
+      // AI provided a bonus — still add sex-skill bonus on top (capped)
+      bonus = bonus + skillBonus
     }
-    bonus = clamp(bonus, -5, 15)
+    bonus = clamp(bonus, -5, 18)
 
     let roll: number
     if (r.keepRoll && r.roll !== undefined) {
@@ -73,7 +91,13 @@ export function resolveDiceRolls(
 
     const total = roll + bonus
     let result: ResolvedDice['result']
-    if (roll === 20) result = 'critical_success'
+    // Аура бажання Lv5: crit success on natural 19–20 for seduction-ish checks
+    const seductionCrit =
+      mods.seductionCritOn19 &&
+      (matchedSkill === 'Аура бажання' ||
+        /зваб|харизм|спокус|флірт/i.test(`${skill} ${r.description || ''}`))
+
+    if (roll === 20 || (seductionCrit && roll >= 19)) result = 'critical_success'
     else if (roll === 1) result = 'critical_failure'
     else if (total >= dc) result = 'success'
     else result = 'failure'
@@ -86,6 +110,8 @@ export function resolveDiceRolls(
       roll,
       total,
       result,
+      skillBonus,
+      matchedSkill,
     }
   })
 }

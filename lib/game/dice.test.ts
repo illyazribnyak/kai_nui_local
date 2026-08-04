@@ -44,4 +44,17 @@ describe('resolveDiceRolls', () => {
   it('handles empty rolls', () => {
     assert.deepEqual(resolveDiceRolls([], null), [])
   })
+
+  it('adds sex skill tree bonus on top of AI bonus', () => {
+    const [r] = resolveDiceRolls(
+      [{ skill: 'Ніжний дотик', dc: 12, bonus: 1, roll: 10, keepRoll: true }],
+      null,
+      [{ name: 'Ніжний дотик', level: 3 }]
+    )
+    // AI bonus 1 + level 3 skill bonus 2 = 3
+    assert.equal(r.skillBonus, 2)
+    assert.equal(r.bonus, 3)
+    assert.equal(r.matchedSkill, 'Ніжний дотик')
+    assert.equal(r.total, 13)
+  })
 })

@@ -1,151 +1,169 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Heart, Zap, Shield, HeartHandshake, Compass, Lock, CheckCircle2, ChevronRight } from 'lucide-react'
+import { Lock, ChevronRight, Sparkles, Zap } from 'lucide-react'
 import type { SkillData } from '@/lib/types'
-
-interface SkillNode {
-  id: string
-  name: string
-  category: 'erotic' | 'survival' | 'combat'
-  description: string
-  requiredLevel?: number
-  parentId?: string
-  icon: string
-}
-
-const SKILL_TREE_NODES: SkillNode[] = [
-  // Erotic Branch
-  { id: 'erotic_1', name: 'Ніжний дотик', category: 'erotic', description: 'Базова майстерність ласк та зваблення партнера', icon: '🌹' },
-  { id: 'erotic_2', name: 'Чувський масаж', category: 'erotic', description: 'Зданість розслабляти партнера та піднімати Бажання', parentId: 'erotic_1', icon: '💋' },
-  { id: 'erotic_3', name: 'Мистецтво оральних ласк', category: 'erotic', description: 'Спеціальна техніка для прискореного нарощування Задоволення', parentId: 'erotic_2', icon: '🔥' },
-  { id: 'erotic_4', name: 'Магія Амулета Насолоди', category: 'erotic', description: 'Використання амулета для виклику мульти-оргазмів', parentId: 'erotic_3', icon: '✨' },
-
-  // Survival Branch
-  { id: 'surv_1', name: 'Пошук ресурсів', category: 'survival', description: 'Уміння знаходити фрукти, чисту воду та гілки', icon: '🌿' },
-  { id: 'surv_2', name: 'Травництво', category: 'survival', description: 'Збір цілющого листя для лікування ран та хвороб', parentId: 'surv_1', icon: '🍃' },
-  { id: 'surv_3', name: 'Річкове полювання', category: 'survival', description: 'Ловля риби та полювання на дрібну здобич', parentId: 'surv_2', icon: '🐟' },
-  { id: 'surv_4', name: 'Дух Джунглів', category: 'survival', description: 'Повна адаптація до дикого клімату острова', parentId: 'surv_3', icon: '🐾' },
-
-  // Combat Branch
-  { id: 'comb_1', name: 'Швидке ухилення', category: 'combat', description: 'Рефлекси для уникнення атак диких звірів', icon: '🏃' },
-  { id: 'comb_2', name: 'Володіння списом', category: 'combat', description: 'Точний та сильний удар зброєю ближнього бою', parentId: 'comb_1', icon: '⚔️' },
-  { id: 'comb_3', name: 'Тактичний блок', category: 'combat', description: 'Здатність відбивати важкі удари супротивників', parentId: 'comb_2', icon: '🛡️' },
-  { id: 'comb_4', name: 'Воїн Острова', category: 'combat', description: 'Майстерне ведення бою проти диких племен', parentId: 'comb_3', icon: '🏆' },
-]
+import {
+  SEX_SKILL_CATEGORIES,
+  SEX_SKILL_TREE,
+  type SexSkillCategory,
+  type SexSkillNode,
+} from '@/lib/game/sex-skill-tree'
+import {
+  computeSkillModifiers,
+  isSkillUnlockedInTree,
+  levelToDiceBonus,
+  skillLevel,
+} from '@/lib/game/skill-effects'
 
 interface SkillTreeProps {
   skills: SkillData[]
 }
 
 export function SkillTree({ skills }: SkillTreeProps) {
-  const [activeBranch, setActiveBranch] = useState<'erotic' | 'survival' | 'combat'>('erotic')
-  const [selectedNode, setSelectedNode] = useState<SkillNode | null>(null)
+  const [activeBranch, setActiveBranch] = useState<SexSkillCategory>('seduction')
+  const [selectedNode, setSelectedNode] = useState<SexSkillNode | null>(null)
 
-  const getSkillData = (name: string) => {
-    return skills.find((s) => s.name.toLowerCase().includes(name.toLowerCase()))
-  }
+  const modifiers = useMemo(() => computeSkillModifiers(skills), [skills])
+  const branchNodes = useMemo(
+    () => SEX_SKILL_TREE.filter((n) => n.category === activeBranch),
+    [activeBranch]
+  )
 
-  const branchNodes = SKILL_TREE_NODES.filter((n) => n.category === activeBranch)
+  const getData = (name: string) => skills.find((s) => s.name === name)
+
+  const activeCount = skills.filter((s) => s.level > 0).length
 
   return (
     <div className="space-y-4">
+      {/* Live modifiers summary */}
+      <div className="rounded-xl border border-pink-500/30 bg-pink-950/20 p-3 space-y-1.5">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-pink-200">
+          <Zap className="w-3.5 h-3.5 text-pink-400" />
+          Активні ефекти ({activeCount}/24)
+        </div>
+        {modifiers.lines.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Усі навички на 0. Під час сексу, флірту й ритуалів AI нараховує XP — рівні дають реальні
+            бонуси до d20, pleasure, stamina, multi-orgasm і амулета.
+          </p>
+        ) : (
+          <ul className="text-[10px] text-pink-100/85 space-y-0.5 max-h-28 overflow-y-auto panel-scroll">
+            {modifiers.multiOrgasmUnlocked && (
+              <li className="text-emerald-300">✓ Multi-orgasm розблоковано</li>
+            )}
+            {modifiers.partnerPleasureBonusPct > 0 && (
+              <li>Partner pleasure +{modifiers.partnerPleasureBonusPct}%</li>
+            )}
+            {modifiers.laraPleasureBonusPct > 0 && (
+              <li>Lara pleasure +{modifiers.laraPleasureBonusPct}%</li>
+            )}
+            {modifiers.staminaFloor > 0 && <li>Stamina floor {modifiers.staminaFloor}</li>}
+            {modifiers.dominationBias !== 0 && (
+              <li>
+                Domination bias {modifiers.dominationBias > 0 ? '+' : ''}
+                {modifiers.dominationBias}
+              </li>
+            )}
+            {modifiers.amuletGainMultiplier > 1 && (
+              <li>Amulet ×{modifiers.amuletGainMultiplier.toFixed(2)}</li>
+            )}
+            {modifiers.seductionCritOn19 && <li className="text-amber-300">✓ Крит зваблення 19–20</li>}
+          </ul>
+        )}
+      </div>
+
       {/* Branch Selectors */}
-      <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-muted/40 border border-border/60">
-        <button
-          type="button"
-          onClick={() => setActiveBranch('erotic')}
-          className={`py-1.5 px-2 text-xs rounded-lg font-bold transition-all flex items-center justify-center gap-1 ${
-            activeBranch === 'erotic'
-              ? 'bg-pink-500 text-white shadow-md shadow-pink-500/30'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          🌹 Зваблення
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveBranch('survival')}
-          className={`py-1.5 px-2 text-xs rounded-lg font-bold transition-all flex items-center justify-center gap-1 ${
-            activeBranch === 'survival'
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          🌿 Виживання
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveBranch('combat')}
-          className={`py-1.5 px-2 text-xs rounded-lg font-bold transition-all flex items-center justify-center gap-1 ${
-            activeBranch === 'combat'
-              ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          ⚔️ Бій
-        </button>
+      <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-muted/40 border border-border/60">
+        {SEX_SKILL_CATEGORIES.map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => {
+              setActiveBranch(cat.id)
+              setSelectedNode(null)
+            }}
+            className={`py-1.5 px-1 text-[10px] sm:text-[11px] rounded-lg font-bold transition-all flex items-center justify-center gap-0.5 ${
+              activeBranch === cat.id
+                ? `${cat.activeClass} shadow-md`
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span>{cat.icon}</span>
+            <span className="truncate">{cat.label}</span>
+          </button>
+        ))}
       </div>
 
       {/* Visual Skill Path */}
-      <div className="relative p-4 rounded-2xl border border-border/60 bg-slate-950/60 backdrop-blur-sm space-y-4">
+      <div className="relative p-3 sm:p-4 rounded-2xl border border-border/60 bg-slate-950/60 backdrop-blur-sm space-y-3">
         {branchNodes.map((node, index) => {
-          const data = getSkillData(node.name)
+          const data = getData(node.name)
           const level = data?.level ?? 0
           const xp = data?.xp ?? 0
           const maxXp = data?.maxXp ?? 100
-          const isUnlocked = level > 0 || index === 0
-          const xpPct = Math.min(100, Math.round((xp / maxXp) * 100))
+          const unlocked = isSkillUnlockedInTree(node, skills)
+          const xpPct = Math.min(100, Math.round((xp / Math.max(1, maxXp)) * 100))
+          const diceBonus = levelToDiceBonus(level)
 
           return (
             <div key={node.id} className="relative">
-              {/* Connector line to next node */}
               {index < branchNodes.length - 1 && (
-                <div className="absolute left-6 top-10 bottom-0 w-0.5 bg-gradient-to-b from-primary/60 to-border -mb-4 z-0" />
+                <div
+                  className={`absolute left-6 top-12 bottom-0 w-0.5 -mb-3 z-0 ${
+                    level > 0 ? 'bg-gradient-to-b from-primary/70 to-primary/20' : 'bg-border/60'
+                  }`}
+                />
               )}
 
-              <motion.div
-                whileHover={{ scale: 1.01 }}
+              <motion.button
+                type="button"
+                whileHover={{ scale: unlocked ? 1.01 : 1 }}
                 onClick={() => setSelectedNode(node)}
-                className={`relative z-10 p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                className={`relative z-10 w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between gap-2 ${
                   level > 0
                     ? 'border-primary/50 bg-primary/10 shadow-md shadow-primary/5'
-                    : isUnlocked
+                    : unlocked
                     ? 'border-border bg-card/80 hover:border-primary/40'
-                    : 'border-border/40 bg-muted/20 opacity-50'
+                    : 'border-border/40 bg-muted/20 opacity-55'
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 border ${
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border ${
                       level > 0
                         ? 'bg-primary/20 border-primary shadow-inner'
-                        : isUnlocked
+                        : unlocked
                         ? 'bg-muted border-border'
-                        : 'bg-slate-900 border-slate-800 text-slate-600'
+                        : 'bg-slate-900 border-slate-800'
                     }`}
                   >
-                    {isUnlocked ? node.icon : <Lock className="w-4 h-4 text-slate-500" />}
+                    {unlocked ? node.icon : <Lock className="w-4 h-4 text-slate-500" />}
                   </div>
 
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-bold ${level > 0 ? 'text-primary' : 'text-foreground'}`}>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`text-xs font-bold ${level > 0 ? 'text-primary' : 'text-foreground'}`}
+                      >
                         {node.name}
                       </span>
-                      {level > 0 && (
+                      {level > 0 ? (
                         <span className="text-[10px] font-mono font-bold bg-primary/20 text-primary px-1.5 py-0.5 rounded">
-                          Рів. {level}/5
+                          Рів. {level}/5 · d20 +{diceBonus}
                         </span>
+                      ) : unlocked ? (
+                        <span className="text-[10px] text-muted-foreground">Відкрито · 0/5</span>
+                      ) : (
+                        <span className="text-[10px] text-slate-500">🔒 потрібен попередній ≥1</span>
                       )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                      {node.description}
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">
+                      {node.effectByLevel}
                     </p>
 
-                    {/* XP Progress bar */}
-                    {level > 0 && (
+                    {level > 0 && level < 5 && (
                       <div className="w-36 bg-slate-950 h-1.5 rounded-full overflow-hidden border border-border/40 mt-1.5">
                         <div
                           className="bg-primary h-full rounded-full transition-all duration-300"
@@ -153,17 +171,22 @@ export function SkillTree({ skills }: SkillTreeProps) {
                         />
                       </div>
                     )}
+                    {level >= 5 && (
+                      <p className="text-[10px] text-amber-300/90 mt-1 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Майстерність
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              </motion.div>
+              </motion.button>
             </div>
           )
         })}
       </div>
 
-      {/* Selected Node Details Modal / Drawer */}
+      {/* Selected Node Details */}
       <AnimatePresence>
         {selectedNode && (
           <motion.div
@@ -173,18 +196,39 @@ export function SkillTree({ skills }: SkillTreeProps) {
             className="p-3.5 rounded-xl border border-primary/40 bg-card/95 shadow-xl text-xs space-y-2 relative"
           >
             <button
+              type="button"
               onClick={() => setSelectedNode(null)}
               className="absolute right-3 top-3 text-muted-foreground hover:text-foreground font-bold"
+              aria-label="Закрити"
             >
               ✕
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pr-6">
               <span className="text-xl">{selectedNode.icon}</span>
-              <h4 className="font-bold text-sm text-primary">{selectedNode.name}</h4>
+              <div>
+                <h4 className="font-bold text-sm text-primary">{selectedNode.name}</h4>
+                <p className="text-[10px] text-muted-foreground">
+                  Рівень {skillLevel(skills, selectedNode.name)}/5
+                  {skillLevel(skills, selectedNode.name) > 0 &&
+                    ` · d20 +${levelToDiceBonus(skillLevel(skills, selectedNode.name))}`}
+                </p>
+              </div>
             </div>
             <p className="text-muted-foreground">{selectedNode.description}</p>
-            <div className="p-2 rounded bg-muted/30 text-[11px] font-mono text-emerald-300">
-              💡 Навичка прокачується автоматично при здійсненні відповідних дій у грі (наприклад, проведення секс-сцен, полювання, збір трав).
+            <div className="p-2 rounded bg-emerald-950/40 border border-emerald-800/40 text-[11px] text-emerald-200 leading-relaxed">
+              <span className="font-bold text-emerald-300">⚙️ Механіка: </span>
+              {selectedNode.effectByLevel}
+            </div>
+            {selectedNode.parentName && (
+              <p className="text-[10px] text-muted-foreground">
+                Вимога: «{selectedNode.parentName}» рівень ≥ 1
+                {skillLevel(skills, selectedNode.parentName) >= 1 ? ' ✓' : ' ✗'}
+              </p>
+            )}
+            <div className="p-2 rounded bg-muted/30 text-[11px] text-muted-foreground leading-relaxed">
+              💡 XP нараховує AI тегом <code className="text-primary">SKILL_UPDATE</code> під час
+              відповідних сцен. Сервер сам додає бонуси до кидків і секс-метрів — не лише «для
+              вигляду».
             </div>
           </motion.div>
         )}

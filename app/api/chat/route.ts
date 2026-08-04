@@ -33,6 +33,7 @@ import {
 } from '@/lib/game/tag-schemas'
 import { formatRecipesForPrompt } from '@/lib/game/crafting'
 import { needsDeepAnalysis } from '@/lib/game/needs-analysis'
+import { applySexSkillModifiers, formatActiveSkillEffectsForPrompt } from '@/lib/game/skill-effects'
 
 function buildSystemPrompt(
   gameState: any,
@@ -94,7 +95,7 @@ ${gameState?.endingPath ? `Шлях кінцівки: ${ENDING_PATHS[gameState.e
   const activeSkills = skills?.filter((s: any) => s.level > 0 || s.xp > 0) ?? []
   const skillBlock = `\n--- НАВИЧКИ ЛАРИ ---\n${activeSkills.length > 0
     ? activeSkills.map((s: any) => `• ${s.name} [${s.category}]: Рівень ${s.level}/5 (XP: ${s.xp}/${s.maxXp})`).join('\n')
-    : 'Всі на рівні 0 — чекають першого досвіду'}\n---\n`
+    : 'Всі на рівні 0 — чекають першого досвіду'}\n${formatActiveSkillEffectsForPrompt(skills)}\n---\n`
 
   // Репутація племен
   const tribeBlock = tribeReps?.length > 0
@@ -207,14 +208,12 @@ ${summaryBlock}
 - Множинний оргазм: доступний при навичці "Множинне задоволення" >= 2
 - Сильний оргазм (критичний кидок 20): desire -50, amuletEnergy +30, можливий приплив магії
 
-## Навички під час сексу:
-Навички безпосередньо впливають на доступні дії та їхній ефект:
-- Рівень 0 = Лара незручна, невпевнена, може зробити помилку
-- Рівень 1-2 = Базові здібності, стандартний ефект
-- Рівень 3-4 = Вправна, може дивувати партнера, бонус +2 до відповідних кидків
-- Рівень 5 = Майстриня, автоматичний успіх у базових діях, бонус +5 до кидків
-
-Доступні навички: ${SKILL_NAMES.join(', ')}
+## Навички під час сексу (ДЕРЕВО — сервер застосовує механіку):
+- Рівень 0 = Лара незручна; 1–2 = база (+1 d20); 3–4 = вправна (+2); 5 = майстриня (+5)
+- «Множинне задоволення» ≥2 обовʼязкове для MULTI_ORGASM continue
+- Техніка підвищує pleasure партнера; витривалість — floor stamina; dom/sub — шкала domination; магія тіла — amulet_gain
+- ЗАВЖДИ нараховуй SKILL_UPDATE XP (5–25) за релевантні дії. Назви навичок ТОЧНО:
+${SKILL_NAMES.join(', ')}
 
 # === 🍕 ГОЛОД ТА СПРАГА ===
 - Голод і спрага: 0-100 (де 100 = критично). Зростають з кожною дією (+3-8).
@@ -1052,8 +1051,26 @@ export async function POST(request: NextRequest) {
             merged.stat = applyNewDaySurvival(merged.stat)
           }
 
-          // 5.6 Fair server-side dice re-roll
-          const resolvedDice = resolveDiceRolls(merged.diceRolls || [], gameState)
+          // 5.6 Sex skill tree: mechanical modifiers (pleasure, stamina, multi-orgasm, amulet…)
+          // Use pre-turn skills so bonuses are based on levels before this turn's XP.
+          const sexSkillResult = applySexSkillModifiers(merged as any, skills)
+
+          // Apply amulet_gain from scene summary into STAT if AI forgot absolute energy
+          if (merged.sceneSummary?.amulet_gain != null) {
+            const gain = Math.max(0, Number(merged.sceneSummary.amulet_gain) || 0)
+            if (gain > 0) {
+              const base = Number(
+                merged.stat?.amuletEnergy ?? gameState?.amuletEnergy ?? 0
+              )
+              // If stat already absolute and higher, keep; else add gain once
+              if (merged.stat?.amuletEnergy == null) {
+                merged.stat = { ...(merged.stat || {}), amuletEnergy: Math.min(100, base + gain) }
+              }
+            }
+          }
+
+          // 5.7 Fair server-side dice re-roll (+ skill tree bonuses)
+          const resolvedDice = resolveDiceRolls(merged.diceRolls || [], gameState, skills)
           merged.diceRolls = resolvedDice
 
           // 6. Apply all updates
@@ -1098,16 +1115,26 @@ export async function POST(request: NextRequest) {
           const updatedDiseases = await prisma.disease.findMany()
           const updatedFacts = await prisma.worldFact.findMany({ orderBy: { createdAt: 'asc' } })
 
-          const tagLog = buildTagLog({
-            mode: promptMode,
-            merged: { ...merged, choices: finalChoices, diceRolls: resolvedDice },
-            completedQuests,
-            timeTick: {
-              phaseAdvanced: timeTick.phaseAdvanced,
-              newDay: timeTick.newDay,
-              turnCount: timeTick.turnCount,
+          const tagLog = {
+            ...buildTagLog({
+              mode: promptMode,
+              merged: { ...merged, choices: finalChoices, diceRolls: resolvedDice },
+              completedQuests,
+              timeTick: {
+                phaseAdvanced: timeTick.phaseAdvanced,
+                newDay: timeTick.newDay,
+                turnCount: timeTick.turnCount,
+              },
+            }),
+            skillEffects: sexSkillResult.applied,
+            skillModifiers: {
+              multiOrgasmUnlocked: sexSkillResult.modifiers.multiOrgasmUnlocked,
+              partnerPleasureBonusPct: sexSkillResult.modifiers.partnerPleasureBonusPct,
+              laraPleasureBonusPct: sexSkillResult.modifiers.laraPleasureBonusPct,
+              staminaFloor: sexSkillResult.modifiers.staminaFloor,
+              dominationBias: sexSkillResult.modifiers.dominationBias,
             },
-          })
+          }
 
           const analyzerLabel = geminiAnalysis.provider === 'gemini'
             ? 'Gemini 2.0 Flash'

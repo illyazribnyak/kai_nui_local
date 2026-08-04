@@ -134,5 +134,13 @@ export interface ClientTokenUsage {
 export interface TagLogData {
   counts?: Record<string, number>
   tags?: unknown[]
+  skillEffects?: string[]
+  skillModifiers?: {
+    multiOrgasmUnlocked?: boolean
+    partnerPleasureBonusPct?: number
+    laraPleasureBonusPct?: number
+    staminaFloor?: number
+    dominationBias?: number
+  }
   [key: string]: unknown
 }

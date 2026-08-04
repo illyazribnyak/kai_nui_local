@@ -1250,6 +1250,9 @@ export default function GameClient() {
                     {lastTagLog?.counts && (
                       <> · {Object.entries(lastTagLog.counts).map(([k, v]) => `${k}:${v}`).join(' ')}</>
                     )}
+                    {lastTagLog?.skillEffects && lastTagLog.skillEffects.length > 0 && (
+                      <span className="text-pink-300/90"> · 🌳{lastTagLog.skillEffects.length} skill-fx</span>
+                    )}
                   </span>
                   <span className="flex-shrink-0">{showTagLog ? '▲' : '▼'}</span>
                 </button>
