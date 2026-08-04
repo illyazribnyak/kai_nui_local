@@ -38,3 +38,4 @@ public/gui-*.jpg
 public/avatars/body/stock/raw/
 # Optional private dumps you keep only on disk (never commit)
 public/avatars/body/private/
+tmp-screens/
