@@ -2,71 +2,22 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Package, Hammer, X, Sparkles, Check, ChevronRight, Apple, Shield, Flame } from 'lucide-react'
+import { Package, Hammer, X, Sparkles } from 'lucide-react'
 import type { InventoryItemData } from '@/lib/types'
-
-interface CraftingRecipe {
-  id: string
-  name: string
-  category: string
-  description: string
-  ingredients: Array<{ name: string; quantity: number }>
-  resultQuantity: number
-}
-
-const RECIPES: CraftingRecipe[] = [
-  {
-    id: 'spear',
-    name: 'Обсидіановий спис',
-    category: 'зброя',
-    description: 'Гостре обсидіанове вістря, міцно закріплене на дерев’яній палиці',
-    ingredients: [
-      { name: 'Гостра палиця', quantity: 1 },
-      { name: 'Обсидіан', quantity: 1 },
-    ],
-    resultQuantity: 1,
-  },
-  {
-    id: 'bandage',
-    name: 'Цілюща пов\'язка',
-    category: 'ресурс',
-    description: 'Компрес з цілющого листя джунглів та гнучкої ліани для заживлення ран',
-    ingredients: [
-      { name: 'Цілюще листя', quantity: 1 },
-      { name: 'Ліана', quantity: 1 },
-    ],
-    resultQuantity: 1,
-  },
-  {
-    id: 'cooked_fish',
-    name: 'Жарена риба',
-    category: 'їжа',
-    description: 'Ароматна жарена риба, що втамовує голод на 35 пунктів',
-    ingredients: [
-      { name: 'Сира риба', quantity: 1 },
-      { name: 'Дрова', quantity: 1 },
-    ],
-    resultQuantity: 1,
-  },
-  {
-    id: 'bow',
-    name: 'Простий лук',
-    category: 'зброя',
-    description: 'Гнучкий деревяний лук з ліаною в якості тятиви',
-    ingredients: [
-      { name: 'Гнучка гілка', quantity: 1 },
-      { name: 'Ліана', quantity: 1 },
-    ],
-    resultQuantity: 1,
-  },
-]
+import {
+  CRAFTING_RECIPES,
+  canCraftRecipe,
+  craftActionText,
+  consumeActionText,
+  getInventoryCount,
+} from '@/lib/game/crafting'
 
 interface CraftingModalProps {
   isOpen: boolean
   inventory: InventoryItemData[]
   onClose: () => void
-  onCraft: (recipeName: string) => void
-  onConsumeItem: (itemName: string) => void
+  onCraft: (actionText: string) => void
+  onConsumeItem: (actionText: string) => void
 }
 
 export function CraftingModal({
@@ -79,15 +30,6 @@ export function CraftingModal({
   const [activeTab, setActiveTab] = useState<'inventory' | 'crafting'>('crafting')
 
   if (!isOpen) return null
-
-  const getInventoryCount = (name: string) => {
-    const found = inventory.find((i) => i.name.toLowerCase().includes(name.toLowerCase()))
-    return found ? found.quantity : 0
-  }
-
-  const canCraft = (recipe: CraftingRecipe) => {
-    return recipe.ingredients.every((ing) => getInventoryCount(ing.name) >= ing.quantity)
-  }
 
   return (
     <AnimatePresence>
@@ -139,11 +81,11 @@ export function CraftingModal({
           </div>
 
           {/* Body content */}
-          <div className="p-4 overflow-y-auto panel-scroll flex-1">
+          <div className="p-4 overflow-y-auto panel-scroll flex-1 min-h-0">
             {activeTab === 'crafting' ? (
               <div className="space-y-3">
-                {RECIPES.map((recipe) => {
-                  const craftable = canCraft(recipe)
+                {CRAFTING_RECIPES.map((recipe) => {
+                  const craftable = canCraftRecipe(inventory, recipe)
                   return (
                     <div
                       key={recipe.id}
@@ -153,17 +95,17 @@ export function CraftingModal({
                           : 'border-border/60 bg-muted/20 opacity-70'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm">{recipe.name}</span>
-                          <span className="text-[10px] bg-muted px-2 py-0.5 rounded text-muted-foreground">
+                      <div className="flex items-center justify-between gap-2 mb-1.5 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-semibold text-sm truncate">{recipe.name}</span>
+                          <span className="text-[10px] bg-muted px-2 py-0.5 rounded text-muted-foreground flex-shrink-0">
                             {recipe.category}
                           </span>
                         </div>
                         <button
                           type="button"
-                          onClick={() => onCraft(`Змайструвати ${recipe.name}`)}
-                          className={`px-3 py-1 text-xs rounded-lg font-semibold flex items-center gap-1 transition-all ${
+                          onClick={() => onCraft(craftActionText(recipe.name))}
+                          className={`flex-shrink-0 px-3 py-1 text-xs rounded-lg font-semibold flex items-center gap-1 transition-all ${
                             craftable
                               ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md shadow-amber-500/30 active:scale-95'
                               : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -176,10 +118,9 @@ export function CraftingModal({
 
                       <p className="text-xs text-muted-foreground mb-2">{recipe.description}</p>
 
-                      {/* Ingredients requirement list */}
                       <div className="flex flex-wrap gap-2 text-[11px]">
                         {recipe.ingredients.map((ing) => {
-                          const current = getInventoryCount(ing.name)
+                          const current = getInventoryCount(inventory, ing.name)
                           const hasEnough = current >= ing.quantity
                           return (
                             <span
@@ -209,13 +150,13 @@ export function CraftingModal({
                   inventory.map((item) => (
                     <div
                       key={item.id}
-                      className="p-3 rounded-xl border border-border bg-card/60 flex items-center justify-between gap-2"
+                      className="p-3 rounded-xl border border-border bg-card/60 flex items-center justify-between gap-2 min-w-0"
                     >
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-xs">{item.name}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-semibold text-xs truncate">{item.name}</span>
                           {item.quantity > 1 && (
-                            <span className="text-[10px] font-mono text-primary font-bold">
+                            <span className="text-[10px] font-mono text-primary font-bold flex-shrink-0">
                               x{item.quantity}
                             </span>
                           )}
@@ -225,11 +166,14 @@ export function CraftingModal({
                         </span>
                       </div>
 
-                      {item.category === 'їжа' || item.name.toLowerCase().includes('риба') || item.name.toLowerCase().includes('фрукт') || item.name.toLowerCase().includes('вода') ? (
+                      {item.category === 'їжа' ||
+                      item.name.toLowerCase().includes('риба') ||
+                      item.name.toLowerCase().includes('фрукт') ||
+                      item.name.toLowerCase().includes('вода') ? (
                         <button
                           type="button"
-                          onClick={() => onConsumeItem(`Спожити ${item.name}`)}
-                          className="px-2.5 py-1 text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg shadow active:scale-95 transition-all"
+                          onClick={() => onConsumeItem(consumeActionText(item.name))}
+                          className="flex-shrink-0 px-2.5 py-1 text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg shadow active:scale-95 transition-all"
                         >
                           Спожити
                         </button>

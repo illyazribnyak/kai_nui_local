@@ -85,3 +85,16 @@ yarn start
 - **Порожні відповіді ШІ / помилки 401** — не заданий або невірний `DEEPSEEK_API_KEY`.
 - **`prisma` команда не знайдена** — виконуй через `yarn prisma ...`, а не напряму.
 - **Порт 3000 зайнятий** — запусти на іншому порту: `yarn dev -p 3001`.
+
+---
+
+## Після оновлення коду (git pull)
+
+1. `npm install` — якщо змінились залежності  
+2. `npm run db:push` — якщо змінилась `prisma/schema.prisma`  
+3. Перезапусти `npm run dev`
+
+**Ключі AI:** достатньо `DEEPSEEK_API_KEY` **або** `GEMINI_API_KEY` (краще DeepSeek для наративу; Gemini — analyzer/fallback).
+
+**Крафт:** рецепти спільні для UI-верстака й AI — `lib/game/crafting.ts`.
+

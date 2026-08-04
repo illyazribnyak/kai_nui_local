@@ -31,6 +31,7 @@ import {
   FactSchema,
   DiceSchema,
 } from '@/lib/game/tag-schemas'
+import { formatRecipesForPrompt } from '@/lib/game/crafting'
 
 function buildSystemPrompt(
   gameState: any,
@@ -240,10 +241,7 @@ ${summaryBlock}
 - Тег: [TRIBE_UPDATE]{"tribe":"Кай-Тору","change":10}[/TRIBE_UPDATE]
 
 # === 🔨 КРАФТИНГ ===
-- Лара може створювати предмети з ресурсів в інвентарі. Перевір наявність ресурсів!
-- Рецепти: Палиця + Камінь = Кам'яний спис. Ліана + Палиця = Лук. Листя + Ліана = Пов'язка. Шкіра + Ліана = Одяг. Риба + Вогонь = Жарена риба.
-- При крафті: INV_UPDATE remove (ресурси) + INV_UPDATE add (новий предмет).
-- AI може винаходити нові рецепти логічно. d20 + Спритність для складних речей.
+${formatRecipesForPrompt()}
 
 # === 🎲 ВИПАДКОВІ ПОДІЇ ===
 - При кожній зміні локації кидай d20:

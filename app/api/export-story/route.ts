@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { formatMessageHtml } from '@/lib/game/ui-labels'
+import { escapeHtml, formatMessageHtmlSafe } from '@/lib/game/html'
 
 export async function GET() {
   try {
@@ -10,7 +10,6 @@ export async function GET() {
     const messages = await prisma.message.findMany({ orderBy: { createdAt: 'asc' } })
     const relationships = await prisma.relationship.findMany({ where: { met: true } })
     const achievements = await prisma.achievement.findMany()
-    const inventory = await prisma.inventoryItem.findMany()
 
     const day = gameState?.dayNumber ?? 1
     const title = `Острів Кай-Нуї: Еротична Хроніка Лари Крафт`
@@ -21,15 +20,15 @@ export async function GET() {
     for (const msg of messages) {
       if (msg.role === 'user') {
         storyContentHtml += `
-          <div className="user-action">
-            <span className="action-tag">Хід #${turnIndex++} — Дія Лари:</span>
-            <p className="action-text">«${msg.content}»</p>
+          <div class="user-action">
+            <span class="action-tag">Хід #${turnIndex++} — Дія Лари:</span>
+            <p class="action-text">«${escapeHtml(msg.content)}»</p>
           </div>
         `
       } else {
-        const formatted = formatMessageHtml(msg.content)
+        const formatted = formatMessageHtmlSafe(msg.content)
         storyContentHtml += `
-          <div className="narrative-block">
+          <div class="narrative-block">
             ${formatted}
           </div>
         `
@@ -37,18 +36,18 @@ export async function GET() {
     }
 
     const relsSummaryHtml = relationships.length > 0
-      ? relationships.map(r => `<li><strong>${r.name}</strong> (${r.tribe}): Bond ${r.bond}/10, Ставлення: ${r.attitude}</li>`).join('')
+      ? relationships.map(r => `<li><strong>${escapeHtml(r.name)}</strong> (${escapeHtml(r.tribe)}): Bond ${r.bond}/10, Ставлення: ${escapeHtml(r.attitude)}</li>`).join('')
       : '<li>Жодного персонажа ще не зустрінуто</li>'
 
     const achSummaryHtml = achievements.length > 0
-      ? achievements.map(a => `<li>🏆 <strong>${a.name}</strong>: ${a.description}</li>`).join('')
+      ? achievements.map(a => `<li>🏆 <strong>${escapeHtml(a.name)}</strong>: ${escapeHtml(a.description)}</li>`).join('')
       : '<li>Досягнень ще немає</li>'
 
     const htmlDocument = `<!DOCTYPE html>
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <title>${title}</title>
+  <title>${escapeHtml(title)}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Georgia:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;600;700&display=swap');
     
@@ -158,19 +157,19 @@ export async function GET() {
 </head>
 <body>
   <header>
-    <h1>🌴 ${title}</h1>
-    <div className="subtitle">Пригодницько-еротичний роман про виживання Лари Крафт • День ${day}</div>
+    <h1>🌴 ${escapeHtml(title)}</h1>
+    <div class="subtitle">Пригодницько-еротичний роман про виживання Лари Крафт • День ${day}</div>
   </header>
 
-  <div className="stats-card">
+  <div class="stats-card">
     <h3 style="margin-top:0; color:#cbd5e1;">📊 Стан Лари на момент завантаження</h3>
-    <div className="stats-grid">
-      <div>📍 Локація: <strong>${gameState?.location ?? 'Берег'}</strong></div>
+    <div class="stats-grid">
+      <div>📍 Локація: <strong>${escapeHtml(gameState?.location ?? 'Берег')}</strong></div>
       <div>❤️ Бажання: <strong>${gameState?.desire ?? 0}/100</strong></div>
       <div>😳 Сором: <strong>${gameState?.shame ?? 0}/100</strong></div>
       <div>💪 Сила: <strong>${gameState?.strength ?? 6}</strong></div>
       <div>🏃 Спритність: <strong>${gameState?.agility ?? 8}</strong></div>
-      <div>🌟 Настрій: <strong>${gameState?.mood ?? 'neutral'}</strong></div>
+      <div>🌟 Настрій: <strong>${escapeHtml(gameState?.mood ?? 'neutral')}</strong></div>
     </div>
   </div>
 
@@ -178,7 +177,7 @@ export async function GET() {
     ${storyContentHtml}
   </main>
 
-  <section className="stats-card" style="margin-top: 50px;">
+  <section class="stats-card" style="margin-top: 50px;">
     <h3>👥 Зустрінуті Персонажі</h3>
     <ul>${relsSummaryHtml}</ul>
 
