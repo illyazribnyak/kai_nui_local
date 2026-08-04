@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db'
 
-/** Full skill catalog — also used to upsert missing skills on existing DBs. */
+/** Full skill catalog — upserted so existing DBs gain new skills without reset. */
 export const INITIAL_SKILLS = [
   // Зваблення
   { name: 'Чарівний погляд', category: 'seduction', description: 'Вміння зачарувати поглядом' },
@@ -32,17 +32,50 @@ export const INITIAL_SKILLS = [
   { name: 'Ритуал насолоди', category: 'body_magic', description: 'Магічний ритуал через секс' },
   { name: "Зв'язок душ", category: 'body_magic', description: 'Телепатичний зв\'язок під час близькості' },
   { name: 'Екстаз сили', category: 'body_magic', description: 'Перетворення оргазму на магічну енергію' },
-  // Інтимні акти (нова гілка)
-  { name: 'Брудні розмови', category: 'acts', description: 'Брудні слова, стогін, вербальне збудження' },
-  { name: 'Дрочка руками', category: 'acts', description: 'Майстерність ручної стимуляції партнера' },
-  { name: 'Мінет', category: 'acts', description: 'Оральні ласки, ритм і техніка' },
-  { name: 'Глибоке горло', category: 'acts', description: 'Глибоке прийняття, контроль дихання' },
-  { name: 'Анал', category: 'acts', description: 'Анальна близькість: підготовка, темп, контроль' },
+
+  // Брудні розмови (окрема гілка)
+  { name: 'Натяки і стогін', category: 'dirty_talk', description: 'Легкі натяки, зітхання, стогін' },
+  { name: 'Брудні розмови', category: 'dirty_talk', description: 'Відверті брудні слова під час сексу' },
+  { name: 'Брудна домінація', category: 'dirty_talk', description: 'Вербальний контроль і приниження/накази' },
+  { name: 'Порно-голос', category: 'dirty_talk', description: 'Голос, від якого партнер не може стриматись' },
+
+  // Дрочка (окрема гілка)
+  { name: 'Легка стимуляція', category: 'handjob', description: 'Обережні рухи рукою' },
+  { name: 'Дрочка руками', category: 'handjob', description: 'Впевнена ручна стимуляція' },
+  { name: 'Техніка двох рук', category: 'handjob', description: 'Складніші патерни й тиск' },
+  { name: 'Ручний фініш', category: 'handjob', description: 'Довести до оргазму лише руками' },
+
+  // Мінет (окрема гілка)
+  { name: 'Поцілунки голівки', category: 'blowjob', description: 'Поцілунки й легкі оральні ласки' },
+  { name: 'Мінет', category: 'blowjob', description: 'Повноцінний оральний секс' },
+  { name: 'Вологий ритм', category: 'blowjob', description: 'Слина, темп, варіації' },
+  { name: 'Мінет-оргазм', category: 'blowjob', description: 'Довести партнера ротом до фінішу' },
+
+  // Глибоке горло (окрема гілка)
+  { name: 'Подолання рефлекса', category: 'deepthroat', description: 'Контроль блювотного рефлексу' },
+  { name: 'Глибоке горло', category: 'deepthroat', description: 'Наскільки глибоко може прийняти' },
+  { name: 'Hands-free горло', category: 'deepthroat', description: 'Глибина без допомоги рук' },
+  { name: 'Горло-фініш', category: 'deepthroat', description: 'Фініш глибоко в горлі' },
+
+  // Анал (окрема гілка)
+  { name: 'Анальна підготовка', category: 'anal', description: 'Розслаблення, змазка, обережність' },
+  { name: 'Анал', category: 'anal', description: 'Анальне проникнення з контролем' },
+  { name: 'Глибокий анал', category: 'anal', description: 'Глибина й інтенсивність' },
+  { name: 'Анальний оргазм', category: 'anal', description: 'Оргазм від анальної стимуляції' },
+
+  // Вершниця
+  { name: 'Сісти зверху', category: 'riding', description: 'Баланс і ритм зверху' },
+  { name: 'Вершниця', category: 'riding', description: 'Впевнена їзда' },
+  { name: 'Глибока їзда', category: 'riding', description: 'Глибина й кут' },
+  { name: 'Вершниця-оргазм', category: 'riding', description: 'Оргазм у позиції зверху' },
+
+  // Еджинг
+  { name: 'Зупинка на краю', category: 'edging', description: 'Зупинитись перед піком' },
+  { name: 'Еджинг', category: 'edging', description: 'Тримати партнера/себе на межі' },
+  { name: 'Множинний еджинг', category: 'edging', description: 'Кілька циклів затримки' },
+  { name: 'Заборона оргазму', category: 'edging', description: 'Повний контроль дозволу кінчати' },
 ] as const
 
-/**
- * Ensure all catalog skills exist. Never resets existing levels/XP.
- */
 export async function seedSkills() {
   for (const s of INITIAL_SKILLS) {
     await prisma.skill.upsert({
@@ -56,7 +89,6 @@ export async function seedSkills() {
         maxXp: 100,
       },
       update: {
-        // keep progression; refresh metadata only
         category: s.category,
         description: s.description,
       },

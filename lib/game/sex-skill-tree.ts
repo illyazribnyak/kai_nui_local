@@ -1,6 +1,9 @@
 /**
  * Sex skill tree — single source of truth for UI + mechanical effects.
  * Skill `name` values MUST match seed-skills / SKILL_NAMES exactly.
+ *
+ * Each intimacy act is its OWN branch. Node levels 1–5 = mastery depth
+ * (e.g. «Глибоке горло» Lv1 = tip… Lv5 = full + hold).
  */
 
 export type SexSkillCategory =
@@ -10,7 +13,13 @@ export type SexSkillCategory =
   | 'domination'
   | 'submission'
   | 'body_magic'
-  | 'acts'
+  | 'dirty_talk'
+  | 'handjob'
+  | 'blowjob'
+  | 'deepthroat'
+  | 'anal'
+  | 'riding'
+  | 'edging'
 
 export interface SexSkillNode {
   id: string
@@ -19,11 +28,11 @@ export interface SexSkillNode {
   /** Parent skill name that must be level >= 1 to unlock this node in the tree UI */
   parentName?: string
   icon: string
-  /** Short flavor for UI */
   description: string
-  /** Concrete mechanical effect text (shown in UI + prompt) */
+  /** Concrete mechanical effect (gameplay) */
   effectByLevel: string
-  /** Keywords that map this skill onto d20 checks */
+  /** What Lv1–5 mean for this skill (shown in UI) */
+  levelMeanings?: [string, string, string, string, string]
   diceKeywords: string[]
 }
 
@@ -40,10 +49,16 @@ export const SEX_SKILL_CATEGORIES: {
   { id: 'domination', label: 'Домінування', icon: '⛓️', color: 'red', activeClass: 'bg-red-600 text-white shadow-red-600/30' },
   { id: 'submission', label: 'Підкорення', icon: '🦋', color: 'violet', activeClass: 'bg-violet-600 text-white shadow-violet-600/30' },
   { id: 'body_magic', label: 'Магія тіла', icon: '✨', color: 'amber', activeClass: 'bg-amber-500 text-slate-950 shadow-amber-500/30' },
-  { id: 'acts', label: 'Акти', icon: '🔥', color: 'fuchsia', activeClass: 'bg-fuchsia-600 text-white shadow-fuchsia-600/30' },
+  { id: 'dirty_talk', label: 'Брудні слова', icon: '🗣️', color: 'fuchsia', activeClass: 'bg-fuchsia-600 text-white shadow-fuchsia-600/30' },
+  { id: 'handjob', label: 'Дрочка', icon: '✋', color: 'rose', activeClass: 'bg-rose-600 text-white shadow-rose-600/30' },
+  { id: 'blowjob', label: 'Мінет', icon: '💋', color: 'pink', activeClass: 'bg-pink-600 text-white shadow-pink-600/30' },
+  { id: 'deepthroat', label: 'Горло', icon: '🌊', color: 'violet', activeClass: 'bg-violet-700 text-white shadow-violet-700/30' },
+  { id: 'anal', label: 'Анал', icon: '🍑', color: 'orange', activeClass: 'bg-orange-600 text-white shadow-orange-600/30' },
+  { id: 'riding', label: 'Вершниця', icon: '🏇', color: 'amber', activeClass: 'bg-amber-600 text-slate-950 shadow-amber-600/30' },
+  { id: 'edging', label: 'Еджинг', icon: '⏸️', color: 'slate', activeClass: 'bg-slate-600 text-white shadow-slate-600/30' },
 ]
 
-/** Linear trees per category — order = progression. */
+/** Linear trees per category — order = progression within branch. */
 export const SEX_SKILL_TREE: SexSkillNode[] = [
   // —— Зваблення
   {
@@ -291,55 +306,340 @@ export const SEX_SKILL_TREE: SexSkillNode[] = [
     diceKeywords: ['екстаз', 'енергія', 'амулет', 'магія', 'сила'],
   },
 
-  // —— Інтимні акти
+  
+  // ═══════════════════════════════════════════
+  // БРУДНІ РОЗМОВИ (окрема гілка)
+  // ═══════════════════════════════════════════
   {
-    id: 'act_1',
+    id: 'dt_1',
+    name: 'Натяки і стогін',
+    category: 'dirty_talk',
+    icon: '😮‍💨',
+    description: 'Легкі натяки, зітхання, стогін',
+    effectByLevel: 'Lv↑ = гучніший/сміливіший стогін. +1% lara/partner pleasure за рівень на dirty-ходах. d20 +рівень.',
+    levelMeanings: ['тихий стогін', 'натяки', 'відверті фрази', 'брудний шепіт', 'без цензури'],
+    diceKeywords: ['стогін', 'натяк', 'зітхан', 'шепіт'],
+  },
+  {
+    id: 'dt_2',
     name: 'Брудні розмови',
-    category: 'acts',
+    category: 'dirty_talk',
+    parentName: 'Натяки і стогін',
     icon: '🗣️',
-    description: 'Брудні слова, стогін, вербальне збудження',
-    effectByLevel: 'd20 dirty talk/харизма +рівень. Partner pleasure +1% за рівень на вербальних ходах. Рівень ≥3: +desire підказка AI.',
-    diceKeywords: ['брудн', 'розмов', 'dirty', 'talk', 'словес', 'стогін', 'вербаль', 'харизма'],
+    description: 'Відверті брудні слова під час сексу',
+    effectByLevel: 'Кожен рівень = сміливіша лексика. Partner pleasure +2%/Lv на dirty talk. Desire NPC +2/Lv (AI).',
+    levelMeanings: ['м\'які слова', 'брудно', 'порно-слова', 'принизливо/гаряче', 'ламає партнера словами'],
+    diceKeywords: ['брудн', 'розмов', 'dirty', 'talk', 'словес', 'вербаль'],
   },
   {
-    id: 'act_2',
-    name: 'Дрочка руками',
-    category: 'acts',
+    id: 'dt_3',
+    name: 'Брудна домінація',
+    category: 'dirty_talk',
     parentName: 'Брудні розмови',
+    icon: '🗯️',
+    description: 'Вербальний контроль і накази',
+    effectByLevel: 'Domination +3×Lv за хід dirty-dom. d20 наказ +рівень. Рівень ≥3: risk verbal дозволений.',
+    levelMeanings: ['м\'який наказ', 'команда', 'жорсткий тон', 'приниження', 'повний verbal control'],
+    diceKeywords: ['наказ', 'брудна домін', 'verbal', 'приниз'],
+  },
+  {
+    id: 'dt_4',
+    name: 'Порно-голос',
+    category: 'dirty_talk',
+    parentName: 'Брудна домінація',
+    icon: '🎤',
+    description: 'Голос, від якого партнер не тримається',
+    effectByLevel: 'Partner orgasm threshold −2×Lv (мін 80). Рівень 5: crit dirty talk на 19–20.',
+    levelMeanings: ['сексуальний тембр', 'хрипкий', 'брудний', 'порновий', 'ламає волю'],
+    diceKeywords: ['порно', 'голос', 'voice', 'тембр'],
+  },
+
+  // ═══════════════════════════════════════════
+  // ДРОЧКА (окрема гілка)
+  // ═══════════════════════════════════════════
+  {
+    id: 'hj_1',
+    name: 'Легка стимуляція',
+    category: 'handjob',
+    icon: '👆',
+    description: 'Обережні рухи рукою',
+    effectByLevel: 'Partner +1.5%/Lv. Повільний старт, низька витрата stamina.',
+    levelMeanings: ['кінчики пальців', 'повільні рухи', 'впевненіше', 'ритм', 'гра з голівкою'],
+    diceKeywords: ['легка стимул', 'пальц', 'дотик члена'],
+  },
+  {
+    id: 'hj_2',
+    name: 'Дрочка руками',
+    category: 'handjob',
+    parentName: 'Легка стимуляція',
     icon: '✋',
-    description: 'Майстерність ручної стимуляції партнера',
-    effectByLevel: 'partner pleasure +3% за рівень на hand-ходах. d20 руки/техніка +рівень. Рівень 5: +8 flat partner pleasure на дрочці.',
-    diceKeywords: ['дроч', 'ручн', 'handjob', 'руками', 'мастурб', 'стимул'],
+    description: 'Впевнена ручна стимуляція',
+    effectByLevel: 'Partner pleasure +3%/Lv на handjob-ходах. d20 руки +рівень. Lv5: +8 flat partner.',
+    levelMeanings: ['базовий хват', 'стабільний ритм', 'варіації тиску', 'швидкість/контроль', 'майстер дрочки'],
+    diceKeywords: ['дроч', 'handjob', 'руками', 'ручна'],
   },
   {
-    id: 'act_3',
-    name: 'Мінет',
-    category: 'acts',
+    id: 'hj_3',
+    name: 'Техніка двох рук',
+    category: 'handjob',
     parentName: 'Дрочка руками',
-    icon: '💋',
-    description: 'Оральні ласки, ритм і техніка',
-    effectByLevel: 'partner pleasure +4% за рівень на oral-ходах. d20 мінет +рівень. Рівень ≥3: швидший partner orgasm (−5 до порогу партнера наративно).',
-    diceKeywords: ['мінет', 'орал', 'blowjob', 'рот', 'язик', 'смокт'],
+    icon: '👐',
+    description: 'Складніші патерни й тиск',
+    effectByLevel: 'Partner +4%/Lv. Combo +1 при Lv≥2. Stamina cost hand −1 при Lv≥3.',
+    levelMeanings: ['дві руки', 'скручування', 'подвійний ритм', 'точки тиску', 'без пауз'],
+    diceKeywords: ['двох рук', 'техніка рук', 'подвійн'],
   },
   {
-    id: 'act_4',
-    name: 'Глибоке горло',
-    category: 'acts',
+    id: 'hj_4',
+    name: 'Ручний фініш',
+    category: 'handjob',
+    parentName: 'Техніка двох рук',
+    icon: '💥',
+    description: 'Довести до оргазму лише руками',
+    effectByLevel: 'Partner orgasm threshold −3×Lv. Гарантований SKILL XP ×1.2 на фініш-ході.',
+    levelMeanings: ['близько до краю', 'контроль фінішу', 'сильний фініш', 'фонтан', 'миттєвий ручний оргазм'],
+    diceKeywords: ['ручний фініш', 'кінчити в руку', 'hand finish'],
+  },
+
+  // ═══════════════════════════════════════════
+  // МІНЕТ (окрема гілка)
+  // ═══════════════════════════════════════════
+  {
+    id: 'bj_1',
+    name: 'Поцілунки голівки',
+    category: 'blowjob',
+    icon: '😘',
+    description: 'Поцілунки й легкі оральні ласки',
+    effectByLevel: 'Partner +2%/Lv. Низька stamina. d20 oral soft +рівень.',
+    levelMeanings: ['поцілунок', 'язик по голівці', 'облизування', 'смоктання кінчика', 'гра з вуздечкою'],
+    diceKeywords: ['голівк', 'поцілунок члена', 'облиз'],
+  },
+  {
+    id: 'bj_2',
+    name: 'Мінет',
+    category: 'blowjob',
+    parentName: 'Поцілунки голівки',
+    icon: '💋',
+    description: 'Повноцінний оральний секс',
+    effectByLevel: 'Partner +4%/Lv. d20 мінет +рівень. Основний oral-хід.',
+    levelMeanings: ['неглибоко', 'середня глибина', 'ритмічний мінет', 'глибше з руками', 'майстер мінету'],
+    diceKeywords: ['мінет', 'blowjob', 'орал', 'смокт', 'рот'],
+  },
+  {
+    id: 'bj_3',
+    name: 'Вологий ритм',
+    category: 'blowjob',
     parentName: 'Мінет',
+    icon: '💧',
+    description: 'Слина, темп, варіації',
+    effectByLevel: 'Partner +5%/Lv. Fast tempo oral: +10% partner. Stamina oral −1 при Lv≥3.',
+    levelMeanings: ['слина', 'волого', 'безперервно', 'зміна темпу', 'брудний вологий мінет'],
+    diceKeywords: ['волог', 'слина', 'ритм мінет'],
+  },
+  {
+    id: 'bj_4',
+    name: 'Мінет-оргазм',
+    category: 'blowjob',
+    parentName: 'Вологий ритм',
+    icon: '💦',
+    description: 'Довести партнера ротом до фінішу',
+    effectByLevel: 'Partner orgasm threshold −4×Lv (мін 75). Cum-in-mouth narrative AI при Lv≥3.',
+    levelMeanings: ['близько', 'тримає край', 'ковтає/на язик', 'сильний oral-оргазм', 'повний контроль фінішу ротом'],
+    diceKeywords: ['мінет-оргазм', 'кінчити в рот', 'oral finish'],
+  },
+
+  // ═══════════════════════════════════════════
+  // ГЛИБОКЕ ГОРЛО (окрема гілка) — рівні = глибина
+  // ═══════════════════════════════════════════
+  {
+    id: 'dt_gag_1',
+    name: 'Подолання рефлекса',
+    category: 'deepthroat',
+    icon: '😤',
+    description: 'Контроль блювотного рефлексу',
+    effectByLevel: 'Lv = стійкість до gag. Stamina deep cost −Lv. d20 gag-control +рівень.',
+    levelMeanings: ['давиться', 'терпить', 'контролює', 'майже без рефлексу', 'повний контроль'],
+    diceKeywords: ['рефлекс', 'блювот', 'gag', 'терп'],
+  },
+  {
+    id: 'dt_gag_2',
+    name: 'Глибоке горло',
+    category: 'deepthroat',
+    parentName: 'Подолання рефлекса',
     icon: '🌊',
-    description: 'Глибоке прийняття, контроль дихання',
-    effectByLevel: 'потрібен Мінет ≥1. d20 deepthroat +рівень; partner pleasure +5%×рівень. Рівень ≥3: stamina cost oral −2. Рівень 5: crit oral на 19–20.',
+    description: 'Наскільки глибоко може прийняти',
+    effectByLevel: 'ГОЛОВНЕ: Lv1=кінчик, 2=¼, 3=½, 4=¾, 5=до кінця+hold. Partner pleasure +5%/Lv. d20 deepthroat +рівень. Lv≥3: oral crit 19–20.',
+    levelMeanings: [
+      'лише кінчик / вхід',
+      'чверть довжини',
+      'половина',
+      'майже вся довжина',
+      'повністю + утримання (full + hold)',
+    ],
     diceKeywords: ['глибок', 'горл', 'deepthroat', 'deep', 'throat', 'глибина'],
   },
   {
-    id: 'act_5',
+    id: 'dt_gag_3',
+    name: 'Hands-free горло',
+    category: 'deepthroat',
+    parentName: 'Глибоке горло',
+    icon: '🙌',
+    description: 'Глибина без допомоги рук',
+    effectByLevel: 'Partner +6%/Lv. Руки вільні → domination +2×Lv. Потрібен «Глибоке горло» ≥1.',
+    levelMeanings: ['спроба без рук', 'стабільно', 'ритм без рук', 'удар головою', 'ідеальний hands-free'],
+    diceKeywords: ['hands-free', 'без рук', 'головою'],
+  },
+  {
+    id: 'dt_gag_4',
+    name: 'Горло-фініш',
+    category: 'deepthroat',
+    parentName: 'Hands-free горло',
+    icon: '🕳️',
+    description: 'Фініш глибоко в горлі',
+    effectByLevel: 'Partner orgasm −5×Lv threshold. Amulet +2 при фініші якщо body_magic≥1. AI: creampie throat.',
+    levelMeanings: ['глибоко на краю', 'тримає під час фінішу', 'ковтає глибоко', 'без відриву', 'повний throatpie control'],
+    diceKeywords: ['горло-фініш', 'throatpie', 'кінчити в горло'],
+  },
+
+  // ═══════════════════════════════════════════
+  // АНАЛ (окрема гілка)
+  // ═══════════════════════════════════════════
+  {
+    id: 'an_1',
+    name: 'Анальна підготовка',
+    category: 'anal',
+    icon: '🧴',
+    description: 'Розслаблення, змазка, обережність',
+    effectByLevel: 'Без Lv≥1 — anal-ходи дорожчі stamina ×1.5. d20 prep +рівень. Risk anal блокується без Lv1.',
+    levelMeanings: ['страх/напруга', 'пальці', 'змазка', 'розслаблення', 'готова повністю'],
+    diceKeywords: ['підготовк', 'змаз', 'розслаб', 'anal prep'],
+  },
+  {
+    id: 'an_2',
     name: 'Анал',
-    category: 'acts',
-    parentName: 'Мінет',
+    category: 'anal',
+    parentName: 'Анальна підготовка',
     icon: '🍑',
-    description: 'Анальна близькість: підготовка, темп, контроль',
-    effectByLevel: 'd20 анал +рівень. Partner + lara pleasure на anal-ходах +3%×рівень. Рівень ≥2: risk-anal дозволений. Рівень ≥4: stamina floor +5 у anal.',
-    diceKeywords: ['анал', 'anal', 'задн', 'попка', 'підготовк'],
+    description: 'Анальне проникнення з контролем',
+    effectByLevel: 'Lv = глибина/інтенсивність. Partner+Lara pleasure +3%/Lv. d20 анал +рівень. Risk-anal з Lv≥2.',
+    levelMeanings: ['лише кінчик', 'повільно всередині', 'середня глибина', 'сильний темп', 'повний контроль аналу'],
+    diceKeywords: ['анал', 'anal', 'задн', 'попка'],
+  },
+  {
+    id: 'an_3',
+    name: 'Глибокий анал',
+    category: 'anal',
+    parentName: 'Анал',
+    icon: '🔻',
+    description: 'Глибина й інтенсивність',
+    effectByLevel: 'Partner +5%/Lv. Stamina floor +Lv у anal-фазі. Domination ± залежно від top/bottom ходу.',
+    levelMeanings: ['глибше', 'жорсткіше', 'без пауз', 'удари в глибину', 'екстремальний анал'],
+    diceKeywords: ['глибокий анал', 'deep anal', 'жорсткий анал'],
+  },
+  {
+    id: 'an_4',
+    name: 'Анальний оргазм',
+    category: 'anal',
+    parentName: 'Глибокий анал',
+    icon: '🎆',
+    description: 'Оргазм від анальної стимуляції',
+    effectByLevel: 'Lara orgasm threshold −3×Lv на anal-ходах. Partner threshold −2×Lv. Multi легше якщо endurance≥2.',
+    levelMeanings: ['близько', 'труситься', 'анальний оргазм', 'сильний', 'руйнівний anal-orgasm'],
+    diceKeywords: ['анальний оргазм', 'anal orgasm'],
+  },
+
+  // ═══════════════════════════════════════════
+  // ВЕРШНИЦЯ
+  // ═══════════════════════════════════════════
+  {
+    id: 'rd_1',
+    name: 'Сісти зверху',
+    category: 'riding',
+    icon: '🪑',
+    description: 'Баланс і ритм зверху',
+    effectByLevel: 'Lara pleasure +2%/Lv. d20 баланс +рівень. Низький risk.',
+    levelMeanings: ['сідає обережно', 'тримає рівновагу', 'легкий рух', 'впевнена', 'повний баланс'],
+    diceKeywords: ['зверху', 'сісти', 'cowgirl start'],
+  },
+  {
+    id: 'rd_2',
+    name: 'Вершниця',
+    category: 'riding',
+    parentName: 'Сісти зверху',
+    icon: '🏇',
+    description: 'Впевнена їзда',
+    effectByLevel: 'Lara + Partner +3%/Lv. Контроль темпу: slow/fast бонуси ×(1+0.05×Lv).',
+    levelMeanings: ['повільна їзда', 'ритм', 'сильна', 'дикий темп', 'ламає партнера зверху'],
+    diceKeywords: ['вершниц', 'cowgirl', 'їзда', 'riding'],
+  },
+  {
+    id: 'rd_3',
+    name: 'Глибока їзда',
+    category: 'riding',
+    parentName: 'Вершниця',
+    icon: '⬇️',
+    description: 'Глибина й кут',
+    effectByLevel: 'Partner +4%/Lv. Domination +2×Lv (вона контролює).',
+    levelMeanings: ['глибше сідає', 'кут', 'крутить стегнами', 'притискає', 'максимальна глибина'],
+    diceKeywords: ['глибока їзда', 'кут', 'стегн'],
+  },
+  {
+    id: 'rd_4',
+    name: 'Вершниця-оргазм',
+    category: 'riding',
+    parentName: 'Глибока їзда',
+    icon: '🌟',
+    description: 'Оргазм у позиції зверху',
+    effectByLevel: 'Lara orgasm −4×Lv threshold. Якщо multi≥2 — легший chain на їзді.',
+    levelMeanings: ['на краю зверху', 'кінчає', 'труситься на ньому', 'множинний зверху', 'не може зупинитись'],
+    diceKeywords: ['вершниця-оргазм', 'кінчити зверху'],
+  },
+
+  // ═══════════════════════════════════════════
+  // ЕДЖИНГ
+  // ═══════════════════════════════════════════
+  {
+    id: 'ed_1',
+    name: 'Зупинка на краю',
+    category: 'edging',
+    icon: '🛑',
+    description: 'Зупинитись перед піком',
+    effectByLevel: 'Partner pleasure cap 90−Lv (не дає кінчити). d20 контроль +рівень.',
+    levelMeanings: ['вчасно', 'стабільно', 'жорсткий стоп', 'знущально', 'ідеальний edge'],
+    diceKeywords: ['зупинка', 'край', 'edge stop'],
+  },
+  {
+    id: 'ed_2',
+    name: 'Еджинг',
+    category: 'edging',
+    parentName: 'Зупинка на краю',
+    icon: '⏸️',
+    description: 'Тримати на межі',
+    effectByLevel: 'За хід: partner pleasure −5+Lv потім +10+2×Lv (накопичення). Orgasm delay.',
+    levelMeanings: ['1 цикл', '2 цикли', 'довгий edge', 'ламання волі', 'повний edging control'],
+    diceKeywords: ['еджинг', 'edging', 'на межі'],
+  },
+  {
+    id: 'ed_3',
+    name: 'Множинний еджинг',
+    category: 'edging',
+    parentName: 'Еджинг',
+    icon: '🔁',
+    description: 'Кілька циклів затримки',
+    effectByLevel: 'Combo edge ×Lv. Фінальний orgasm partner pleasure burst +15×Lv%.',
+    levelMeanings: ['2 цикли', '3', '4', '5+', 'нескінченний edge'],
+    diceKeywords: ['множинний еджинг', 'цикли edge'],
+  },
+  {
+    id: 'ed_4',
+    name: 'Заборона оргазму',
+    category: 'edging',
+    parentName: 'Множинний еджинг',
+    icon: '🚫',
+    description: 'Повний контроль дозволу кінчати',
+    effectByLevel: 'Блокує partner orgasm пока Lv-check. Domination +5×Lv. Потрібен verbal/dom для flavor.',
+    levelMeanings: ['просити дозволу', 'відмова', 'жорстка заборона', 'ламання', 'оргазм лише з дозволу'],
+    diceKeywords: ['заборона оргазму', 'не кінчати', 'permission'],
   },
 ]
 
@@ -351,4 +651,12 @@ export function getSexSkillNodes(category?: SexSkillCategory): SexSkillNode[] {
 export function findSexSkillNode(name: string): SexSkillNode | undefined {
   const n = name.trim().toLowerCase()
   return SEX_SKILL_TREE.find((s) => s.name.toLowerCase() === n)
+}
+
+/** Human-readable depth/mastery for a skill at given level (1–5). */
+export function getLevelMeaning(skillName: string, level: number): string | null {
+  const node = findSexSkillNode(skillName)
+  if (!node?.levelMeanings) return null
+  const lv = Math.min(5, Math.max(1, Math.floor(level)))
+  return node.levelMeanings[lv - 1] ?? null
 }

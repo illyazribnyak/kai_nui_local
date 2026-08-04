@@ -108,7 +108,7 @@ export function SkillTree({ skills }: SkillTreeProps) {
       </div>
 
       {/* Branch Selectors */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 p-1 rounded-xl bg-muted/40 border border-border/60">
+      <div className="panel-scroll-x flex gap-1 p-1 rounded-xl bg-muted/40 border border-border/60 pb-1.5">
         {SEX_SKILL_CATEGORIES.map((cat) => (
           <button
             key={cat.id}
@@ -117,14 +117,14 @@ export function SkillTree({ skills }: SkillTreeProps) {
               setActiveBranch(cat.id)
               setSelectedNode(null)
             }}
-            className={`py-1.5 px-1 text-[10px] sm:text-[11px] rounded-lg font-bold transition-all flex items-center justify-center gap-0.5 ${
+            className={`flex-shrink-0 py-1.5 px-2 text-[10px] sm:text-[11px] rounded-lg font-bold transition-all flex items-center justify-center gap-0.5 whitespace-nowrap ${
               activeBranch === cat.id
                 ? `${cat.activeClass} shadow-md`
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <span>{cat.icon}</span>
-            <span className="truncate">{cat.label}</span>
+            <span>{cat.label}</span>
           </button>
         ))}
       </div>
@@ -273,10 +273,26 @@ export function SkillTree({ skills }: SkillTreeProps) {
                 {skillLevel(skills, selectedNode.parentName) >= 1 ? ' ✓' : ' ✗'}
               </p>
             )}
+            {selectedNode.levelMeanings && (
+              <div className="p-2 rounded bg-fuchsia-950/30 border border-fuchsia-800/40 text-[11px] space-y-0.5">
+                <p className="font-bold text-fuchsia-200">📏 Що означають рівні:</p>
+                {selectedNode.levelMeanings.map((m, i) => {
+                  const lv = skillLevel(skills, selectedNode.name)
+                  const reached = lv >= i + 1
+                  return (
+                    <p
+                      key={i}
+                      className={reached ? 'text-fuchsia-100' : 'text-muted-foreground/70'}
+                    >
+                      {reached ? '✓' : '○'} Lv{i + 1}: {m}
+                    </p>
+                  )
+                })}
+              </div>
+            )}
             <div className="p-2 rounded bg-muted/30 text-[11px] text-muted-foreground leading-relaxed">
-              💡 XP нараховує AI тегом <code className="text-primary">SKILL_UPDATE</code> під час
-              відповідних сцен. Сервер сам додає бонуси до кидків і секс-метрів — не лише «для
-              вигляду».
+              💡 XP: ходи навичок у секс-сцені + тег <code className="text-primary">SKILL_UPDATE</code>.
+              Рівні реально міняють pleasure, stamina, глибину (горло/анал) і risk-опції.
             </div>
           </motion.div>
         )}

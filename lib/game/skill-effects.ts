@@ -118,6 +118,16 @@ export function computeSkillModifiers(skills: SkillLike[] | null | undefined): S
   const bjLv = skillLevel(skills, 'Мінет')
   const deepLv = skillLevel(skills, 'Глибоке горло')
   const analLv = skillLevel(skills, 'Анал')
+  const ridingLv = skillLevel(skills, 'Вершниця')
+  const edgeLv = skillLevel(skills, 'Еджинг')
+  // Branch totals (separate trees)
+  const dirtyBranch = categoryLevels(skills, 'dirty_talk')
+  const handBranch = categoryLevels(skills, 'handjob')
+  const bjBranch = categoryLevels(skills, 'blowjob')
+  const throatBranch = categoryLevels(skills, 'deepthroat')
+  const analBranch = categoryLevels(skills, 'anal')
+  const rideBranch = categoryLevels(skills, 'riding')
+  const edgeBranch = categoryLevels(skills, 'edging')
 
   const synergies = computeActiveSynergies(skills)
   const syn = aggregateSynergyEffects(synergies)
@@ -126,16 +136,31 @@ export function computeSkillModifiers(skills: SkillLike[] | null | undefined): S
     tenderLv * 2 +
     handsLv * 5 +
     (handsLv >= 5 ? 10 : 0) +
-    dirtyLv * 1 +
-    handjobLv * 2 +
-    bjLv * 3 +
-    deepLv * 2 +
-    analLv * 2 +
+    dirtyLv * 2 +
+    handjobLv * 3 +
+    bjLv * 4 +
+    deepLv * 5 +
+    analLv * 3 +
+    ridingLv * 2 +
+    Math.floor(dirtyBranch * 0.5) +
+    Math.floor(handBranch * 0.5) +
+    Math.floor(bjBranch * 0.5) +
+    Math.floor(throatBranch * 0.75) +
+    Math.floor(analBranch * 0.5) +
+    Math.floor(rideBranch * 0.4) +
     syn.partnerPleasureBonusPct
   let laraPleasureBonusPct =
-    senseLv * 2 + kissLv * 1 + dirtyLv * 1 + analLv * 1 + syn.laraPleasureBonusPct
+    senseLv * 2 +
+    kissLv * 1 +
+    dirtyLv * 1 +
+    analLv * 2 +
+    ridingLv * 3 +
+    edgeLv * 1 +
+    Math.floor(rideBranch * 0.5) +
+    Math.floor(analBranch * 0.3) +
+    syn.laraPleasureBonusPct
 
-  let staminaFloor = longLv * 3 + syn.staminaFloorBonus
+  let staminaFloor = longLv * 3 + syn.staminaFloorBonus + (analLv >= 4 ? 5 : 0)
   if (tirelessLv >= 5) staminaFloor = Math.max(staminaFloor, 15)
 
   const dominationBias = voiceLv * 5 - subLv * 5

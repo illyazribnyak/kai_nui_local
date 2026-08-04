@@ -144,12 +144,14 @@ export function resolveSexTurn(
   const deepLv = skillLevel(skills, 'Глибоке горло')
   let adjustedCost =
     tempo === 'fast' && tireless > 0 ? Math.max(1, cost - tireless) : cost
-  if (move.id === 'act_deep' && deepLv >= 3) {
+  if (move.category === 'deepthroat' && deepLv >= 3) {
     adjustedCost = Math.max(1, adjustedCost - 2)
   }
-  if (move.id === 'act_anal' && skillLevel(skills, 'Анал') >= 4) {
-    // handled via stamina floor later; small cost relief
+  if (move.category === 'anal' && skillLevel(skills, 'Анал') >= 4) {
     adjustedCost = Math.max(1, adjustedCost - 1)
+  }
+  if (move.category === 'anal' && skillLevel(skills, 'Анальна підготовка') < 1 && move.id !== 'an_prep') {
+    adjustedCost = Math.round(adjustedCost * 1.5)
   }
 
   let stamina = Number(state.stamina ?? 100)
@@ -177,30 +179,57 @@ export function resolveSexTurn(
   dPartner *= lvScale
   dLara *= lvScale
 
-  // Dom/sub / acts category flavor
+  const applied: string[] = []
+
+  // Dom/sub / intimacy-branch flavor (each branch scales its own skill level)
   if (move.category === 'submission') dLara *= 1.1
   if (move.category === 'technique') dPartner *= 1.05
-  if (move.category === 'acts') {
-    if (move.id === 'act_dirty') {
-      dPartner *= 1 + skillLevel(skills, 'Брудні розмови') * 0.03
-      dLara *= 1 + skillLevel(skills, 'Брудні розмови') * 0.02
+  if (move.category === 'dirty_talk') {
+    const lv = skillLevel(skills, move.skillName) || skillLevel(skills, 'Брудні розмови')
+    dPartner *= 1 + lv * 0.04
+    dLara *= 1 + lv * 0.025
+  }
+  if (move.category === 'handjob') {
+    const lv = skillLevel(skills, 'Дрочка руками')
+    dPartner *= 1 + lv * 0.06
+    if (lv >= 5) dPartner += 8
+  }
+  if (move.category === 'blowjob') {
+    const lv = skillLevel(skills, 'Мінет')
+    dPartner *= 1 + lv * 0.07
+  }
+  if (move.category === 'deepthroat') {
+    // Глибина = рівень «Глибоке горло»: Lv1 tip … Lv5 full+hold → partner pleasure scales hard
+    const depth = skillLevel(skills, 'Глибоке горло')
+    dPartner *= 1 + depth * 0.1
+    dPartner += depth * 2 // flat depth bonus
+    if (depth >= 1) {
+      const depthLabels = ['кінчик', '¼', '½', '¾', 'full+hold']
+      applied.push(`Глибина горла Lv${depth}: ${depthLabels[depth - 1] ?? '?'}`)
     }
-    if (move.id === 'act_handjob') {
-      dPartner *= 1 + skillLevel(skills, 'Дрочка руками') * 0.05
-      if (skillLevel(skills, 'Дрочка руками') >= 5) dPartner += 8
+  }
+  if (move.category === 'anal') {
+    const prep = skillLevel(skills, 'Анальна підготовка')
+    const lv = skillLevel(skills, 'Анал')
+    if (prep < 1 && move.id !== 'an_prep') {
+      // unprepared: more stamina handled below, less pleasure for lara
+      dLara *= 0.7
+      applied.push('Анал без підготовки: більший дискомфорт')
     }
-    if (move.id === 'act_bj') {
-      dPartner *= 1 + skillLevel(skills, 'Мінет') * 0.06
-    }
-    if (move.id === 'act_deep') {
-      dPartner *= 1 + skillLevel(skills, 'Глибоке горло') * 0.08
-      // deepthroat costs less stamina at high level
-      // (adjusted below after cost computed — patch cost here via side effect)
-    }
-    if (move.id === 'act_anal') {
-      dPartner *= 1 + skillLevel(skills, 'Анал') * 0.05
-      dLara *= 1 + skillLevel(skills, 'Анал') * 0.04
-    }
+    dPartner *= 1 + lv * 0.06
+    dLara *= 1 + lv * 0.05
+  }
+  if (move.category === 'riding') {
+    const lv = skillLevel(skills, 'Вершниця')
+    dLara *= 1 + lv * 0.07
+    dPartner *= 1 + lv * 0.05
+  }
+  if (move.category === 'edging') {
+    const lv = skillLevel(skills, 'Еджинг')
+    // Edging: lower immediate climax pressure, build tension
+    dPartner = Math.max(4, dPartner * (0.7 + lv * 0.05))
+    dLara *= 1 + lv * 0.03
+    applied.push(`Еджинг Lv${lv}: затримка фінішу`)
   }
 
   dPartner = Math.round(dPartner)
@@ -225,9 +254,9 @@ export function resolveSexTurn(
   const phaseChanged = phase !== phaseBefore
 
   const events: string[] = []
-  const applied: string[] = [
-    `${move.label}: partner +${dPartner}, lara +${dLara}, stamina −${adjustedCost}`,
-  ]
+  applied.unshift(
+    `${move.label}: partner +${dPartner}, lara +${dLara}, stamina −${adjustedCost}`
+  )
   if (phaseChanged) {
     events.push(`phase:${phase}`)
     applied.push(`Фаза → ${PHASE_LABEL[phase]}`)
