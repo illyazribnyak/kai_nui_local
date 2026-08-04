@@ -10,7 +10,11 @@ export async function seedQuestLadder() {
     const status = i === 0 ? 'active' : 'locked'
     await prisma.quest.upsert({
       where: { title: q.title },
-      update: {},
+      update: {
+        // Keep status/progress; refresh copy when ladder text changes
+        description: q.description,
+        givenBy: q.givenBy,
+      },
       create: {
         title: q.title,
         description: q.description,

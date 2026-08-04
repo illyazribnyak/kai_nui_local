@@ -57,11 +57,17 @@ export const INITIAL_SKILLS = [
   { name: 'Hands-free горло', category: 'deepthroat', description: 'Глибина без допомоги рук' },
   { name: 'Горло-фініш', category: 'deepthroat', description: 'Фініш глибоко в горлі' },
 
-  // Анал (окрема гілка)
-  { name: 'Анальна підготовка', category: 'anal', description: 'Розслаблення, змазка, обережність' },
-  { name: 'Анал', category: 'anal', description: 'Анальне проникнення з контролем' },
-  { name: 'Глибокий анал', category: 'anal', description: 'Глибина й інтенсивність' },
-  { name: 'Анальний оргазм', category: 'anal', description: 'Оргазм від анальної стимуляції' },
+  // Вагіна — розтягнення / місткість / глибина
+  { name: "М'який вхід", category: 'vaginal', description: 'Розслаблення, змазка, повільний вхід — база розтягнення' },
+  { name: 'Вагінальна місткість', category: 'vaginal', description: 'Скільки товщини (⌀) вагіна приймає без травми' },
+  { name: 'Глибина вагіни', category: 'vaginal', description: 'Глибина прийняття (см) — від входу до межі' },
+  { name: 'Вагінальний оргазм', category: 'vaginal', description: 'Оргазм від наповнення / G-spot / глибини' },
+
+  // Анал — розтягнення / місткість / глибина
+  { name: 'Анальна підготовка', category: 'anal', description: 'Розслаблення сфінктера, змазка — критичне розтягнення' },
+  { name: 'Анал', category: 'anal', description: 'Місткість ануса по товщині (⌀)' },
+  { name: 'Глибокий анал', category: 'anal', description: 'Глибина прийняття в анал (см)' },
+  { name: 'Анальний оргазм', category: 'anal', description: 'Оргазм від анального розтягнення / тиску' },
 
   // Вершниця
   { name: 'Сісти зверху', category: 'riding', description: 'Баланс і ритм зверху' },

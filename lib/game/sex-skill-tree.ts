@@ -17,6 +17,7 @@ export type SexSkillCategory =
   | 'handjob'
   | 'blowjob'
   | 'deepthroat'
+  | 'vaginal'
   | 'anal'
   | 'riding'
   | 'edging'
@@ -56,6 +57,7 @@ export const SEX_SKILL_CATEGORIES: {
   { id: 'handjob', label: 'Дрочка', icon: '✋', color: 'rose', activeClass: 'bg-rose-600 text-white shadow-rose-600/30' },
   { id: 'blowjob', label: 'Мінет', icon: '💋', color: 'pink', activeClass: 'bg-pink-600 text-white shadow-pink-600/30' },
   { id: 'deepthroat', label: 'Горло', icon: '🌊', color: 'violet', activeClass: 'bg-violet-700 text-white shadow-violet-700/30' },
+  { id: 'vaginal', label: 'Вагіна', icon: '🌸', color: 'pink', activeClass: 'bg-pink-700 text-white shadow-pink-700/30' },
   { id: 'anal', label: 'Анал', icon: '🍑', color: 'orange', activeClass: 'bg-orange-600 text-white shadow-orange-600/30' },
   { id: 'riding', label: 'Вершниця', icon: '🏇', color: 'amber', activeClass: 'bg-amber-600 text-slate-950 shadow-amber-600/30' },
   { id: 'edging', label: 'Еджинг', icon: '⏸️', color: 'slate', activeClass: 'bg-slate-600 text-white shadow-slate-600/30' },
@@ -508,17 +510,99 @@ export const SEX_SKILL_TREE: SexSkillNode[] = [
   },
 
   // ═══════════════════════════════════════════
-  // АНАЛ (окрема гілка)
+  // ВАГІНА — розтягнення + місткість + глибина
+  // ═══════════════════════════════════════════
+  {
+    id: 'vg_1',
+    name: "М'який вхід",
+    category: 'vaginal',
+    icon: '🪷',
+    description: 'Розслаблення, змазка, повільний вхід — база розтягнення',
+    effectByLevel:
+      'РОЗТЯГ: +0.2 см ⌀ комфорт / +0.25 макс за Lv. Без Lv≥1 великі партнери болючіші. d20 prep +рівень.',
+    levelMeanings: [
+      'напруга, сухо',
+      'пальці / змазка',
+      'дихання й розслаб',
+      'готове тіло',
+      'миттєве розтягнення',
+    ],
+    diceKeywords: ['м\'який вхід', 'розслаб', 'змаз', 'прелюдія вагін', 'підготовк'],
+  },
+  {
+    id: 'vg_2',
+    name: 'Вагінальна місткість',
+    category: 'vaginal',
+    parentName: "М'який вхід",
+    icon: '🌸',
+    description: 'Скільки товщини (⌀) вагіна приймає без травми',
+    effectByLevel:
+      'МІСТКІСТЬ: +0.35 см ⌀ комфорт / +0.45 макс за Lv. Порівнюй з PENIS girth. d20 місткість +рівень.',
+    levelMeanings: [
+      'лише середній ⌀',
+      'щільно, але можна',
+      'вільно для Кай-Тору',
+      'товсті (мінотавр tip)',
+      'size queen по товщині',
+    ],
+    diceKeywords: ['місткість', 'вагін', 'товщин', 'обхват', 'girth', 'capacity', 'розтяг'],
+  },
+  {
+    id: 'vg_3',
+    name: 'Глибина вагіни',
+    category: 'vaginal',
+    parentName: 'Вагінальна місткість',
+    icon: '📏',
+    description: 'Глибина прийняття (см) — від входу до межі',
+    effectByLevel:
+      'ГЛИБИНА: +1.4 см комфорт / +2.0 макс за Lv. Надлишок довжини партнера лишається зовні. d20 глибина +рівень.',
+    levelMeanings: [
+      '~12 см комфорт',
+      'глибше',
+      'повний середній член',
+      'майже до шийки на великих',
+      'макс. глибина + кут',
+    ],
+    diceKeywords: ['глибина вагін', 'глибок', 'шийк', 'depth', 'cervix'],
+  },
+  {
+    id: 'vg_4',
+    name: 'Вагінальний оргазм',
+    category: 'vaginal',
+    parentName: 'Глибина вагіни',
+    icon: '💫',
+    description: 'Оргазм від наповнення / G-spot / глибини',
+    effectByLevel:
+      'Lara orgasm −3×Lv на vaginal. При snug/stretch fit: +pleasure. d20 vaginal orgasm +рівень.',
+    levelMeanings: [
+      'близько від наповнення',
+      'G-spot',
+      'сильний вагінальний',
+      'судоми від розміру',
+      'руйнівний full-feel orgasm',
+    ],
+    diceKeywords: ['вагінальний оргазм', 'g-spot', 'наповнен'],
+  },
+
+  // ═══════════════════════════════════════════
+  // АНАЛ — розтягнення + місткість + глибина
   // ═══════════════════════════════════════════
   {
     id: 'an_1',
     name: 'Анальна підготовка',
     category: 'anal',
     icon: '🧴',
-    description: 'Розслаблення, змазка, обережність',
-    effectByLevel: 'Без Lv≥1 — anal-ходи дорожчі stamina ×1.5. d20 prep +рівень. Risk anal блокується без Lv1.',
-    levelMeanings: ['страх/напруга', 'пальці', 'змазка', 'розслаблення', 'готова повністю'],
-    diceKeywords: ['підготовк', 'змаз', 'розслаб', 'anal prep'],
+    description: 'Розслаблення сфінктера, змазка — критичне розтягнення',
+    effectByLevel:
+      'РОЗТЯГ анал: +0.35 ⌀ комфорт / +0.4 макс за Lv. Без Lv≥1 — DC травми +2, risk-anal важчий.',
+    levelMeanings: [
+      'затиснуто, боляче',
+      'пальці + змазка',
+      'сфінктер слухається',
+      'м\'який вхід',
+      'повне розслаблення',
+    ],
+    diceKeywords: ['підготовк', 'змаз', 'розслаб', 'anal prep', 'сфінктер'],
   },
   {
     id: 'an_2',
@@ -526,10 +610,17 @@ export const SEX_SKILL_TREE: SexSkillNode[] = [
     category: 'anal',
     parentName: 'Анальна підготовка',
     icon: '🍑',
-    description: 'Анальне проникнення з контролем',
-    effectByLevel: 'Lv = глибина/інтенсивність. Partner+Lara pleasure +3%/Lv. d20 анал +рівень. Risk-anal з Lv≥2.',
-    levelMeanings: ['лише кінчик', 'повільно всередині', 'середня глибина', 'сильний темп', 'повний контроль аналу'],
-    diceKeywords: ['анал', 'anal', 'задн', 'попка'],
+    description: 'Місткість ануса по товщині (⌀)',
+    effectByLevel:
+      'МІСТКІСТЬ: +0.28 ⌀ комфорт / +0.4 макс за Lv. Partner+Lara +3%/Lv. d20 анал +рівень.',
+    levelMeanings: [
+      'лише кінчик',
+      'тонка товщина',
+      'середній ⌀',
+      'товстий вал',
+      'висока анальна місткість',
+    ],
+    diceKeywords: ['анал', 'anal', 'задн', 'попка', 'місткість анал'],
   },
   {
     id: 'an_3',
@@ -537,10 +628,17 @@ export const SEX_SKILL_TREE: SexSkillNode[] = [
     category: 'anal',
     parentName: 'Анал',
     icon: '🔻',
-    description: 'Глибина й інтенсивність',
-    effectByLevel: 'Partner +5%/Lv. Stamina floor +Lv у anal-фазі. Domination ± залежно від top/bottom ходу.',
-    levelMeanings: ['глибше', 'жорсткіше', 'без пауз', 'удари в глибину', 'екстремальний анал'],
-    diceKeywords: ['глибокий анал', 'deep anal', 'жорсткий анал'],
+    description: 'Глибина прийняття в анал (см)',
+    effectByLevel:
+      'ГЛИБИНА: +1.5 комфорт / +2.2 макс за Lv. Stamina floor +Lv. Порівнюй з usable length партнера.',
+    levelMeanings: [
+      'неглибоко',
+      'середня глибина',
+      'глибоко',
+      'майже вся usable довжина',
+      'екстремальна глибина',
+    ],
+    diceKeywords: ['глибокий анал', 'deep anal', 'жорсткий анал', 'глибина анал'],
   },
   {
     id: 'an_4',
@@ -548,9 +646,16 @@ export const SEX_SKILL_TREE: SexSkillNode[] = [
     category: 'anal',
     parentName: 'Глибокий анал',
     icon: '🎆',
-    description: 'Оргазм від анальної стимуляції',
-    effectByLevel: 'Lara orgasm threshold −3×Lv на anal-ходах. Partner threshold −2×Lv. Multi легше якщо endurance≥2.',
-    levelMeanings: ['близько', 'труситься', 'анальний оргазм', 'сильний', 'руйнівний anal-orgasm'],
+    description: 'Оргазм від анального розтягнення / простати партнера / тиску',
+    effectByLevel:
+      'Lara orgasm −3×Lv на anal. Partner −2×Lv. Stretch-fit: +pleasure якщо prep≥2.',
+    levelMeanings: [
+      'близько',
+      'труситься',
+      'анальний оргазм',
+      'сильний від розтягнення',
+      'руйнівний anal-orgasm',
+    ],
     diceKeywords: ['анальний оргазм', 'anal orgasm'],
   },
 

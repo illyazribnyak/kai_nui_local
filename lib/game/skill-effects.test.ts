@@ -20,16 +20,17 @@ describe('sex skill tree integrity', () => {
     }
   })
 
-  it('has 64 nodes (6 core + 10 act branches × 4)', () => {
-    assert.equal(SEX_SKILL_TREE.length, 64)
+  it('has 68 nodes (6 core + 11 act branches × 4)', () => {
+    assert.equal(SEX_SKILL_TREE.length, 68)
   })
 
-  it('has separate intimacy branches including public/creampie/aftercare', () => {
+  it('has separate intimacy branches including vaginal/public/creampie/aftercare', () => {
     for (const cat of [
       'dirty_talk',
       'handjob',
       'blowjob',
       'deepthroat',
+      'vaginal',
       'anal',
       'riding',
       'edging',

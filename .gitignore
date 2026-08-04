@@ -33,3 +33,6 @@ public/downloads/*.zip
 # Local GUI screenshots / previews
 public/gui-*.png
 public/gui-*.jpg
+
+# Full-resolution stock downloads (cropped tiles are committed)
+public/avatars/body/stock/raw/

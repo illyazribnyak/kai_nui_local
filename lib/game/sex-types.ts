@@ -90,8 +90,23 @@ export interface PenisStatsData {
   cum_desc?: string
   stamina_rounds?: number
   refractory_min?: number
-  special?: string
+  special?: string | null
   risk_for_lara?: string
+  /** Soft max depth into a human body (centaur/minotaur) */
+  max_penetration_cm?: number | null
+  /** Length that can actually enter given race limits */
+  usable_length_cm?: number
+  /** Circumference ≈ π × diameter (girth_cm is diameter ⌀) */
+  circumference_cm?: number
+  /** Rough insertable shaft volume cm³/ml */
+  volume_est_ml?: number
+  /** Hyenoid swollen knot diameter */
+  knot_diameter_cm?: number
+  /** Hyenoid knot lock duration */
+  lock_minutes?: number
+  pregnancy_base_pct?: number
+  disease_note?: string
+  compatibility?: string
   [key: string]: unknown
 }
 

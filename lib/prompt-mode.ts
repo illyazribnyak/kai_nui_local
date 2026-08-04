@@ -42,7 +42,7 @@ export function modeInstructions(mode: PromptMode): string {
     default:
       return `# РЕЖИМ: ADVENTURE
 - Дослідження, виживання, атмосфера острова. 3–6 абзаців прози + сповіщення + теги.
-- Локації з канон-мапи. Випадкові події d20 при подорожі.
+- Локації з канон-мапи. Якщо в промпті є блок «ВИПАДКОВА ПОДІЯ ЦЬОГО ХОДУ» — розіграй її (напади, рейди, знахідки).
 - Підштовхуй до наступної глави сюжету (джунглі / плем'я / храм).`
   }
 }
@@ -75,11 +75,11 @@ export const MODE_LORE_SECTIONS: Record<PromptMode, string[]> = {
 
 /** Map chapter → goal location name hints for UI. */
 export const CHAPTER_MAP_GOALS: Record<string, { label: string; locationHints: string[] }> = {
-  arrival: { label: 'Знайди воду / вийди з берега', locationHints: ['берег', 'водоспад', 'джунгл'] },
-  jungle: { label: 'Глибше в джунглі', locationHints: ['джунгл', 'водоспад', 'лагуна'] },
+  arrival: { label: 'Вижити: вода й їжа', locationHints: ['берег', 'водоспад', 'лагуна'] },
+  jungle: { label: 'У джунглі / знайти людей', locationHints: ['джунгл', 'водоспад', 'мангров'] },
   tribe: { label: 'Селище Кай-Тору', locationHints: ['кай-тору', 'селищ'] },
-  depths: { label: 'Печери / руїни / гора', locationHints: ['печер', 'руїн', 'свяще', 'гора'] },
-  temple: { label: 'Храм', locationHints: ['храм'] },
-  climax: { label: 'Скарб / ритуал', locationHints: ['храм', 'свяще'] },
+  depths: { label: 'Амулет / печери / руїни', locationHints: ['печер', 'руїн', 'свяще', 'гора'] },
+  temple: { label: 'Храм насолоди', locationHints: ['храм'] },
+  climax: { label: 'Скарб Атлантів', locationHints: ['храм', 'свяще'] },
   ending: { label: 'Фінал', locationHints: ['храм'] },
 }

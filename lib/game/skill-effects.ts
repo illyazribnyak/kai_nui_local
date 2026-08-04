@@ -15,6 +15,11 @@ import {
   type KinkLike,
   type KinkModifierSummary,
 } from '@/lib/game/kink-effects'
+import {
+  computeAllOrificeCapacities,
+  formatBodyCapacityForPrompt,
+  type OrificeCapacity,
+} from '@/lib/game/body-capacity'
 
 export interface SkillLike {
   name: string
@@ -44,6 +49,12 @@ export interface SkillModifierSummary {
   synergies: ActiveSynergy[]
   /** Optional kink modifiers (when kinks passed to compute) */
   kinks?: KinkModifierSummary
+  /** Vaginal / anal / oral stretch & capacity (cm) */
+  bodyCapacity?: {
+    vaginal: OrificeCapacity
+    anal: OrificeCapacity
+    oral: OrificeCapacity
+  }
 }
 
 export function skillLevel(skills: SkillLike[] | null | undefined, name: string): number {
@@ -128,6 +139,9 @@ export function computeSkillModifiers(
   const bjLv = skillLevel(skills, 'Мінет')
   const deepLv = skillLevel(skills, 'Глибоке горло')
   const analLv = skillLevel(skills, 'Анал')
+  const vagCapLv = skillLevel(skills, 'Вагінальна місткість')
+  const vagDepthLv = skillLevel(skills, 'Глибина вагіни')
+  const vagPrepLv = skillLevel(skills, "М'який вхід")
   const ridingLv = skillLevel(skills, 'Вершниця')
   const edgeLv = skillLevel(skills, 'Еджинг')
   // Branch totals (separate trees)
@@ -135,9 +149,11 @@ export function computeSkillModifiers(
   const handBranch = categoryLevels(skills, 'handjob')
   const bjBranch = categoryLevels(skills, 'blowjob')
   const throatBranch = categoryLevels(skills, 'deepthroat')
+  const vagBranch = categoryLevels(skills, 'vaginal')
   const analBranch = categoryLevels(skills, 'anal')
   const rideBranch = categoryLevels(skills, 'riding')
   const edgeBranch = categoryLevels(skills, 'edging')
+  const bodyCapacity = computeAllOrificeCapacities(skills)
 
   const synergies = computeActiveSynergies(skills)
   const syn = aggregateSynergyEffects(synergies)
@@ -164,10 +180,14 @@ export function computeSkillModifiers(
     kissLv * 1 +
     dirtyLv * 1 +
     analLv * 2 +
+    vagCapLv * 2 +
+    vagDepthLv * 2 +
+    vagPrepLv * 1 +
     ridingLv * 3 +
     edgeLv * 1 +
     Math.floor(rideBranch * 0.5) +
     Math.floor(analBranch * 0.3) +
+    Math.floor(vagBranch * 0.5) +
     syn.laraPleasureBonusPct
 
   let staminaFloor = longLv * 3 + syn.staminaFloorBonus + (analLv >= 4 ? 5 : 0)
@@ -239,6 +259,7 @@ export function computeSkillModifiers(
     laraOrgasmThreshold,
     synergies,
     kinks: kinkMods || undefined,
+    bodyCapacity,
   }
 }
 
@@ -387,9 +408,11 @@ export function formatActiveSkillEffectsForPrompt(skills: SkillLike[] | null | u
     ...m.lines,
     'Зведення:',
     ...gates.map((g) => `- ${g}`),
+    formatBodyCapacityForPrompt(skills),
     'SEX_CHOICES: risk/бондаж лише якщо навички дозволяють (сервер відфільтрує). Краще пропонуй ходи з дерева.',
     'При d20 у сексі вказуй skill назвою навички або ключовим словом — сервер додасть бонус.',
     'Завжди видавай SKILL_UPDATE XP за релевантні дії (5–25).',
+    'PENIS_STATS: girth_cm = діаметр ⌀; обхват ≈ π×⌀. Порівнюй з місткістю вагіни/аналу Лари.',
   ].join('\n')
 }
 

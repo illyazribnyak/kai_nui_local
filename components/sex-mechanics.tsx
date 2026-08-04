@@ -405,17 +405,51 @@ export function PenisStatsCard({ stats, onDismiss }: { stats: any; onDismiss: ()
 
   const rows = [
     { icon: '📏', label: 'Довжина', value: `${stats.length_cm} см` },
-    { icon: '⭕', label: 'Обхват', value: `⌀ ${stats.girth_cm} см` },
+    stats.usable_length_cm != null &&
+      stats.usable_length_cm !== stats.length_cm && {
+        icon: '➡️',
+        label: 'Usable',
+        value: `~${stats.usable_length_cm} см`,
+      },
+    { icon: '⭕', label: 'Діаметр ⌀', value: `${stats.girth_cm} см` },
+    stats.circumference_cm != null && {
+      icon: '🔄',
+      label: 'Обхват',
+      value: `${stats.circumference_cm} см`,
+    },
+    stats.knot_diameter_cm != null && {
+      icon: '🔒',
+      label: 'Вузол ⌀',
+      value: `${stats.knot_diameter_cm} см`,
+    },
+    stats.volume_est_ml != null && {
+      icon: '📐',
+      label: 'Об\'єм (оц.)',
+      value: `${stats.volume_est_ml} мл`,
+    },
+    stats.max_penetration_cm != null && {
+      icon: '⛔',
+      label: 'Макс. у людину',
+      value: `~${stats.max_penetration_cm} см`,
+    },
     { icon: '🌀', label: 'Форма', value: stats.shape },
     { icon: '🔴', label: 'Головка', value: stats.head },
     stats.foreskin !== undefined && { icon: '🧤', label: 'Крайня плоть', value: stats.foreskin ? 'Є' : 'Немає' },
     stats.veins && { icon: '🪶', label: 'Вени', value: stats.veins },
     stats.balls && { icon: '⚪', label: 'Яєчка', value: stats.balls },
-    stats.cum_ml && { icon: '💦', label: 'Сперма', value: `${stats.cum_ml} мл` },
+    (stats.cum_ml != null && stats.cum_ml !== '') && { icon: '💦', label: 'Сперма', value: `${stats.cum_ml} мл` },
     stats.cum_desc && { icon: '🧪', label: 'Опис', value: stats.cum_desc },
     stats.stamina_rounds && { icon: '⚡', label: 'Витривалість', value: `${stats.stamina_rounds} раундів` },
-    stats.refractory_min && { icon: '⏱️', label: 'Відновлення', value: `${stats.refractory_min} хв` },
+    stats.refractory_min != null && { icon: '⏱️', label: 'Відновлення', value: `${stats.refractory_min} хв` },
+    stats.lock_minutes != null && { icon: '🔒', label: 'Замок (вузол)', value: `${stats.lock_minutes} хв` },
+    stats.pregnancy_base_pct != null && {
+      icon: '🤰',
+      label: 'Вагітність (база)',
+      value: `${stats.pregnancy_base_pct}%`,
+    },
+    stats.disease_note && { icon: '🤒', label: 'Хвороби', value: stats.disease_note },
     stats.special && { icon: '✨', label: 'Особливість', value: stats.special },
+    stats.compatibility && { icon: '🤝', label: 'Сумісність', value: stats.compatibility },
   ].filter(Boolean) as { icon: string; label: string; value: string }[]
 
   return (

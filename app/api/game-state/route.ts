@@ -69,7 +69,31 @@ export async function GET() {
 
     // Met NPCs + canon cast for sidebar
     const relationships = await prisma.relationship.findMany({
-      where: { OR: [{ met: true }, { name: { in: ['Тане', 'Лея', 'Джек Вейн', 'Макаї', 'Найя', 'Араху'] } }] },
+      where: {
+        OR: [
+          { met: true },
+          {
+            name: {
+              in: [
+                'Тане',
+                'Лея',
+                'Джек Вейн',
+                'Макаї',
+                'Найя',
+                'Араху',
+                'Ксерон',
+                'Іпполіта',
+                'Гор-Ак',
+                'Міра',
+                'Кіра',
+                'Зек',
+                'Грух',
+                'Свиноматка',
+              ],
+            },
+          },
+        ],
+      },
       orderBy: { name: 'asc' },
     })
 

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { QUEST_LADDER } from './quest-ladder-data'
+import { QUEST_LADDER, QUEST_LADDER_TITLES } from './quest-ladder-data'
 import { isLadderStepComplete, planLadderCompletions } from './quest-step'
 
 const emptyCtx = {
@@ -10,6 +10,14 @@ const emptyCtx = {
   metNames: [] as string[],
   inventory: [] as { name: string; category: string }[],
 }
+
+describe('QUEST_LADDER', () => {
+  it('has 8 main story steps', () => {
+    assert.equal(QUEST_LADDER.length, 8)
+    assert.equal(QUEST_LADDER_TITLES[0], 'Вижити на березі')
+    assert.equal(QUEST_LADDER_TITLES[QUEST_LADDER_TITLES.length - 1], 'Скарб Атлантів')
+  })
+})
 
 describe('isLadderStepComplete', () => {
   it('survival completes at waterfall', () => {
@@ -37,11 +45,41 @@ describe('isLadderStepComplete', () => {
     assert.equal(isLadderStepComplete(QUEST_LADDER[1], emptyCtx), false)
   })
 
-  it('tribe completes when met Tane', () => {
+  it('tribe contact completes when met Tane', () => {
     assert.equal(
       isLadderStepComplete(QUEST_LADDER[2], {
         ...emptyCtx,
         metNames: ['тане'],
+      }),
+      true
+    )
+  })
+
+  it('guest of tribe completes when met Makai', () => {
+    assert.equal(
+      isLadderStepComplete(QUEST_LADDER[3], {
+        ...emptyCtx,
+        metNames: ['макаї'],
+      }),
+      true
+    )
+  })
+
+  it('amulet step completes on fact', () => {
+    assert.equal(
+      isLadderStepComplete(QUEST_LADDER[4], {
+        ...emptyCtx,
+        factKeys: ['amulet_awakened'],
+      }),
+      true
+    )
+  })
+
+  it('depths completes on mountain location', () => {
+    assert.equal(
+      isLadderStepComplete(QUEST_LADDER[5], {
+        ...emptyCtx,
+        currentLoc: 'Священна гора',
       }),
       true
     )
@@ -82,5 +120,19 @@ describe('planLadderCompletions', () => {
     })
     assert.deepEqual(plan.complete, ['Увійти в джунглі'])
     assert.equal(plan.nextActive, 'Знайти людей острова')
+  })
+
+  it('chains contact → guest when village discovered', () => {
+    const plan = planLadderCompletions(
+      ['Вижити на березі', 'Увійти в джунглі'],
+      {
+        ...emptyCtx,
+        currentLoc: 'Селище Кай-Тору',
+        discoveredLocs: [{ name: 'Селище Кай-Тору' }],
+      }
+    )
+    assert.ok(plan.complete.includes('Знайти людей острова'))
+    assert.ok(plan.complete.includes('Гостя Кай-Тору'))
+    assert.equal(plan.nextActive, 'Зрозуміти амулет')
   })
 })

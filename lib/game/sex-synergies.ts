@@ -93,6 +93,25 @@ export const SEX_SYNERGIES: SkillSynergy[] = [
     effects: { partnerPleasureBonusPct: 18, laraPleasureBonusPct: 4 },
   },
   {
+    id: 'size_queen',
+    name: 'Королева розміру',
+    icon: '🌸📏',
+    description: 'Вагінальна місткість + глибина: насолода від великих партнерів',
+    condition: '«Вагінальна місткість» ≥3 і «Глибина вагіни» ≥2',
+    active: (s) =>
+      skillLevel(s, 'Вагінальна місткість') >= 3 && skillLevel(s, 'Глибина вагіни') >= 2,
+    effects: { laraPleasureBonusPct: 14, partnerPleasureBonusPct: 6 },
+  },
+  {
+    id: 'dual_stretch',
+    name: 'Подвійне розтягнення',
+    icon: '🌸🍑',
+    description: 'Вагіна + анал треновані разом',
+    condition: 'vaginal ≥4 і anal ≥4 (суми рівнів)',
+    active: (s) => categoryLevels(s, 'vaginal') >= 4 && categoryLevels(s, 'anal') >= 4,
+    effects: { laraPleasureBonusPct: 10, staminaFloorBonus: 4 },
+  },
+  {
     id: 'filthy_anal',
     name: 'Брудний анал',
     icon: '🗣️🍑',

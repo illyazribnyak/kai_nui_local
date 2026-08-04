@@ -26,8 +26,10 @@ import {
   getTribeStatusLabel,
 } from '@/lib/game/ui-labels'
 import { collectCompleteTags, safeParseJSON, stripAllTags } from '@/lib/game/stream-tags'
+import { sanitizePenisStats } from '@/lib/game/race-sex-stats'
 import { toast } from 'sonner'
 import { getAvatar, getLaraAvatar, getTribeAvatar } from '@/lib/avatar-utils'
+import { LaraCard } from './lara-card'
 import Image from 'next/image'
 import { DiceRollPopup, DualPleasureMeter, PhaseIndicator, StaminaBar, ComboCounter, DominationScale, PartnerReaction, SexChoiceCards, ErogenousDiscovery, ContextBonusBadges, SkillSynergyBadges, SceneSummaryCard, SceneAtmosphere, SceneMoodIndicator, LaraDialogueCards, MultiOrgasmPopup, PenisStatsCard, TempoControlButtons } from './sex-mechanics'
 import { SexSkillMovesBar, type HudMove } from './sex-skill-moves'
@@ -328,7 +330,7 @@ export default function GameClient() {
       } else if (tag.type === 'multi_orgasm' && data?.chain) {
         setMultiOrgasm(data)
       } else if (tag.type === 'penis_stats' && data?.name) {
-        setPenisStats(data)
+        setPenisStats(sanitizePenisStats(data as any) ?? data)
       }
     }
 
@@ -518,7 +520,9 @@ export default function GameClient() {
               if (parsed?.sceneMood) setSceneMood(parsed.sceneMood)
               if (parsed?.laraDialogue?.length > 0) setLaraDialogue(parsed.laraDialogue)
               if (parsed?.multiOrgasm) setMultiOrgasm(parsed.multiOrgasm)
-              if (parsed?.penisStats) setPenisStats(parsed.penisStats)
+              if (parsed?.penisStats) {
+                setPenisStats(sanitizePenisStats(parsed.penisStats) ?? parsed.penisStats)
+              }
             } else if (parsed?.type === 'error') {
               streamError = parsed?.message ?? 'Помилка'
             }
@@ -1242,7 +1246,7 @@ export default function GameClient() {
                   </div>
                   {msg?.role === 'user' && (
                     <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-primary/35 flex-shrink-0 mt-0.5 shadow-md shadow-primary/10">
-                      <Image src={getLaraAvatar()} alt="Лара" fill className="object-cover" sizes="32px" />
+                      <Image src={getLaraAvatar(gameState)} alt="Лара" fill className="object-cover" sizes="32px" />
                     </div>
                   )}
                 </motion.div>
@@ -1685,16 +1689,17 @@ export default function GameClient() {
             {/* STATS TAB */}
             {sidebarTab === 'stats' && (
               <div className="space-y-5">
-                {/* Lara Avatar */}
-                <div className="flex items-center gap-3 bg-muted/30 rounded-xl p-3 border border-border/50">
-                  <div className="relative w-14 h-14 rounded-full overflow-hidden ring-2 ring-primary/50 flex-shrink-0">
-                    <Image src={getLaraAvatar()} alt="Лара Крофт" fill className="object-cover" sizes="56px" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-bold truncate">Лара Крофт</h3>
-                    <p className="text-[10px] text-muted-foreground">📍 {gameState?.location || 'Невідомо'}</p>
-                    <p className="text-[10px] text-muted-foreground">🌤️ День {gameState?.dayNumber || 1} • {gameState?.timeOfDay === 'morning' ? '🌅 Ранок' : gameState?.timeOfDay === 'evening' ? '🌇 Вечір' : gameState?.timeOfDay === 'night' ? '🌙 Ніч' : '☀️ День'}</p>
-                  </div>
+                {/* Lara character card — multi-avatar + body capacity */}
+                <LaraCard gameState={gameState} skills={skills} />
+                <div className="text-[10px] text-muted-foreground px-0.5">
+                  📍 {gameState?.location || 'Невідомо'} · День {gameState?.dayNumber || 1} ·{' '}
+                  {gameState?.timeOfDay === 'morning'
+                    ? '🌅 Ранок'
+                    : gameState?.timeOfDay === 'evening'
+                      ? '🌇 Вечір'
+                      : gameState?.timeOfDay === 'night'
+                        ? '🌙 Ніч'
+                        : '☀️ День'}
                 </div>
 
                 {/* Desire */}

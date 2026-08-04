@@ -1,5 +1,7 @@
 // Avatar mapping utility — maps NPC names and races to avatar images
 
+import { getLaraAvatarFromState } from '@/lib/game/lara-appearance'
+
 // Unique named NPCs → exact avatar
 const NAMED_AVATARS: Record<string, string> = {
   'лара': '/avatars/lara.png',
@@ -135,9 +137,11 @@ function simpleHash(str: string): number {
   return Math.abs(hash)
 }
 
-/** Get Lara's avatar */
-export function getLaraAvatar(): string {
-  return '/avatars/lara.png'
+/** Get Lara's avatar — multi-look from game state when provided. */
+export function getLaraAvatar(
+  state?: Parameters<typeof getLaraAvatarFromState>[0]
+): string {
+  return getLaraAvatarFromState(state ?? null)
 }
 
 /** Get avatar for tribe name (for tribe reputation tab) */

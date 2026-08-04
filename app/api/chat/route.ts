@@ -15,6 +15,23 @@ import { applySurvivalDefaults, parseNarrativeStats, tickDiseases } from '@/lib/
 import { resolveDiceRolls } from '@/lib/game/dice'
 import { CHAPTERS, ENDING_PATHS } from '@/lib/game/chapters'
 import { syncQuestLadder } from '@/lib/game/quest-ladder'
+import {
+  formatCanonEventsForPrompt,
+  formatSideQuestsForPrompt,
+  formatTribeEntriesForPrompt,
+  formatZekArcForPrompt,
+} from '@/lib/game/canon-events'
+import {
+  formatRandomEventCatalogHint,
+  formatRolledEventForPrompt,
+  rollRandomEvent,
+  type RolledEvent,
+} from '@/lib/game/random-events'
+import {
+  formatRaceSexStatsForPrompt,
+  sanitizePenisStats,
+} from '@/lib/game/race-sex-stats'
+import { formatLaraAppearanceForPrompt } from '@/lib/game/lara-appearance'
 import { applyNewDaySurvival, applyServerTimeTick } from '@/lib/game/time-tick'
 import { saveTurnSnapshot } from '@/lib/game/turn-snapshot'
 import {
@@ -54,7 +71,8 @@ function buildSystemPrompt(
   tribeReps: any[],
   diseases: any[] = [],
   worldFacts: any[] = [],
-  mode: PromptMode = 'adventure'
+  mode: PromptMode = 'adventure',
+  rolledEvent: RolledEvent | null = null
 ): string {
   const gameContext = getGameContext(mode)
 
@@ -134,6 +152,14 @@ ${summaryBlock}
 Порядок: ${CHAPTERS.map((c) => `${c.order}.${c.label}(${c.id})`).join(' → ')}
 Кінцівки (FACT keys): ending_freedom | ending_priestess | ending_goddess | ending_destroyer | ending_dark_queen
 Підштовхуй сюжет до храму і Скарбу Атлантів, не крутись вічно на березі.
+${formatCanonEventsForPrompt()}
+${formatTribeEntriesForPrompt()}
+${formatSideQuestsForPrompt()}
+${formatZekArcForPrompt()}
+${formatRaceSexStatsForPrompt()}
+${formatLaraAppearanceForPrompt(gameState, skills)}
+${formatRandomEventCatalogHint()}
+${formatRolledEventForPrompt(rolledEvent)}
 
 # === ОСНОВНІ ПРАВИЛА ===
 
@@ -153,10 +179,15 @@ ${summaryBlock}
 ## NPC повинні бути ЖИВИМИ:
 - Кожен NPC має власні цілі, страхи, бажання. Вони НЕ чекають на Лару — вони зайняті своїми справами.
 - Тане: сором'язливий але зацікавлений, ніжний, любить показувати острів, ревнує при високому Bond.
-- Джек Вейн: цинічний, практичний, говорить коротко і до справи, поважає згоду.
-- Вождь Макаї: авторитетний, не питає дозволу, говорить наказами.
+- Джек Вейн: цинічний, практичний, говорить коротко і до справи, поважає згоду. Місії: знайти → угода → карта → руїни → Лея → храм → союзник/конкурент.
+- Вождь Макаї: авторитетний, не питає дозволу, говорить наказами. «Право чужинки».
 - Шаманка Найя: загадкова, мудра, говорить метафорами, має власні плани.
-- Лея: ревнива, обережна, може стати як союзницею так і ворогом.
+- Лея: ревнива, обережна, може стати як союзницею так і ворогом; «подруга» Джека.
+- Ксерон: гордий кентавр — спочатку змагання. Іпполіта: швидка, поважає сильних.
+- Гор-Ак: домінування, гарем. Міра: бунт проти Гор-Ака, потенційний союз.
+- Кіра: матріарх, гарем/влада; вважає Зека своєю власністю/зрадником.
+- Зек: гієноїд-ВІДСТУПНИК (сам вийшов зі стаї). Death-scent, мисливці, арка притулку/мітки/суду Кіри. Може стати companion-провідником.
+- Грух: трофей/примус. Свиноматка: торгівля «захистом».
 - Ксерон (кентавр): гордий, поважає лише силу. Гор-Ак (мінотавр): жорстокий але розумний. Кіра (гієноїд): небезпечно розумна.
 
 ## Діалоги NPC:
@@ -323,9 +354,11 @@ ${formatRecipesForPrompt()}
 ### Канонічні факти світу (довгострокова пам'ять — ОБОВ'ЯЗКОВО для важливих подій):
 [FACT_ADD]{"key":"met_tane","category":"npc","content":"Лара зустріла Тане з племені Кай-Тору"}[/FACT_ADD]
 [FACT_ADD]{"key":"found_temple","category":"plot","content":"Лара знайшла вхід до храму"}[/FACT_ADD]
+[FACT_ADD]{"key":"amulet_awakened","category":"plot","content":"Амулет прокинувся після ритуалу"}[/FACT_ADD]
 [FACT_REMOVE]{"key":"temporary_curse"}[/FACT_REMOVE]
-Категорії: plot, npc, item, secret, ending, world
-Ключі латиницею snake_case. НЕ супереч існуючим фактам.
+Категорії: plot, npc, item, secret, ending, world, ritual
+Ключі латиницею snake_case з канон-списку. НЕ супереч існуючим фактам.
+Системні квести драбини (Вижити на березі…Скарб Атлантів) не дублюй через QUEST_UPDATE add — лише FACT_ADD + локації/REL.
 
 ### Щоденник:
 [DIARY_UPDATE]{"title":"Перша ніч","content":"Я опинилась на невідомому острові..."}[/DIARY_UPDATE]
@@ -352,6 +385,7 @@ ${formatRecipesForPrompt()}
 ### Секс-сцена (інтерактивні теги):
 [SEX_SCENE_START]{"type":"voluntary","atmosphere":"romantic","partner":"Тане","phase":"foreplay","context_bonuses":[{"source":"🌙 Ніч","value":"+10%"},{"source":"💧 Водоспад","value":"+15%"}]}[/SEX_SCENE_START]
 [PENIS_STATS]{"name":"Тане","race":"Кай-Тору","type":"Людський","length_cm":16,"girth_cm":4.2,"shape":"Прямий","head":"Середня, рожева","foreskin":true,"veins":"Помірно","balls":"Середні","cum_ml":8,"cum_desc":"Густа, біла","stamina_rounds":5,"refractory_min":15,"special":null,"risk_for_lara":"Низький"}[/PENIS_STATS]
+Сервер примусово clamp-ить PENIS_STATS до канону раси (Тане завжди 16; кентавр 40–55; гієноїд+вузол). Не виходь за таблицю видів.
 [PHASE]{"phase":"main","label":"Основна дія"}[/PHASE]
 [PLEASURE]{"lara":65,"partner":40,"partner_name":"Тане"}[/PLEASURE]
 [STAMINA]{"value":70,"tempo":"medium"}[/STAMINA]
@@ -856,11 +890,14 @@ function parseDeepSeekTags(content: string) {
     sceneSummary = safeParseJSON(sexEndMatch[1].trim(), 'SEX_SCENE_END')
   }
 
-  // PENIS_STATS
+  // PENIS_STATS — clamp to race canon (Тане 16 см, кентавр 40–55, вузол гієноїда…)
   let penisStats: any = null
   const penisMatch = content.match(/\[PENIS_STATS\](.*?)\[\/PENIS_STATS\]/s)
   if (penisMatch?.[1]) {
-    penisStats = safeParseJSON(penisMatch[1].trim(), 'PENIS_STATS')
+    const raw = safeParseJSON(penisMatch[1].trim(), 'PENIS_STATS')
+    if (raw && typeof raw === 'object') {
+      penisStats = sanitizePenisStats(raw as any) ?? raw
+    }
   }
 
   // SCENE_MOOD
@@ -999,8 +1036,29 @@ export async function POST(request: NextRequest) {
     const diseases = await prisma.disease.findMany()
     const worldFacts = await prisma.worldFact.findMany({ orderBy: { createdAt: 'asc' } })
     const promptMode = detectPromptMode(message)
+    const rolledEvent = rollRandomEvent({
+      location: gameState?.location ?? 'Берег острова',
+      chapter: gameState?.chapter,
+      timeOfDay: gameState?.timeOfDay,
+      weather: gameState?.weather,
+      mode: promptMode,
+      message,
+      dayNumber: gameState?.dayNumber,
+      companionName: gameState?.companionName,
+      isDarkLara: gameState?.isDarkLara,
+    })
     const systemPrompt = buildSystemPrompt(
-      gameState, relationships, inventory, quests, skills, summaries, tribeReps, diseases, worldFacts, promptMode
+      gameState,
+      relationships,
+      inventory,
+      quests,
+      skills,
+      summaries,
+      tribeReps,
+      diseases,
+      worldFacts,
+      promptMode,
+      rolledEvent
     )
     const llmMessages = [
       { role: 'system', content: systemPrompt },
@@ -1205,7 +1263,31 @@ export async function POST(request: NextRequest) {
           // 7. Fetch updated state and send to client
           const updatedState = await prisma.gameState.findUnique({ where: { id: 'singleton' } })
           const updatedRels = await prisma.relationship.findMany({
-            where: { OR: [{ met: true }, { name: { in: ['Тане', 'Лея', 'Джек Вейн', 'Макаї', 'Найя'] } }] },
+            where: {
+              OR: [
+                { met: true },
+                {
+                  name: {
+                    in: [
+                      'Тане',
+                      'Лея',
+                      'Джек Вейн',
+                      'Макаї',
+                      'Найя',
+                      'Араху',
+                      'Ксерон',
+                      'Іпполіта',
+                      'Гор-Ак',
+                      'Міра',
+                      'Кіра',
+                      'Зек',
+                      'Грух',
+                      'Свиноматка',
+                    ],
+                  },
+                },
+              ],
+            },
             orderBy: { name: 'asc' },
           })
           const updatedInv = await prisma.inventoryItem.findMany()
