@@ -7,7 +7,7 @@ import { detectPromptMode, type PromptMode } from '@/lib/prompt-mode'
 import { buildTagLog } from '@/lib/game/tag-log'
 import { rateLimit } from '@/lib/game/rate-limit'
 import { DEFAULT_TURN_CHOICES } from '@/lib/game/ui-labels'
-import { callAnalyzerLLM, callDeepSeekWithRetry } from '@/lib/llm/client'
+import { callAnalyzerLLM, callNarratorLLMStream, type TokenUsage } from '@/lib/llm/client'
 import { safeParseJSON } from '@/lib/game/json'
 import { SKILL_NAMES, MAX_CONTEXT_MESSAGES, COMPRESS_THRESHOLD, MAX_PLAYER_MESSAGE_LENGTH, MAX_WORLD_FACTS_IN_PROMPT } from '@/lib/game/constants'
 import { applyAllUpdates } from '@/lib/game/apply-updates'
@@ -465,7 +465,8 @@ ${dialogText.substring(0, 12000)}
 Напиши стислий переказ українською:`
 
   try {
-    const summary = await callAnalyzerLLM(compressPrompt, { maxTokens: 1500, temperature: 0.3 })
+    const res = await callAnalyzerLLM(compressPrompt, { maxTokens: 1500, temperature: 0.3 })
+    const summary = res.text
     if (!summary || summary.length < 50) {
       console.warn('Compression returned too short summary')
       return
@@ -498,8 +499,30 @@ async function analyzeResponseForMissedUpdates(
   currentInventory: any[],
   currentRelationships: any[],
   gameState: any
-): Promise<{statUpdates: any, invUpdates: any[], relUpdates: any[], questUpdates: any[], diaryUpdates: any[], skillUpdates: any[], tribeUpdates: any[], achievementUpdates: any[]}> {
-  const emptyResult = { statUpdates: {}, invUpdates: [], relUpdates: [], questUpdates: [], diaryUpdates: [], skillUpdates: [], tribeUpdates: [], achievementUpdates: [] }
+): Promise<{
+  statUpdates: any
+  invUpdates: any[]
+  relUpdates: any[]
+  questUpdates: any[]
+  diaryUpdates: any[]
+  skillUpdates: any[]
+  tribeUpdates: any[]
+  achievementUpdates: any[]
+  usage: TokenUsage
+  provider: string
+}> {
+  const emptyResult = {
+    statUpdates: {},
+    invUpdates: [],
+    relUpdates: [],
+    questUpdates: [],
+    diaryUpdates: [],
+    skillUpdates: [],
+    tribeUpdates: [],
+    achievementUpdates: [],
+    usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    provider: 'none',
+  }
 
   const currentInvStr = currentInventory.map(i => `${i.name} (x${i.quantity})`).join(', ') || 'порожній'
   const currentRelStr = currentRelationships.map(r => `${r.name}: bond ${r.bond}`).join(', ') || 'немає'
@@ -546,11 +569,11 @@ ${aiResponse.substring(0, 6000)}
 Відповідай ТІЛЬКИ чистим JSON, без пояснень.`
 
   try {
-    const content = await callAnalyzerLLM(prompt, { maxTokens: 2000, temperature: 0.1, jsonMode: true })
-    if (!content) return emptyResult
+    const res = await callAnalyzerLLM(prompt, { maxTokens: 2000, temperature: 0.1, jsonMode: true })
+    if (!res.text) return { ...emptyResult, usage: res.usage, provider: res.provider }
 
-    const parsed = safeParseJSON(content, 'analyzer-llm')
-    if (!parsed) return emptyResult
+    const parsed = safeParseJSON(res.text, 'analyzer-llm')
+    if (!parsed) return { ...emptyResult, usage: res.usage, provider: res.provider }
     return {
       statUpdates: parsed?.stat_updates ?? {},
       invUpdates: parsed?.inv_updates ?? [],
@@ -560,11 +583,29 @@ ${aiResponse.substring(0, 6000)}
       skillUpdates: parsed?.skill_updates ?? [],
       tribeUpdates: parsed?.tribe_updates ?? [],
       achievementUpdates: parsed?.achievement_updates ?? [],
+      usage: res.usage,
+      provider: res.provider,
     }
   } catch (e: any) {
     console.error('Analyzer error:', e?.message)
     return emptyResult
   }
+}
+
+function needsDeepAnalysis(fullContent: string, deepseekParsed: any): boolean {
+  const hasChoices = deepseekParsed.choices && deepseekParsed.choices.length > 0
+  const hasStat = deepseekParsed.stat && Object.keys(deepseekParsed.stat).length > 0
+  const hasInv = deepseekParsed.inv && deepseekParsed.inv.length > 0
+  const hasRel = deepseekParsed.rel && deepseekParsed.rel.length > 0
+
+  const mentionsItem = /знайш|підібр|взял|отрим|з'їл|випи|втрати|одяг|знахідк/i.test(fullContent)
+  const mentionsNpc = /зустріч|сказав|відповід|воїн|шаман|тане|лея|джек|вождь/i.test(fullContent)
+
+  if (mentionsItem && !hasInv) return true
+  if (mentionsNpc && !hasRel) return true
+  if (!hasChoices || !hasStat) return true
+
+  return false
 }
 
 // === МЕРЖ ОНОВЛЕНЬ: DeepSeek теги + Gemini аналіз ===
@@ -895,7 +936,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { message } = await request.json()
+    const { message, provider } = await request.json()
     if (!message || typeof message !== 'string') {
       return new Response(JSON.stringify({ error: 'Повідомлення обов\'язкове' }), { status: 400 })
     }
@@ -903,11 +944,15 @@ export async function POST(request: NextRequest) {
       return new Response(JSON.stringify({ error: `Повідомлення задовге (макс. ${MAX_PLAYER_MESSAGE_LENGTH} символів)` }), { status: 400 })
     }
 
-    const apiKey = process.env.DEEPSEEK_API_KEY?.trim()
-    if (!apiKey || apiKey.includes('встав') || apiKey.length < 8) {
+    const geminiKey = process.env.GEMINI_API_KEY?.trim()
+    const deepseekKey = process.env.DEEPSEEK_API_KEY?.trim()
+    const hasGemini = Boolean(geminiKey && !geminiKey.includes('встав') && geminiKey.length >= 8)
+    const hasDeepSeek = Boolean(deepseekKey && !deepseekKey.includes('встав') && deepseekKey.length >= 8)
+
+    if (!hasGemini && !hasDeepSeek) {
       return new Response(
         JSON.stringify({
-          error: 'Не налаштовано DEEPSEEK_API_KEY. Відкрий файл .env у корені проєкту, встав ключ з https://platform.deepseek.com/ і перезапусти npm run dev.',
+          error: 'Не налаштовано ключі доступу. Встав DEEPSEEK_API_KEY або GEMINI_API_KEY у файл .env і перезапусти проєкт.',
           code: 'MISSING_API_KEY',
         }),
         { status: 503 }
@@ -939,7 +984,6 @@ export async function POST(request: NextRequest) {
 
     const diseases = await prisma.disease.findMany()
     const worldFacts = await prisma.worldFact.findMany({ orderBy: { createdAt: 'asc' } })
-    // Heuristic: sex if player text matches or last assistant had sex scene tags is unknown here — message only
     const promptMode = detectPromptMode(message)
     const systemPrompt = buildSystemPrompt(
       gameState, relationships, inventory, quests, skills, summaries, tribeReps, diseases, worldFacts, promptMode
@@ -953,55 +997,65 @@ export async function POST(request: NextRequest) {
       { role: 'user', content: message },
     ]
 
-    const response = await callDeepSeekWithRetry(llmMessages, apiKey)
+    const narratorLLM = await callNarratorLLMStream({
+      messages: llmMessages,
+      provider: provider || 'auto',
+    })
 
     const stream = new ReadableStream({
       async start(controller) {
-        const reader = response.body?.getReader()
+        const reader = narratorLLM.stream.getReader()
         const decoder = new TextDecoder()
         const encoder = new TextEncoder()
         let fullContent = ''
-        let partialRead = ''
 
         try {
           while (true) {
-            const { done, value } = await reader!.read()
+            const { done, value } = await reader.read()
             if (done) break
-            partialRead += decoder.decode(value, { stream: true })
-            const lines = partialRead.split('\n')
-            partialRead = lines.pop() ?? ''
-
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6).trim()
-                if (data === '[DONE]') continue
-                try {
-                  const parsed = JSON.parse(data)
-                  const chunk = parsed?.choices?.[0]?.delta?.content ?? ''
-                  if (chunk) {
-                    fullContent += chunk
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`))
-                  }
-                } catch (e) {}
-              }
+            const chunkText = decoder.decode(value, { stream: true })
+            if (chunkText) {
+              fullContent += chunkText
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: chunkText })}\n\n`))
             }
           }
 
-          // 1. Парсимо теги DeepSeek
+          const turnStartTime = Date.now()
+          const narratorUsage = narratorLLM.getUsage()
+
+          // 1. Parse AI tags
           const deepseekParsed = parseDeepSeekTags(fullContent)
 
-          // 2. Паралельно запускаємо Gemini аналізатор
-          const geminiAnalysis = await analyzeResponseForMissedUpdates(
-            fullContent, message, inventory, relationships, gameState
-          )
+          // 2. Smart Analyzer Trigger (Runs only if explicit tags missing or in dual mode)
+          const shouldRunAnalyzer = provider === 'dual' || (provider !== 'deepseek' && needsDeepAnalysis(fullContent, deepseekParsed))
+          let geminiAnalysis: any = {
+            statUpdates: {},
+            invUpdates: [],
+            relUpdates: [],
+            questUpdates: [],
+            diaryUpdates: [],
+            skillUpdates: [],
+            tribeUpdates: [],
+            achievementUpdates: [],
+            usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+            provider: 'skipped',
+          }
 
-          // 3. Мержимо результати (DeepSeek пріоритет, Gemini доповнює)
+          if (shouldRunAnalyzer) {
+            geminiAnalysis = await analyzeResponseForMissedUpdates(
+              fullContent, message, inventory, relationships, gameState
+            )
+          }
+
+          const analyzerUsage = geminiAnalysis.usage
+
+          // 3. Merge updates
           const merged = mergeUpdates(deepseekParsed, geminiAnalysis)
 
-          // 4. Чистимо контент від тегів
+          // 4. Clean content from tags
           const displayContent = cleanDisplayContent(fullContent)
 
-          // 5. Зберігаємо повідомлення
+          // 5. Save assistant message
           await prisma.message.create({ data: { role: 'assistant', content: displayContent } })
 
           // 5.5 Server-side survival + narrative fallbacks + time tick
@@ -1017,7 +1071,7 @@ export async function POST(request: NextRequest) {
           const resolvedDice = resolveDiceRolls(merged.diceRolls || [], gameState)
           merged.diceRolls = resolvedDice
 
-          // 6. Застосовуємо всі оновлення (clamped / validated)
+          // 6. Apply all updates
           await applyAllUpdates(merged, gameState?.dayNumber ?? 1)
           await tickDiseases()
           const completedQuests = await syncQuestLadder()
@@ -1028,7 +1082,22 @@ export async function POST(request: NextRequest) {
             finalChoices = [...DEFAULT_TURN_CHOICES]
           }
 
-          // 7. Отримуємо оновлений стан і відправляємо клієнту
+          // Token Usage Calculation
+          const promptTokens = (narratorUsage.promptTokens || 0) + (analyzerUsage?.promptTokens || 0)
+          const completionTokens = (narratorUsage.completionTokens || 0) + (analyzerUsage?.completionTokens || 0)
+          const turnTotalTokens = promptTokens + completionTokens
+          const durationMs = Date.now() - turnStartTime
+
+          if (turnTotalTokens > 0) {
+            await prisma.gameState.update({
+              where: { id: 'singleton' },
+              data: {
+                totalTokensUsed: { increment: turnTotalTokens },
+              },
+            })
+          }
+
+          // 7. Fetch updated state and send to client
           const updatedState = await prisma.gameState.findUnique({ where: { id: 'singleton' } })
           const updatedRels = await prisma.relationship.findMany({
             where: { OR: [{ met: true }, { name: { in: ['Тане', 'Лея', 'Джек Вейн', 'Макаї', 'Найя'] } }] },
@@ -1055,6 +1124,27 @@ export async function POST(request: NextRequest) {
             },
           })
 
+          const analyzerLabel = geminiAnalysis.provider === 'gemini'
+            ? 'Gemini 2.0 Flash'
+            : (geminiAnalysis.provider === 'deepseek'
+              ? 'DeepSeek Chat'
+              : 'Смарт-пропуск (теги ідеальні)')
+
+          const tokenUsagePayload = {
+            provider: `${narratorLLM.providerLabel} + ${analyzerLabel}`,
+            narratorProvider: narratorLLM.providerLabel,
+            analyzerProvider: analyzerLabel,
+            providerKey: narratorLLM.provider,
+            model: narratorLLM.model,
+            promptTokens,
+            completionTokens,
+            analyzerTokens: analyzerUsage?.totalTokens || 0,
+            totalTokens: turnTotalTokens,
+            cumulativeTotalTokens: updatedState?.totalTokensUsed ?? 0,
+            durationMs,
+            smartSkipped: geminiAnalysis.provider === 'skipped',
+          }
+
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'done',
             gameState: updatedState,
@@ -1071,6 +1161,7 @@ export async function POST(request: NextRequest) {
             completedQuests,
             promptMode,
             tagLog,
+            tokenUsage: tokenUsagePayload,
             timeTick: {
               phaseAdvanced: timeTick.phaseAdvanced,
               newDay: timeTick.newDay,
@@ -1096,7 +1187,7 @@ export async function POST(request: NextRequest) {
             penisStats: merged.penisStats,
           })}\n\n`))
 
-          // 8. Автокомпресія пам'яті (не блокуючи відповідь)
+          // 8. Auto-compress history if needed
           compressOldMessages().catch(e => console.error('Background compress error:', e))
 
         } catch (error: any) {

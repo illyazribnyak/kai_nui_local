@@ -14,6 +14,7 @@ const CANON_NPCS = [
     trust: 40,
     fear: 10,
     respect: 45,
+    location: 'Селище Кай-Тору',
   },
   {
     name: 'Лея',
@@ -27,6 +28,7 @@ const CANON_NPCS = [
     trust: 30,
     fear: 5,
     respect: 40,
+    location: 'Джунглі',
   },
   {
     name: 'Джек Вейн',
@@ -40,6 +42,7 @@ const CANON_NPCS = [
     trust: 55,
     fear: 0,
     respect: 50,
+    location: 'Руїни стародавнього міста',
   },
   {
     name: 'Макаї',
@@ -53,6 +56,7 @@ const CANON_NPCS = [
     trust: 20,
     fear: 15,
     respect: 70,
+    location: 'Селище Кай-Тору',
   },
   {
     name: 'Найя',
@@ -66,6 +70,7 @@ const CANON_NPCS = [
     trust: 35,
     fear: 5,
     respect: 65,
+    location: 'Храм насолоди',
   },
   {
     name: 'Араху',
@@ -79,6 +84,7 @@ const CANON_NPCS = [
     trust: 10,
     fear: 20,
     respect: 80,
+    location: 'Священна гора',
   },
 ]
 

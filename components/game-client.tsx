@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2, MoreVertical, Target } from 'lucide-react'
+import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2, MoreVertical, Target, Volume2, VolumeX } from 'lucide-react'
+import { soundEngine } from '@/lib/audio'
 import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData, WorldFactData } from '@/lib/types'
 import { chapterProgressPercent, ENDING_PATHS } from '@/lib/game/chapters'
 import { QUEST_LADDER_TITLES } from '@/lib/game/quest-ladder-data'
@@ -28,6 +29,13 @@ import { getAvatar, getLaraAvatar, getTribeAvatar } from '@/lib/avatar-utils'
 import Image from 'next/image'
 import { DiceRollPopup, DualPleasureMeter, PhaseIndicator, StaminaBar, ComboCounter, DominationScale, PartnerReaction, SexChoiceCards, ErogenousDiscovery, ContextBonusBadges, SceneSummaryCard, SceneAtmosphere, SceneMoodIndicator, LaraDialogueCards, MultiOrgasmPopup, PenisStatsCard, TempoControlButtons } from './sex-mechanics'
 import { OnboardingOverlay } from './onboarding'
+import { CombatOverlay } from './combat-overlay'
+import { CraftingModal } from './crafting-modal'
+import { TimelineModal } from './timeline-modal'
+import { LocationBanner } from './location-banner'
+import { AchievementsGallery } from './achievements-gallery'
+import { SkillTree } from './skill-tree'
+import { Hammer, History } from 'lucide-react'
 
 type SidebarTab = 'stats' | 'inventory' | 'quests' | 'diary' | 'skills' | 'map' | 'tribes' | 'achievements' | 'characters' | 'lore'
 
@@ -117,6 +125,11 @@ export default function GameClient() {
   const [showMoreTabs, setShowMoreTabs] = useState(false)
   const [lastTagLog, setLastTagLog] = useState<any>(null)
   const [showTagLog, setShowTagLog] = useState(false)
+  const [tokenUsage, setTokenUsage] = useState<any>(null)
+  const [isMuted, setIsMuted] = useState(false)
+  const [showCraftingModal, setShowCraftingModal] = useState(false)
+  const [showTimelineModal, setShowTimelineModal] = useState(false)
+  const [selectedProvider, setSelectedProvider] = useState<'auto' | 'dual' | 'gemini' | 'deepseek'>('auto')
   const [promptModeLabel, setPromptModeLabel] = useState<string | null>(null)
   const headerMenuRef = useRef<HTMLDivElement>(null)
   const processedTagsRef = useRef(0)
@@ -190,6 +203,12 @@ export default function GameClient() {
       setAchievements(data?.achievements ?? [])
       setDiseases(data?.diseases ?? [])
       setWorldFacts(data?.worldFacts ?? [])
+      if (data?.gameState?.totalTokensUsed !== undefined) {
+        setTokenUsage((prev: any) => ({
+          ...(prev || {}),
+          cumulativeTotalTokens: data.gameState.totalTokensUsed,
+        }))
+      }
       const msgs = data?.messages ?? []
       if (msgs.length === 0) {
         setMessages([{ id: 'intro', role: 'assistant', content: INTRO_MESSAGE, createdAt: new Date().toISOString() }])
@@ -507,7 +526,7 @@ export default function GameClient() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: finalText }),
+        body: JSON.stringify({ message: finalText, provider: selectedProvider }),
         signal: controller.signal,
       })
 
@@ -570,12 +589,20 @@ export default function GameClient() {
               }
               if (parsed?.timeTick?.newDay) {
                 toast.message(`Новий день: ${(parsed.timeTick.dayNumber ?? '?')}`, { icon: '🌅' })
+                soundEngine.playNewDay()
               } else if (parsed?.timeTick?.phaseAdvanced) {
                 toast.message(`Час: ${parsed.timeTick.timeOfDay}`, { icon: '🕐' })
               }
               if (parsed?.tagLog) setLastTagLog(parsed.tagLog)
+              if (parsed?.tokenUsage) setTokenUsage(parsed.tokenUsage)
               if (parsed?.promptMode) setPromptModeLabel(parsed.promptMode)
-              if (parsed?.diceRolls?.length > 0) setDiceRoll(parsed.diceRolls[parsed.diceRolls.length - 1])
+              if (parsed?.diceRolls?.length > 0) {
+                setDiceRoll(parsed.diceRolls[parsed.diceRolls.length - 1])
+                soundEngine.playDiceRoll()
+              }
+              if (parsed?.achievements?.length > 0) {
+                soundEngine.playAchievement()
+              }
               if (parsed?.sexScene) {
                 setSexScene(parsed.sexScene); setSceneSummary(null)
                 if (parsed.sexScene.context_bonuses) setContextBonuses(parsed.sexScene.context_bonuses)
@@ -941,6 +968,27 @@ export default function GameClient() {
               }}
             />
 
+            <button
+              onClick={() => setShowTimelineModal(true)}
+              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              title="Перегляд хронології ходів"
+            >
+              <History className="w-4 h-4 text-violet-400" />
+            </button>
+
+            <button
+              onClick={() => {
+                const nextMuted = !isMuted
+                setIsMuted(nextMuted)
+                soundEngine.setMuted(nextMuted)
+                toast.message(nextMuted ? 'Звук вимкнено' : 'Звук увімкнено', { icon: nextMuted ? '🔇' : '🔊' })
+              }}
+              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              title={isMuted ? 'Увімкнути звук' : 'Вимкнути звук'}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            </button>
+
             <div className="relative" ref={headerMenuRef}>
               <button
                 onClick={() => setShowHeaderMenu((v) => !v)}
@@ -957,6 +1005,66 @@ export default function GameClient() {
                     exit={{ opacity: 0, y: -4, scale: 0.98 }}
                     className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-border bg-card shadow-xl z-50 py-1 overflow-hidden"
                   >
+                    <div className="px-3 py-2 border-b border-border bg-muted/40 text-xs">
+                      <div className="font-medium text-muted-foreground mb-1.5 flex items-center justify-between">
+                        <span>Провайдер AI:</span>
+                        {tokenUsage?.cumulativeTotalTokens > 0 && (
+                          <span className="text-[10px] text-emerald-400 font-mono" title="Загальна кількість токениів гри">
+                            🎟️ {tokenUsage.cumulativeTotalTokens.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-4 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProvider('auto')}
+                          title="⚡ Смарт-гібрид: DeepSeek наратив, Gemini аналізує лише за потреби"
+                          className={`px-1 py-1 text-[10px] rounded transition-colors text-center font-medium ${
+                            selectedProvider === 'auto'
+                              ? 'bg-primary text-primary-foreground font-bold'
+                              : 'bg-muted/80 hover:bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          ⚡ Смарт
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProvider('dual')}
+                          title="🔀 Повний дует: DeepSeek наратив, Gemini завжди робить повний аналіз"
+                          className={`px-1 py-1 text-[10px] rounded transition-colors text-center font-medium ${
+                            selectedProvider === 'dual'
+                              ? 'bg-primary text-primary-foreground font-bold'
+                              : 'bg-muted/80 hover:bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          🔀 Дует
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProvider('gemini')}
+                          title="♊ Gemini 2.0 Flash Solo"
+                          className={`px-1 py-1 text-[10px] rounded transition-colors text-center font-medium ${
+                            selectedProvider === 'gemini'
+                              ? 'bg-primary text-primary-foreground font-bold'
+                              : 'bg-muted/80 hover:bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          ♊ Gemini
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProvider('deepseek')}
+                          title="🐋 DeepSeek Chat Solo"
+                          className={`px-1 py-1 text-[10px] rounded transition-colors text-center font-medium ${
+                            selectedProvider === 'deepseek'
+                              ? 'bg-primary text-primary-foreground font-bold'
+                              : 'bg-muted/80 hover:bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          🐋 Deep
+                        </button>
+                      </div>
+                    </div>
                     <button
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
                       onClick={() => { setShowHeaderMenu(false); openSaveModal('save') }}
@@ -1041,6 +1149,12 @@ export default function GameClient() {
           )}
           {/* Messages */}
           <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden chat-scroll px-3 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4">
+            {/* Location Banner */}
+            <LocationBanner
+              locationName={gameState?.location || 'Берег острова'}
+              timeOfDay={gameState?.timeOfDay || 'day'}
+              weather={gameState?.weather || 'clear'}
+            />
             <AnimatePresence initial={false}>
               {(messages ?? []).map((msg: MessageData, index: number) => (
                 <motion.div
@@ -1226,6 +1340,26 @@ export default function GameClient() {
               </div>
             )}
 
+            {/* Combat Overlay */}
+            <AnimatePresence>
+              {promptModeLabel === 'combat' && !isLoading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="px-3 sm:px-4 py-2"
+                >
+                  <CombatOverlay
+                    laraHp={Math.max(10, 100 - (gameState?.hunger ?? 0) * 0.4)}
+                    laraMaxHp={100}
+                    laraEndurance={gameState?.endurance ?? 7}
+                    amuletEnergy={gameState?.amuletEnergy ?? 0}
+                    onCombatAction={(action) => sendMessage(action)}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Lara dialogue cards */}
             <AnimatePresence>
               {laraDialogue.length > 0 && !isLoading && (
@@ -1282,26 +1416,52 @@ export default function GameClient() {
               )}
             </AnimatePresence>
 
-            {/* Dev tag log */}
-            {lastTagLog && (
-              <div className="bg-muted/20 px-3 py-1">
+            {/* Dev tag log & Token usage */}
+            {(lastTagLog || tokenUsage) && (
+              <div className="bg-muted/20 px-3 py-1 border-t border-border/40">
                 <button
                   type="button"
                   onClick={() => setShowTagLog((v) => !v)}
                   className="w-full max-w-3xl mx-auto flex items-center justify-between gap-2 text-[10px] text-muted-foreground hover:text-foreground min-w-0"
                 >
-                  <span className="truncate min-w-0">
-                    Техлог{promptModeLabel ? ` · ${promptModeLabel}` : ''}
-                    {lastTagLog.counts && (
+                  <span className="truncate min-w-0 flex items-center gap-1.5">
+                    <span className="font-semibold text-primary/90">Техлог</span>
+                    {promptModeLabel ? ` · ${promptModeLabel}` : ''}
+                    {tokenUsage?.totalTokens > 0 && (
+                      <span className="text-emerald-400/90 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/40 font-mono">
+                        ⚡ {tokenUsage.provider || 'AI'} · 🎟️ {tokenUsage.totalTokens.toLocaleString()} токенів
+                      </span>
+                    )}
+                    {lastTagLog?.counts && (
                       <> · {Object.entries(lastTagLog.counts).map(([k, v]) => `${k}:${v}`).join(' ')}</>
                     )}
                   </span>
                   <span className="flex-shrink-0">{showTagLog ? '▲' : '▼'}</span>
                 </button>
                 {showTagLog && (
-                  <pre className="max-w-3xl mx-auto mt-1 mb-1 p-2 rounded-lg bg-black/40 text-[10px] text-emerald-200/90 overflow-x-auto panel-scroll max-h-28">
-                    {JSON.stringify(lastTagLog, null, 2)}
-                  </pre>
+                  <div className="max-w-3xl mx-auto mt-1 mb-1 p-2 rounded-lg bg-black/60 text-[10px] font-mono text-emerald-200/90 overflow-x-auto panel-scroll max-h-36 border border-emerald-900/30">
+                    {tokenUsage && (
+                      <div className="mb-2 p-1.5 rounded bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                        <div>
+                          <span className="text-muted-foreground block text-[9px]">📜 Оповідач</span>
+                          <strong>{tokenUsage.narratorProvider || 'DeepSeek Chat'}</strong>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[9px]">📊 Аналітик</span>
+                          <strong>{tokenUsage.analyzerProvider || 'Gemini 2.0 Flash'}</strong>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[9px]">🎟️ Токени ходу</span>
+                          <strong>{tokenUsage.totalTokens?.toLocaleString() ?? 0}</strong>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[9px]">📈 Всього за гру</span>
+                          <strong>{tokenUsage.cumulativeTotalTokens?.toLocaleString() ?? 0}</strong>
+                        </div>
+                      </div>
+                    )}
+                    {lastTagLog && <pre className="whitespace-pre-wrap">{JSON.stringify(lastTagLog, null, 2)}</pre>}
+                  </div>
                 )}
               </div>
             )}
@@ -1691,6 +1851,14 @@ export default function GameClient() {
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Інвентар</h3>
                   <span className="text-[10px] text-muted-foreground font-mono">{inventory.length} предм.</span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowCraftingModal(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl border border-amber-500/40 text-xs font-semibold shadow-sm transition-all"
+                >
+                  <Hammer className="w-4 h-4 text-amber-400" /> Верстак Крафту та Рецепти
+                </button>
                 {inventory.length === 0 ? (
                   <div className="text-center py-8">
                     <Package className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
@@ -1879,42 +2047,7 @@ export default function GameClient() {
 
             {/* SKILLS TAB */}
             {sidebarTab === 'skills' && (
-              <div className="space-y-4">
-                {Object.entries(SKILL_CATEGORY_NAMES).map(([cat, catName]) => {
-                  const catSkills = skills.filter((s: SkillData) => s.category === cat)
-                  if (catSkills.length === 0) return null
-                  return (
-                    <div key={cat} className="space-y-2">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{catName}</h4>
-                      {catSkills.map((skill: SkillData) => (
-                        <div key={skill.id} className="bg-muted/30 rounded-lg p-2.5 border border-border/50">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-foreground">{skill.name}</span>
-                            <span className="text-[10px] font-mono text-primary">Рів. {skill.level}</span>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground mb-1.5">{skill.description}</p>
-                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-pink-500 to-rose-400 rounded-full transition-all duration-500"
-                              style={{ width: `${skill.maxXp > 0 ? (skill.xp / skill.maxXp) * 100 : 0}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-end mt-0.5">
-                            <span className="text-[9px] font-mono text-muted-foreground/60">{skill.xp}/{skill.maxXp} XP</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })}
-                {skills.length === 0 && (
-                  <div className="text-center py-8">
-                    <Flame className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">Навичок поки немає</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">Вони з'являться під час інтимних сцен</p>
-                  </div>
-                )}
-              </div>
+              <SkillTree skills={skills} />
             )}
 
             {/* MAP TAB */}
@@ -2109,6 +2242,40 @@ export default function GameClient() {
                         {rel.metOnDay > 0 && (
                           <p className="text-[9px] text-muted-foreground/50 mt-1">📅 Зустрічено: день {rel.metOnDay}</p>
                         )}
+
+                        {/* NPC Location & Travel */}
+                        {(() => {
+                          const npcLocation = rel.location || (
+                            rel.name === 'Тане' ? 'Селище Кай-Тору' :
+                            rel.name === 'Лея' ? 'Джунглі' :
+                            rel.name === 'Джек Вейн' ? 'Руїни стародавнього міста' :
+                            rel.name === 'Найя' ? 'Храм насолоди' :
+                            rel.name === 'Макаї' ? 'Селище Кай-Тору' : 'Острів Кай-Нуї'
+                          )
+                          const isHere = gameState?.location === npcLocation
+
+                          return (
+                            <div className="mt-2 pt-2 border-t border-border/40 space-y-1.5">
+                              <div className="flex items-center justify-between text-[10px]">
+                                <span className="text-muted-foreground font-medium">📍 Локація:</span>
+                                <span className="font-semibold text-emerald-300">{npcLocation}</span>
+                              </div>
+                              {isHere ? (
+                                <div className="text-[10px] text-emerald-400 font-semibold bg-emerald-950/40 border border-emerald-800/50 py-1 px-2 rounded text-center">
+                                  🟢 Поруч у цій локації
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => sendMessage(`Піти до ${npcLocation} і знайти ${rel.name}`)}
+                                  className="w-full py-1 px-2 text-[10px] font-semibold bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 rounded-lg transition-all text-center flex items-center justify-center gap-1"
+                                >
+                                  🗺️ Вирушити до {npcLocation}
+                                </button>
+                              )}
+                            </div>
+                          )
+                        })()}
                       </motion.div>
                     )
                   })
@@ -2157,38 +2324,7 @@ export default function GameClient() {
 
             {/* ACHIEVEMENTS TAB */}
             {sidebarTab === 'achievements' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">🏆 Досягнення</h3>
-                  <span className="text-[10px] text-muted-foreground font-mono">{achievements.length}</span>
-                </div>
-                {achievements.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Gem className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">Ще немає досягнень</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">Вони з'являться при важливих подіях</p>
-                  </div>
-                ) : (
-                  achievements.map((ach) => (
-                    <motion.div
-                      key={ach.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="text-xl flex-shrink-0">{ach.icon}</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground">{ach.name}</p>
-                          {ach.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{ach.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))
-                )}
-              </div>
+              <AchievementsGallery unlockedAchievements={achievements} />
             )}
           </div>
         </aside>
@@ -2288,14 +2424,22 @@ export default function GameClient() {
       </AnimatePresence>
       <AnimatePresence>
         {penisStats && <PenisStatsCard stats={penisStats} onDismiss={() => setPenisStats(null)} />}
+        {penisStats && <PenisStatsCard stats={penisStats} onDismiss={() => penisStats(null)} />}
       </AnimatePresence>
       <AnimatePresence>
         {sceneSummary && <SceneSummaryCard summary={sceneSummary} onDismiss={() => {
           setSceneSummary(null); setSexScene(null); setPleasure({ lara: 0, partner: 0 })
           setPhase(null); setStamina(null); setCombo(null); setDomination(0); setReactions([]); setContextBonuses([])
-          setSceneMood(null); setLaraDialogue([]); setMultiOrgasm(null); setPenisStats(null); setActiveTempo('medium')
+          setSceneMood(null); setLaraDialogue([]); setMultiOrgasm(null); penisStats(null); setActiveTempo('medium')
         }} />}
       </AnimatePresence>
+      <TimelineModal
+        isOpen={showTimelineModal}
+        messages={messages}
+        onClose={() => setShowTimelineModal(false)}
+        onRedoTurn={redoLastTurn}
+        onRepeatMessage={(msg) => sendMessage(msg)}
+      />
     </div>
   )
 }

@@ -44,6 +44,8 @@ model GameState {
   endingPath    String?
   /// Server-side action counter for time-of-day progression
   turnCount     Int      @default(0)
+  /// Total cumulative LLM tokens used in playthrough
+  totalTokensUsed Int    @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -93,6 +95,7 @@ model Relationship {
   trust       Int    @default(50)
   fear        Int    @default(0)
   respect     Int    @default(50)
+  location    String @default("Селище Кай-Тору")
 }
 
 model Disease {

@@ -62,6 +62,7 @@ export interface RelationshipData {
   trust: number
   fear: number
   respect: number
+  location?: string
 }
 
 export interface DiseaseData {
