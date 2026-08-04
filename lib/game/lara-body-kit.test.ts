@@ -15,11 +15,18 @@ describe('BODY_PARTS', () => {
     }
   })
 
-  it('unique ids and AI-only sources', () => {
+  it('unique ids', () => {
     const ids = BODY_PARTS.map((p) => p.id)
     assert.equal(ids.length, new Set(ids).size)
-    assert.ok(BODY_PARTS.every((p) => p.source === 'ai'))
-    assert.ok(BODY_PARTS.every((p) => !p.image.includes('/stock/')))
+  })
+
+  it('licensed stock have license urls', () => {
+    const stock = BODY_PARTS.filter((p) => p.source !== 'ai')
+    assert.ok(stock.length >= 5)
+    for (const p of stock) {
+      assert.ok(p.licenseName, p.id)
+      assert.ok(p.licenseUrl, p.id)
+    }
   })
 
   it('default kit parts exist', () => {
@@ -30,9 +37,9 @@ describe('BODY_PARTS', () => {
 })
 
 describe('suggestBodyKit', () => {
-  it('picks fuller AI parts when aroused', () => {
+  it('picks CC0 nude parts when aroused', () => {
     const k = suggestBodyKit({ lookKey: 'aroused', desire: 80 })
-    assert.equal(k.bust, 'bust_full')
-    assert.equal(k.hips, 'hips_curvy')
+    assert.equal(k.bust, 'bust_cc0_nude')
+    assert.equal(k.hips, 'hips_cc0_butt')
   })
 })

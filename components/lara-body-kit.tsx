@@ -70,8 +70,9 @@ export function LaraBodyKit({ lookKey, desire, confidence }: Props) {
         </button>
       </div>
       <p className="text-[9px] text-muted-foreground/80 leading-snug">
-        Слоти: груди / талія / стегна / ноги. У репо лише <strong className="text-foreground/70">AI-тайли</strong>{' '}
-        (стиль гри). Зовнішні stock/nude файли в git не лежать.
+        Слоти: груди / талія / стегна / ноги. У репо: <strong className="text-foreground/70">AI</strong> +{' '}
+        <strong className="text-emerald-500">Pexels</strong> / <strong className="text-sky-400">Unsplash</strong> /{' '}
+        <strong className="text-rose-400">CC0</strong> (ліцензії в stock/ATTRIBUTION.md). Порн/Reddit — не в git.
       </p>
 
       {/* Composite preview */}
@@ -135,6 +136,19 @@ export function LaraBodyKit({ lookKey, desire, confidence }: Props) {
               <span className="absolute bottom-0 inset-x-0 text-[7px] bg-black/70 text-center text-white truncate px-0.5">
                 {p.label}
               </span>
+              {p.source !== 'ai' && (
+                <span
+                  className={`absolute top-0 left-0 text-[6px] px-0.5 text-white rounded-br ${
+                    p.source === 'cc0'
+                      ? 'bg-rose-700/90'
+                      : p.source === 'pexels'
+                        ? 'bg-emerald-700/90'
+                        : 'bg-sky-700/90'
+                  }`}
+                >
+                  {p.source === 'cc0' ? 'CC0' : p.source === 'pexels' ? 'Pexels' : 'Unsplash'}
+                </span>
+              )}
             </button>
           )
         })}
