@@ -19,6 +19,12 @@ import type {
   SexTempo,
   StaminaData,
 } from '@/lib/game/sex-types'
+import type {
+  BodyStateChip,
+  OrgasmForkOption,
+  SexControlMode,
+  SexPositionId,
+} from '@/lib/game/sex-scene-live'
 
 export function useSexSceneState() {
   const [sexScene, setSexScene] = useState<SexSceneData | null>(null)
@@ -38,6 +44,13 @@ export function useSexSceneState() {
   const [multiOrgasm, setMultiOrgasm] = useState<MultiOrgasmData | null>(null)
   const [penisStats, setPenisStats] = useState<PenisStatsData | null>(null)
   const [activeTempo, setActiveTempo] = useState<SexTempo>('medium')
+  // Live interactivity (A–K pack)
+  const [sexPressure, setSexPressure] = useState(0)
+  const [bodyStates, setBodyStates] = useState<BodyStateChip[]>([])
+  const [sexPosition, setSexPosition] = useState<SexPositionId>('missionary')
+  const [sexControlMode, setSexControlMode] = useState<SexControlMode>('moves')
+  const [orgasmFork, setOrgasmFork] = useState<OrgasmForkOption[] | null>(null)
+  const [partnerMemories, setPartnerMemories] = useState<string[]>([])
 
   const clearTurnChoices = useCallback(() => {
     setSexChoices([])
@@ -60,6 +73,11 @@ export function useSexSceneState() {
     setLaraDialogue([])
     setMultiOrgasm(null)
     setActiveTempo('medium')
+    setSexPressure(15)
+    setBodyStates([])
+    setSexPosition('missionary')
+    setSexControlMode('moves')
+    setOrgasmFork(null)
     if (data.context_bonuses) setContextBonuses(data.context_bonuses)
   }, [])
 
@@ -78,6 +96,11 @@ export function useSexSceneState() {
     setMultiOrgasm(null)
     setPenisStats(null)
     setActiveTempo('medium')
+    setSexPressure(0)
+    setBodyStates([])
+    setSexPosition('missionary')
+    setSexControlMode('moves')
+    setOrgasmFork(null)
   }, [])
 
   return {
@@ -115,6 +138,18 @@ export function useSexSceneState() {
     setPenisStats,
     activeTempo,
     setActiveTempo,
+    sexPressure,
+    setSexPressure,
+    bodyStates,
+    setBodyStates,
+    sexPosition,
+    setSexPosition,
+    sexControlMode,
+    setSexControlMode,
+    orgasmFork,
+    setOrgasmFork,
+    partnerMemories,
+    setPartnerMemories,
     clearTurnChoices,
     applySexSceneStart,
     clearAfterSceneSummary,

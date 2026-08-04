@@ -33,6 +33,27 @@ import { LaraCard } from './lara-card'
 import Image from 'next/image'
 import { DiceRollPopup, DualPleasureMeter, PhaseIndicator, StaminaBar, ComboCounter, DominationScale, PartnerReaction, SexChoiceCards, ErogenousDiscovery, ContextBonusBadges, SkillSynergyBadges, SceneSummaryCard, SceneAtmosphere, SceneMoodIndicator, LaraDialogueCards, MultiOrgasmPopup, PenisStatsCard, TempoControlButtons } from './sex-mechanics'
 import { SexSkillMovesBar, type HudMove } from './sex-skill-moves'
+import { SexLiveHud } from './sex-live-hud'
+import {
+  SEX_POSITIONS,
+  applyFitMicroLocal,
+  buildDesireImpulses,
+  buildFitMicroActions,
+  buildFitStrip,
+  buildFreeActions,
+  buildOrgasmFork,
+  buildPartnerReactionChoices,
+  getPartnerMemories,
+  getPosition,
+  hasBodyState,
+  inventPartnerMemoryFact,
+  nextPressure,
+  savePartnerMemory,
+  tickBodyStates,
+  upsertBodyState,
+  type SexPositionId,
+} from '@/lib/game/sex-scene-live'
+import { skillLevel } from '@/lib/game/skill-effects'
 import { listAvailableSexMoves } from '@/lib/game/sex-moves'
 import { computeSkillModifiers } from '@/lib/game/skill-effects'
 import { computeActiveSynergies } from '@/lib/game/sex-synergies'
@@ -81,6 +102,9 @@ export default function GameClient() {
     contextBonuses, setContextBonuses, sceneMood, setSceneMood,
     laraDialogue, setLaraDialogue, multiOrgasm, setMultiOrgasm,
     penisStats, setPenisStats, activeTempo, setActiveTempo,
+    sexPressure, setSexPressure, bodyStates, setBodyStates,
+    sexPosition, setSexPosition, sexControlMode, setSexControlMode,
+    orgasmFork, setOrgasmFork, partnerMemories, setPartnerMemories,
     clearTurnChoices, applySexSceneStart, clearAfterSceneSummary,
   } = sex
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
@@ -737,6 +761,15 @@ export default function GameClient() {
     }
   }
 
+  // Partner memory when scene opens
+  useEffect(() => {
+    if (!sexScene?.partner) {
+      setPartnerMemories([])
+      return
+    }
+    setPartnerMemories(getPartnerMemories(String(sexScene.partner)))
+  }, [sexScene?.partner, setPartnerMemories])
+
   // Refresh skill-move HUD when scene / skills / phase change
   useEffect(() => {
     if (!sexScene) {
@@ -767,6 +800,10 @@ export default function GameClient() {
 
   const runSexSkillMove = async (moveId: string) => {
     if (sexMoveBusy || isLoading || !sexScene) return
+    if (hasBodyState(bodyStates, 'knot_lock') && moveId.startsWith('pos_')) {
+      toast.error('У замку — спочатку дочекайся')
+      return
+    }
     setSexMoveBusy(true)
     try {
       const res = await fetch('/api/sex-turn', {
@@ -796,6 +833,77 @@ export default function GameClient() {
       setDomination(result.domination)
       if (body.skills) setSkills(body.skills)
       if (body.gameState) setGameState(body.gameState)
+
+      // Live: tick body, pressure, memory, orgasm fork
+      const pos = getPosition(sexPosition)
+      const fit = buildFitStrip(skills, penisStats, pos.orifice, hasBodyState(bodyStates, 'knot_lock'))
+      let states = tickBodyStates(bodyStates)
+      if (moveId === 'an_prep' || moveId.includes('prep') || moveId === 'vg_prep') {
+        states = upsertBodyState(states, 'lubed', 5)
+        states = states.filter((s) => s.id !== 'tense')
+      }
+      if (fit && (fit.overall === 'stretch' || fit.overall === 'extreme')) {
+        states = upsertBodyState(states, 'stretched', 3)
+      }
+      if (fit && fit.overall === 'impossible') {
+        states = upsertBodyState(states, 'sore', 4)
+        states = upsertBodyState(states, 'tense', 3)
+      }
+      // Hyenoid knot chance on main/climax with knot diameter
+      if (
+        penisStats?.knot_diameter_cm &&
+        pos.orifice !== 'oral' &&
+        (result.phase === 'main' || result.phase === 'climax') &&
+        Math.random() < 0.22
+      ) {
+        const lockTurns = Math.max(2, Math.min(5, Math.round(Number(penisStats.lock_minutes || 8) / 3)))
+        states = upsertBodyState(states, 'knot_lock', lockTurns)
+        toast.message(`🔒 Вузол! Замок ~${lockTurns} ходи`, { duration: 3500 })
+      }
+      if (result.laraOrgasm) {
+        states = upsertBodyState(states, 'shaking', 2)
+      }
+      if (result.partnerOrgasm && (moveId.includes('cream') || moveId.includes('finish'))) {
+        states = upsertBodyState(states, 'overfull', 3)
+      }
+      setBodyStates(states)
+
+      const pNext = nextPressure(sexPressure, {
+        tempo: String(activeTempo),
+        fitTier: fit?.overall,
+        hasLubed: hasBodyState(states, 'lubed'),
+        hasTense: hasBodyState(states, 'tense'),
+        fastRiskMove: String(activeTempo) === 'fast',
+      })
+      setSexPressure(pNext)
+      if (pNext >= 90) toast.message('⚡ Тиск зриву!', { duration: 2000 })
+
+      const partner = String(sexScene?.partner || 'Партнер')
+      if (result.laraOrgasm || result.partnerOrgasm || result.phaseChanged) {
+        const fact = inventPartnerMemoryFact({
+          partner,
+          position: sexPosition,
+          laraOrgasm: Boolean(result.laraOrgasm),
+          partnerOrgasm: Boolean(result.partnerOrgasm),
+          tempo: String(activeTempo),
+          fitTier: fit?.overall,
+        })
+        const mem = savePartnerMemory(partner, fact)
+        setPartnerMemories(mem)
+      }
+
+      const mods = computeSkillModifiers(skills)
+      if (result.laraOrgasm || result.partnerOrgasm) {
+        setOrgasmFork(
+          buildOrgasmFork({
+            laraOrgasm: Boolean(result.laraOrgasm),
+            partnerOrgasm: Boolean(result.partnerOrgasm),
+            multiUnlocked: mods.multiOrgasmUnlocked,
+            edgeSkill: skillLevel(skills, 'Еджинг'),
+            partnerName: partner,
+          })
+        )
+      }
 
       if (result.multiOrgasm) {
         setMultiOrgasm(result.multiOrgasm)
@@ -1322,11 +1430,65 @@ export default function GameClient() {
                       <TempoControlButtons activeTempo={String(activeTempo)} onChange={(t) => setActiveTempo(t)} />
                     </div>
                   </div>
-                  <SexSkillMovesBar
-                    moves={sexHudMoves}
+                  <SexLiveHud
+                    partnerName={sexScene?.partner}
+                    pressure={sexPressure}
+                    fit={buildFitStrip(
+                      skills,
+                      penisStats,
+                      getPosition(sexPosition).orifice,
+                      hasBodyState(bodyStates, 'knot_lock')
+                    )}
+                    fitActions={buildFitMicroActions(hasBodyState(bodyStates, 'knot_lock'))}
+                    onFitAction={(id) => {
+                      const r = applyFitMicroLocal(id, sexPressure, bodyStates)
+                      setSexPressure(r.pressure)
+                      setBodyStates(r.bodyStates)
+                      const act = buildFitMicroActions(false).find((a) => a.id === id)
+                      if (act) void sendMessage(act.prompt)
+                    }}
+                    positions={SEX_POSITIONS}
+                    positionId={sexPosition}
+                    positionLocked={hasBodyState(bodyStates, 'knot_lock')}
+                    onPosition={(id) => {
+                      if (hasBodyState(bodyStates, 'knot_lock')) {
+                        toast.error('У замку — позу не змінити')
+                        return
+                      }
+                      setSexPosition(id as SexPositionId)
+                      const p = getPosition(id)
+                      void sendMessage(p.prompt)
+                    }}
+                    controlMode={sexControlMode}
+                    onControlMode={setSexControlMode}
+                    freeActions={buildFreeActions(sexScene?.partner)}
+                    onFreeAction={(a) => void sendMessage(a.prompt)}
+                    reactionChoices={buildPartnerReactionChoices(
+                      sexScene?.partner,
+                      reactions[reactions.length - 1]?.text
+                    )}
+                    onReaction={(c) => void sendMessage(c.prompt)}
+                    bodyStates={bodyStates}
+                    partnerMemories={partnerMemories}
+                    orgasmFork={orgasmFork}
+                    onOrgasmFork={(o) => {
+                      setOrgasmFork(null)
+                      if (o.id === 'continue') {
+                        setMultiOrgasm(null)
+                      }
+                      void sendMessage(o.prompt)
+                    }}
+                    impulses={buildDesireImpulses(gameState?.desire ?? 0, sexScene?.partner)}
+                    onImpulse={(i) => void sendMessage(i.prompt)}
                     busy={sexMoveBusy || isLoading}
-                    onSelect={(id) => void runSexSkillMove(id)}
                   />
+                  {sexControlMode === 'moves' && (
+                    <SexSkillMovesBar
+                      moves={sexHudMoves}
+                      busy={sexMoveBusy || isLoading}
+                      onSelect={(id) => void runSexSkillMove(id)}
+                    />
+                  )}
                   <SkillSynergyBadges synergies={computeActiveSynergies(skills)} />
                   {contextBonuses.length > 0 && <ContextBonusBadges bonuses={contextBonuses} />}
                   {reactions.length > 0 && (
