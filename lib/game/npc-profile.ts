@@ -278,7 +278,7 @@ function archetypeBias(archetype?: string | null): Partial<NpcAttrStats> {
     return { agility: 2, charisma: 3, libido: 10, dominance: -5 }
   }
   if (a.includes('вигнанець') || a.includes('відступ')) {
-    return { agility: 2, willpower: -1, dominance: -15, fear: undefined as never }
+    return { agility: 2, willpower: -1, dominance: -15 }
   }
   if (a.includes('торгов')) return { charisma: 2, willpower: 1, dominance: 0 }
   if (a.includes('провідник')) return { endurance: 2, agility: 1, willpower: 1 }

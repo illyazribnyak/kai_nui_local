@@ -124,7 +124,7 @@ describe('SIDE_QUESTS', () => {
   })
 
   it('does not collide with main ladder titles', () => {
-    const ladder = new Set(QUEST_LADDER.map((q) => q.title))
+    const ladder = new Set(QUEST_LADDER.map((q) => q.title) as string[])
     for (const q of SIDE_QUESTS) {
       assert.ok(!ladder.has(q.title), `side quest collides: ${q.title}`)
     }
