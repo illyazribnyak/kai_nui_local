@@ -16,6 +16,7 @@ import {
   levelToDiceBonus,
   skillLevel,
 } from '@/lib/game/skill-effects'
+import { SEX_MOVES } from '@/lib/game/sex-moves'
 
 interface SkillTreeProps {
   skills: SkillData[]
@@ -219,6 +220,21 @@ export function SkillTree({ skills }: SkillTreeProps) {
               <span className="font-bold text-emerald-300">⚙️ Механіка: </span>
               {selectedNode.effectByLevel}
             </div>
+            {(() => {
+              const moves = SEX_MOVES.filter((m) => m.skillName === selectedNode.name)
+              if (!moves.length) return null
+              return (
+                <div className="p-2 rounded bg-pink-950/40 border border-pink-800/40 text-[11px] text-pink-100/90 space-y-1">
+                  <p className="font-bold text-pink-300">🎮 Ходи в секс-сцені:</p>
+                  {moves.map((m) => (
+                    <p key={m.id}>
+                      {m.icon} <span className="font-semibold">{m.label}</span>
+                      {m.minLevel > 0 ? ` (Lv≥${m.minLevel})` : ' (з Lv0)'} — {m.description}
+                    </p>
+                  ))}
+                </div>
+              )
+            })()}
             {selectedNode.parentName && (
               <p className="text-[10px] text-muted-foreground">
                 Вимога: «{selectedNode.parentName}» рівень ≥ 1

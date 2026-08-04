@@ -29,6 +29,9 @@ import { toast } from 'sonner'
 import { getAvatar, getLaraAvatar, getTribeAvatar } from '@/lib/avatar-utils'
 import Image from 'next/image'
 import { DiceRollPopup, DualPleasureMeter, PhaseIndicator, StaminaBar, ComboCounter, DominationScale, PartnerReaction, SexChoiceCards, ErogenousDiscovery, ContextBonusBadges, SceneSummaryCard, SceneAtmosphere, SceneMoodIndicator, LaraDialogueCards, MultiOrgasmPopup, PenisStatsCard, TempoControlButtons } from './sex-mechanics'
+import { SexSkillMovesBar, type HudMove } from './sex-skill-moves'
+import { listAvailableSexMoves } from '@/lib/game/sex-moves'
+import { computeSkillModifiers } from '@/lib/game/skill-effects'
 import { OnboardingOverlay } from './onboarding'
 import { CombatOverlay } from './combat-overlay'
 import { CraftingModal } from './crafting-modal'
@@ -88,6 +91,9 @@ export default function GameClient() {
   const [isMuted, setIsMuted] = useState(false)
   const [audioVolume, setAudioVolume] = useState(0.7)
   const [craftBusy, setCraftBusy] = useState(false)
+  const [sexMoveBusy, setSexMoveBusy] = useState(false)
+  const [orgasmChain, setOrgasmChain] = useState(0)
+  const [sexHudMoves, setSexHudMoves] = useState<HudMove[]>([])
   const [showCraftingModal, setShowCraftingModal] = useState(false)
   const [showTimelineModal, setShowTimelineModal] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState<LlmProviderChoice>('auto')
@@ -688,6 +694,97 @@ export default function GameClient() {
     }
   }
 
+  // Refresh skill-move HUD when scene / skills / phase change
+  useEffect(() => {
+    if (!sexScene) {
+      setSexHudMoves([])
+      return
+    }
+    const mods = computeSkillModifiers(skills)
+    const list = listAvailableSexMoves(skills, {
+      phase: phase?.phase || 'foreplay',
+      multiUnlocked: mods.multiOrgasmUnlocked,
+      amuletEnergy: gameState?.amuletEnergy ?? 0,
+    })
+    const unlocked = list.filter((a) => a.unlocked)
+    const locked = list.filter((a) => !a.unlocked).slice(0, 3)
+    const shown = [...unlocked, ...locked].slice(0, 12)
+    setSexHudMoves(
+      shown.map((a) => ({
+        id: a.move.id,
+        label: a.move.label,
+        icon: a.move.icon,
+        unlocked: a.unlocked,
+        reason: a.reason,
+        skillName: a.move.skillName,
+        description: a.move.description,
+      }))
+    )
+  }, [sexScene, skills, phase?.phase, gameState?.amuletEnergy])
+
+  const runSexSkillMove = async (moveId: string) => {
+    if (sexMoveBusy || isLoading || !sexScene) return
+    setSexMoveBusy(true)
+    try {
+      const res = await fetch('/api/sex-turn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          moveId,
+          tempo: activeTempo,
+          pleasure,
+          stamina: stamina?.value ?? 100,
+          phase: phase?.phase || 'foreplay',
+          domination,
+          orgasmChain,
+          amuletEnergy: gameState?.amuletEnergy ?? 0,
+          partnerName: sexScene?.partner,
+        }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body?.error ?? 'Хід не вдався')
+
+      const result = body.result
+      if (!result) throw new Error('Порожня відповідь sex-turn')
+
+      setPleasure(result.pleasure)
+      setStamina({ value: result.stamina, tempo: String(activeTempo) })
+      setPhase({ phase: result.phase, label: result.phaseLabel })
+      setDomination(result.domination)
+      if (body.skills) setSkills(body.skills)
+      if (body.gameState) setGameState(body.gameState)
+
+      if (result.multiOrgasm) {
+        setMultiOrgasm(result.multiOrgasm)
+        setOrgasmChain(result.multiOrgasm.chain ?? orgasmChain)
+      }
+      if (result.availableMoves?.length) {
+        setSexHudMoves(result.availableMoves)
+      }
+
+      for (const g of result.xpGrants || []) {
+        toast.success(`🌳 ${g.name} +${g.xp} XP`, { duration: 2500 })
+      }
+      if (result.phaseChanged) {
+        toast.message(`Фаза: ${result.phaseLabel}`)
+      }
+      if (result.laraOrgasm) toast.message('💜 Оргазм Лари', { icon: '💥' })
+      if (result.partnerOrgasm) toast.message('🧡 Оргазм партнера', { icon: '💥' })
+
+      soundEngine.playClick()
+
+      // Narrative via chat — meters already applied
+      const chatMessage = body.chatMessage as string
+      if (chatMessage) {
+        await sendMessage(chatMessage)
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Хід навички не вдався')
+    } finally {
+      setSexMoveBusy(false)
+    }
+  }
+
   const selectProvider = (p: LlmProviderChoice) => {
     setSelectedProvider(p)
     try { localStorage.setItem('kai_nui_provider', p) } catch { /* ignore */ }
@@ -1167,6 +1264,11 @@ export default function GameClient() {
                       <TempoControlButtons activeTempo={String(activeTempo)} onChange={(t) => setActiveTempo(t)} />
                     </div>
                   </div>
+                  <SexSkillMovesBar
+                    moves={sexHudMoves}
+                    busy={sexMoveBusy || isLoading}
+                    onSelect={(id) => void runSexSkillMove(id)}
+                  />
                   {contextBonuses.length > 0 && <ContextBonusBadges bonuses={contextBonuses} />}
                   {reactions.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 justify-center max-w-3xl mx-auto">
