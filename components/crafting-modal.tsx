@@ -2,34 +2,58 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Package, Hammer, X, Sparkles } from 'lucide-react'
+import { Package, Hammer, X, Sparkles, Loader2 } from 'lucide-react'
 import type { InventoryItemData } from '@/lib/types'
 import {
   CRAFTING_RECIPES,
   canCraftRecipe,
-  craftActionText,
-  consumeActionText,
   getInventoryCount,
+  isConsumable,
 } from '@/lib/game/crafting'
 
 interface CraftingModalProps {
   isOpen: boolean
   inventory: InventoryItemData[]
+  busy?: boolean
   onClose: () => void
-  onCraft: (actionText: string) => void
-  onConsumeItem: (actionText: string) => void
+  /** Server craft by recipe id (deterministic). */
+  onCraft: (recipeId: string) => void | Promise<void>
+  /** Server consume by item name. */
+  onConsumeItem: (itemName: string) => void | Promise<void>
 }
 
 export function CraftingModal({
   isOpen,
   inventory,
+  busy = false,
   onClose,
   onCraft,
   onConsumeItem,
 }: CraftingModalProps) {
   const [activeTab, setActiveTab] = useState<'inventory' | 'crafting'>('crafting')
+  const [pendingId, setPendingId] = useState<string | null>(null)
 
   if (!isOpen) return null
+
+  const runCraft = async (recipeId: string) => {
+    if (busy || pendingId) return
+    setPendingId(recipeId)
+    try {
+      await onCraft(recipeId)
+    } finally {
+      setPendingId(null)
+    }
+  }
+
+  const runConsume = async (itemName: string) => {
+    if (busy || pendingId) return
+    setPendingId(`consume:${itemName}`)
+    try {
+      await onConsumeItem(itemName)
+    } finally {
+      setPendingId(null)
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -40,11 +64,15 @@ export function CraftingModal({
           exit={{ opacity: 0, scale: 0.95 }}
           className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]"
         >
-          {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
             <div className="flex items-center gap-2">
               <Hammer className="w-5 h-5 text-amber-400" />
-              <h2 className="font-bold text-base">🔨 Верстак & Інвентар</h2>
+              <div>
+                <h2 className="font-bold text-base">🔨 Верстак & Інвентар</h2>
+                <p className="text-[10px] text-muted-foreground">
+                  Миттєвий крафт на сервері — без очікування AI
+                </p>
+              </div>
             </div>
             <button
               onClick={onClose}
@@ -54,7 +82,6 @@ export function CraftingModal({
             </button>
           </div>
 
-          {/* Navigation Tabs */}
           <div className="flex border-b border-border bg-muted/10 px-4">
             <button
               type="button"
@@ -65,7 +92,7 @@ export function CraftingModal({
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Hammer className="w-3.5 h-3.5" /> Крафтинг рецепти
+              <Hammer className="w-3.5 h-3.5" /> Рецепти
             </button>
             <button
               type="button"
@@ -76,16 +103,16 @@ export function CraftingModal({
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Package className="w-3.5 h-3.5" /> Сітка Предметів ({inventory.length})
+              <Package className="w-3.5 h-3.5" /> Інвентар ({inventory.length})
             </button>
           </div>
 
-          {/* Body content */}
           <div className="p-4 overflow-y-auto panel-scroll flex-1 min-h-0">
             {activeTab === 'crafting' ? (
               <div className="space-y-3">
                 {CRAFTING_RECIPES.map((recipe) => {
                   const craftable = canCraftRecipe(inventory, recipe)
+                  const loading = pendingId === recipe.id
                   return (
                     <div
                       key={recipe.id}
@@ -104,14 +131,19 @@ export function CraftingModal({
                         </div>
                         <button
                           type="button"
-                          onClick={() => onCraft(craftActionText(recipe.name))}
-                          className={`flex-shrink-0 px-3 py-1 text-xs rounded-lg font-semibold flex items-center gap-1 transition-all ${
+                          disabled={!craftable || !!pendingId}
+                          onClick={() => void runCraft(recipe.id)}
+                          className={`flex-shrink-0 px-3 py-1 text-xs rounded-lg font-semibold flex items-center gap-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                             craftable
                               ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md shadow-amber-500/30 active:scale-95'
-                              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                              : 'bg-muted text-muted-foreground'
                           }`}
                         >
-                          <Sparkles className="w-3 h-3" />
+                          {loading ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-3 h-3" />
+                          )}
                           Створити
                         </button>
                       </div>
@@ -147,39 +179,42 @@ export function CraftingModal({
                     Інвентар Лари порожній
                   </p>
                 ) : (
-                  inventory.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-3 rounded-xl border border-border bg-card/60 flex items-center justify-between gap-2 min-w-0"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="font-semibold text-xs truncate">{item.name}</span>
-                          {item.quantity > 1 && (
-                            <span className="text-[10px] font-mono text-primary font-bold flex-shrink-0">
-                              x{item.quantity}
-                            </span>
-                          )}
+                  inventory.map((item) => {
+                    const consumable = isConsumable(item.name, item.category)
+                    const loading = pendingId === `consume:${item.name}`
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-3 rounded-xl border border-border bg-card/60 flex items-center justify-between gap-2 min-w-0"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-semibold text-xs truncate">{item.name}</span>
+                            {item.quantity > 1 && (
+                              <span className="text-[10px] font-mono text-primary font-bold flex-shrink-0">
+                                x{item.quantity}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground block">
+                            {item.category || 'ресурс'}
+                          </span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground block">
-                          {item.category || 'ресурс'}
-                        </span>
-                      </div>
 
-                      {item.category === 'їжа' ||
-                      item.name.toLowerCase().includes('риба') ||
-                      item.name.toLowerCase().includes('фрукт') ||
-                      item.name.toLowerCase().includes('вода') ? (
-                        <button
-                          type="button"
-                          onClick={() => onConsumeItem(consumeActionText(item.name))}
-                          className="flex-shrink-0 px-2.5 py-1 text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg shadow active:scale-95 transition-all"
-                        >
-                          Спожити
-                        </button>
-                      ) : null}
-                    </div>
-                  ))
+                        {consumable ? (
+                          <button
+                            type="button"
+                            disabled={!!pendingId}
+                            onClick={() => void runConsume(item.name)}
+                            className="flex-shrink-0 px-2.5 py-1 text-[11px] bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium rounded-lg shadow active:scale-95 transition-all inline-flex items-center gap-1"
+                          >
+                            {loading && <Loader2 className="w-3 h-3 animate-spin" />}
+                            Спожити
+                          </button>
+                        ) : null}
+                      </div>
+                    )
+                  })
                 )}
               </div>
             )}

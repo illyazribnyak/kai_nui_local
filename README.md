@@ -89,4 +89,9 @@ npm run dev
 | `GET /api/export-game` | повний JSON-бекап сейву |
 | `POST /api/import-game` | імпорт JSON-сейву (тіло = export) |
 | `GET /api/export-story` | HTML-хроніка (storybook) |
+| `POST /api/craft` | детермінований крафт/споживання (`action: craft|consume`) — без LLM |
 | `POST /api/redo-turn` | відкат стану + текст останньої дії для повтору |
+
+### Верстак
+У сайдбарі **Інвентар → Верстак**: рецепти з `lib/game/crafting.ts` виконуються через `/api/craft` миттєво (без чату).  
+AI як і раніше може крафтити наративно через `INV_UPDATE`, але UI-верстак — server-side.

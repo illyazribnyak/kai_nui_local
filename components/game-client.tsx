@@ -86,6 +86,8 @@ export default function GameClient() {
   const [showTagLog, setShowTagLog] = useState(false)
   const [tokenUsage, setTokenUsage] = useState<ClientTokenUsage | null>(null)
   const [isMuted, setIsMuted] = useState(false)
+  const [audioVolume, setAudioVolume] = useState(0.7)
+  const [craftBusy, setCraftBusy] = useState(false)
   const [showCraftingModal, setShowCraftingModal] = useState(false)
   const [showTimelineModal, setShowTimelineModal] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState<LlmProviderChoice>('auto')
@@ -110,7 +112,9 @@ export default function GameClient() {
     fetch('/api/health')
       .then((r) => r.json())
       .then((h) => {
-        setApiKeyOk(Boolean(h?.deepseekKey))
+        if (h?.deepseekKey || h?.geminiKey) setApiKeyOk(true)
+        else if (h && h.deepseekKey === false && h.geminiKey === false) setApiKeyOk(false)
+        else setApiKeyOk(Boolean(h?.ok))
         setApiHint(typeof h?.hint === 'string' ? h.hint : '')
       })
       .catch(() => setApiKeyOk(null))
@@ -118,6 +122,12 @@ export default function GameClient() {
       if (typeof window !== 'undefined' && !localStorage.getItem('kai_nui_onboarded')) {
         setShowOnboarding(true)
       }
+      const savedProvider = localStorage.getItem('kai_nui_provider') as LlmProviderChoice | null
+      if (savedProvider && ['auto', 'dual', 'gemini', 'deepseek'].includes(savedProvider)) {
+        setSelectedProvider(savedProvider)
+      }
+      setIsMuted(soundEngine.getMuted())
+      setAudioVolume(soundEngine.getVolume())
     } catch { /* ignore */ }
   }, [])
 
@@ -340,7 +350,7 @@ export default function GameClient() {
     if (!text || isLoading) return
 
     if (apiKeyOk === false) {
-      toast.error('Спочатку додай DEEPSEEK_API_KEY у .env і перезапусти dev')
+      toast.error('Додай DEEPSEEK_API_KEY або GEMINI_API_KEY у .env і перезапусти dev')
       return
     }
 
@@ -678,6 +688,54 @@ export default function GameClient() {
     }
   }
 
+  const selectProvider = (p: LlmProviderChoice) => {
+    setSelectedProvider(p)
+    try { localStorage.setItem('kai_nui_provider', p) } catch { /* ignore */ }
+    soundEngine.playClick()
+    const label = p === 'auto' ? 'Смарт' : p === 'dual' ? 'Дует' : p === 'gemini' ? 'Gemini' : 'DeepSeek'
+    toast.message(`Провайдер: ${label}`)
+  }
+
+  const runServerCraft = async (recipeId: string) => {
+    setCraftBusy(true)
+    try {
+      const res = await fetch('/api/craft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'craft', recipeId }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body?.error ?? 'Крафт не вдався')
+      soundEngine.playCraft()
+      toast.success(body?.message ?? 'Створено')
+      await loadGameState()
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Крафт не вдався')
+    } finally {
+      setCraftBusy(false)
+    }
+  }
+
+  const runServerConsume = async (itemName: string) => {
+    setCraftBusy(true)
+    try {
+      const res = await fetch('/api/craft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'consume', itemName }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body?.error ?? 'Не вдалося спожити')
+      soundEngine.playClick()
+      toast.success(body?.message ?? 'Спожито')
+      await loadGameState()
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Споживання не вдалося')
+    } finally {
+      setCraftBusy(false)
+    }
+  }
+
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
       case 'зброя': return '\u2694\ufe0f'
@@ -783,6 +841,13 @@ export default function GameClient() {
               }}
             />
 
+            <span
+              className="hidden sm:inline-flex items-center px-2 py-1 rounded-lg border border-border/80 bg-card/60 text-[10px] font-medium text-muted-foreground"
+              title="Поточний AI-провайдер (меню ⋮)"
+            >
+              {selectedProvider === 'auto' ? '⚡ Смарт' : selectedProvider === 'dual' ? '🔀 Дует' : selectedProvider === 'gemini' ? '♊ Gemini' : '🐋 Deep'}
+            </span>
+
             <button
               onClick={() => setShowTimelineModal(true)}
               className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
@@ -832,7 +897,7 @@ export default function GameClient() {
                       <div className="grid grid-cols-4 gap-1">
                         <button
                           type="button"
-                          onClick={() => setSelectedProvider('auto')}
+                          onClick={() => selectProvider('auto')}
                           title="⚡ Смарт-гібрид: DeepSeek наратив, Gemini аналізує лише за потреби"
                           className={`px-1 py-1 text-[10px] rounded transition-colors text-center font-medium ${
                             selectedProvider === 'auto'
@@ -844,7 +909,7 @@ export default function GameClient() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setSelectedProvider('dual')}
+                          onClick={() => selectProvider('dual')}
                           title="🔀 Повний дует: DeepSeek наратив, Gemini завжди робить повний аналіз"
                           className={`px-1 py-1 text-[10px] rounded transition-colors text-center font-medium ${
                             selectedProvider === 'dual'
@@ -856,7 +921,7 @@ export default function GameClient() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setSelectedProvider('gemini')}
+                          onClick={() => selectProvider('gemini')}
                           title="♊ Gemini 2.0 Flash Solo"
                           className={`px-1 py-1 text-[10px] rounded transition-colors text-center font-medium ${
                             selectedProvider === 'gemini'
@@ -868,7 +933,7 @@ export default function GameClient() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setSelectedProvider('deepseek')}
+                          onClick={() => selectProvider('deepseek')}
                           title="🐋 DeepSeek Chat Solo"
                           className={`px-1 py-1 text-[10px] rounded transition-colors text-center font-medium ${
                             selectedProvider === 'deepseek'
@@ -878,6 +943,28 @@ export default function GameClient() {
                         >
                           🐋 Deep
                         </button>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-border/60">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-muted-foreground">Гучність</span>
+                          <span className="font-mono text-[10px]">{Math.round(audioVolume * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={Math.round(audioVolume * 100)}
+                          onChange={(e) => {
+                            const v = Number(e.target.value) / 100
+                            setAudioVolume(v)
+                            soundEngine.setVolume(v)
+                            if (v > 0 && isMuted) {
+                              setIsMuted(false)
+                              soundEngine.setMuted(false)
+                            }
+                          }}
+                          className="w-full h-1.5 accent-primary cursor-pointer"
+                        />
                       </div>
                     </div>
                     <button
@@ -2249,14 +2336,13 @@ export default function GameClient() {
       <CraftingModal
         isOpen={showCraftingModal}
         inventory={inventory}
+        busy={craftBusy}
         onClose={() => setShowCraftingModal(false)}
-        onCraft={(text) => {
-          setShowCraftingModal(false)
-          sendMessage(text)
+        onCraft={async (recipeId) => {
+          await runServerCraft(recipeId)
         }}
-        onConsumeItem={(text) => {
-          setShowCraftingModal(false)
-          sendMessage(text)
+        onConsumeItem={async (itemName) => {
+          await runServerConsume(itemName)
         }}
       />
       <TimelineModal
