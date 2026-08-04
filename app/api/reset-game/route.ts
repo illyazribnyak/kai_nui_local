@@ -72,6 +72,10 @@ export async function POST() {
     // Seed initial skills, locations, tribes, quests, facts
     const { seedSkills } = await import('@/lib/seed-skills')
     await seedSkills()
+    try {
+      const { seedKinks } = await import('@/lib/seed-kinks')
+      await seedKinks()
+    } catch { /* ignore if migrate pending */ }
     const { seedLocations, seedTribes } = await import('@/lib/seed-locations')
     await seedLocations()
     await seedTribes()
