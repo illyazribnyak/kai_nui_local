@@ -1200,9 +1200,22 @@ export async function POST(request: NextRequest) {
           let kinkProgress: Awaited<ReturnType<typeof applyKinkTriggers>> = []
           try {
             const narrativeForKink = displayContent || fullContent
+            const explicitKeys = [...(merged.kinkTriggers || [])]
+            // Coercion / trap scenes always tick «Безсилля»
+            const sceneType = String(merged.sexScene?.type || '').toLowerCase()
+            if (sceneType === 'coercion' || sceneType === 'trap') {
+              explicitKeys.push({ key: 'helpless', xp: 14 })
+            }
+            // Also on scene end if narrative reeks of force (fallback when START type missed)
+            if (
+              merged.sceneSummary &&
+              /примус|проти волі|безсил|пастк|forced|coercion/i.test(narrativeForKink)
+            ) {
+              explicitKeys.push({ key: 'helpless', xp: 10 })
+            }
             kinkProgress = await applyKinkTriggers({
               narrativeText: narrativeForKink,
-              explicitKeys: merged.kinkTriggers || [],
+              explicitKeys,
               fetishName: merged.sceneSummary?.new_fetish || null,
               skills,
             })

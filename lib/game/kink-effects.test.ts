@@ -9,11 +9,12 @@ import {
 import { detectKinkKeysFromText } from './kink-catalog'
 
 describe('kink catalog', () => {
-  it('has 12 core kinks with 5 level meanings each', () => {
-    assert.equal(KINK_CATALOG.length, 12)
+  it('has 13 core kinks with 5 level meanings each', () => {
+    assert.equal(KINK_CATALOG.length, 13)
     for (const k of KINK_CATALOG) {
       assert.equal(k.levelMeanings.length, 5, k.key)
     }
+    assert.ok(KINK_CATALOG.some((k) => k.key === 'helpless'))
   })
 })
 
@@ -50,6 +51,16 @@ describe('kink effects', () => {
       { key: 'breeding', name: 'Запліднення', level: 3, xp: 0, discovered: true },
     ])
     assert.ok(m3.pregnancyRiskMult > m0.pregnancyRiskMult)
+  })
+
+  it('helpless boosts lara pleasure and detects coercion text', () => {
+    const keys = detectKinkKeysFromText('Він тримає її силою — примус, вона безсила')
+    assert.ok(keys.includes('helpless'))
+    const m = computeKinkModifiers([
+      { key: 'helpless', name: 'Безсилля', level: 2, xp: 0, discovered: true },
+    ])
+    assert.ok(m.laraPleasureBonusPct >= 6)
+    assert.ok(m.shameRelief >= 2)
   })
 })
 

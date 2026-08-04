@@ -2,6 +2,7 @@
 
 import type {
   BodyStateChip,
+  CoercionChoice,
   FitStripView,
   FreeAction,
   ImpulseChoice,
@@ -11,10 +12,16 @@ import type {
   SexPositionDef,
   FitMicroAction,
 } from '@/lib/game/sex-scene-live'
-import { pressureLabel } from '@/lib/game/sex-scene-live'
+import {
+  isCoercionScene,
+  pressureLabel,
+  sceneTypeBanner,
+} from '@/lib/game/sex-scene-live'
 
 type Props = {
   partnerName?: string | null
+  /** SEX_SCENE_START.type */
+  sceneType?: string | null
   /** B */
   pressure: number
   /** C */
@@ -31,6 +38,9 @@ type Props = {
   onControlMode: (m: SexControlMode) => void
   freeActions: FreeAction[]
   onFreeAction: (a: FreeAction) => void
+  /** Coercion resist / submit */
+  coercionChoices?: CoercionChoice[]
+  onCoercionChoice?: (c: CoercionChoice) => void
   /** A */
   reactionChoices: PartnerReactionChoice[]
   onReaction: (c: PartnerReactionChoice) => void
@@ -56,6 +66,7 @@ const TONE: Record<string, string> = {
 
 export function SexLiveHud({
   partnerName,
+  sceneType,
   pressure,
   fit,
   fitActions,
@@ -68,6 +79,8 @@ export function SexLiveHud({
   onControlMode,
   freeActions,
   onFreeAction,
+  coercionChoices = [],
+  onCoercionChoice,
   reactionChoices,
   onReaction,
   bodyStates,
@@ -78,6 +91,8 @@ export function SexLiveHud({
   onImpulse,
   busy,
 }: Props) {
+  const coerced = isCoercionScene(sceneType)
+  const banner = sceneTypeBanner(sceneType)
   const pColor =
     pressure >= 75
       ? 'bg-red-500'
@@ -89,6 +104,54 @@ export function SexLiveHud({
 
   return (
     <div className="space-y-2 max-w-3xl mx-auto text-[11px]">
+      {/* Scene type banner */}
+      {banner && (
+        <div
+          className={`rounded-lg border px-2.5 py-1.5 text-center ${
+            banner.tone === 'danger'
+              ? 'border-red-500/50 bg-red-950/50 text-red-100'
+              : banner.tone === 'ritual'
+                ? 'border-violet-500/40 bg-violet-950/40 text-violet-100'
+                : banner.tone === 'trade'
+                  ? 'border-amber-500/40 bg-amber-950/30 text-amber-100'
+                  : 'border-border text-muted-foreground'
+          }`}
+        >
+          <p className="text-[11px] font-bold">{banner.title}</p>
+          <p className="text-[9px] opacity-90 mt-0.5">{banner.subtitle}</p>
+        </div>
+      )}
+
+      {/* Coercion: resist / submit strip */}
+      {coerced && coercionChoices.length > 0 && (
+        <div className="rounded-lg border border-red-500/45 bg-red-950/35 px-2 py-1.5 space-y-1">
+          <p className="text-[9px] text-center text-red-200/90 font-semibold">
+            ⚡ Опір / здача
+          </p>
+          <div className="flex flex-wrap gap-1 justify-center">
+            {coercionChoices.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                disabled={busy}
+                onClick={() => onCoercionChoice?.(c)}
+                className={`px-2 py-1 rounded-full border text-[10px] font-medium disabled:opacity-40 ${
+                  c.safe
+                    ? 'border-slate-500/40 bg-slate-900/50 text-slate-100'
+                    : 'border-red-400/50 bg-red-900/55 text-red-50 shadow shadow-red-900/30'
+                }`}
+                title={c.dc > 0 ? `DC ${c.dc} · ${c.skillHint}` : c.skillHint}
+              >
+                {c.icon} {c.label}
+                {c.dc > 0 ? (
+                  <span className="opacity-70 ml-0.5 text-[8px]">DC{c.dc}</span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* G: mode toggle */}
       <div className="flex items-center justify-center gap-1.5">
         <span className="text-[9px] text-muted-foreground mr-1">Режим:</span>
@@ -110,11 +173,13 @@ export function SexLiveHud({
           onClick={() => onControlMode('free')}
           className={`px-2.5 py-1 rounded-full border text-[10px] ${
             controlMode === 'free'
-              ? 'bg-violet-600/40 border-violet-400/50 text-violet-100'
+              ? coerced
+                ? 'bg-red-600/40 border-red-400/50 text-red-100'
+                : 'bg-violet-600/40 border-violet-400/50 text-violet-100'
               : 'border-border text-muted-foreground'
           }`}
         >
-          ✋ Вільно
+          {coerced ? '⛓️ Реакції' : '✋ Вільно'}
         </button>
       </div>
 
@@ -279,8 +344,24 @@ export function SexLiveHud({
 
       {/* J: orgasm fork */}
       {orgasmFork && orgasmFork.length > 0 && (
-        <div className="rounded-xl border border-purple-400/40 bg-purple-950/50 p-2.5 space-y-1.5 shadow-xl">
-          <p className="text-center text-[11px] font-bold text-purple-100">💜 Оргазм — що далі?</p>
+        <div
+          className={`rounded-xl border p-2.5 space-y-1.5 shadow-xl ${
+            coerced || orgasmFork.some((o) => o.coercion)
+              ? 'border-red-400/45 bg-red-950/55'
+              : 'border-purple-400/40 bg-purple-950/50'
+          }`}
+        >
+          <p
+            className={`text-center text-[11px] font-bold ${
+              coerced || orgasmFork.some((o) => o.coercion)
+                ? 'text-red-100'
+                : 'text-purple-100'
+            }`}
+          >
+            {coerced || orgasmFork.some((o) => o.coercion)
+              ? '⛓️ Пік примусу — що далі?'
+              : '💜 Оргазм — що далі?'}
+          </p>
           <div className="flex flex-wrap gap-1.5 justify-center">
             {orgasmFork.map((o) => (
               <button
@@ -288,7 +369,11 @@ export function SexLiveHud({
                 type="button"
                 disabled={busy}
                 onClick={() => onOrgasmFork(o)}
-                className="px-3 py-1.5 rounded-lg border border-purple-400/40 bg-purple-800/40 text-purple-50 text-[11px] font-medium"
+                className={`px-3 py-1.5 rounded-lg border text-[11px] font-medium ${
+                  o.coercion
+                    ? 'border-red-400/40 bg-red-900/45 text-red-50'
+                    : 'border-purple-400/40 bg-purple-800/40 text-purple-50'
+                }`}
               >
                 {o.icon} {o.label}
               </button>

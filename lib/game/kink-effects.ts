@@ -84,6 +84,12 @@ export function computeKinkModifiers(
     if (def.key === 'control') dominationFloorBonus += 2 * lv
     if (def.key === 'service') laraPleasureBonusPct += 2 * lv
     if (def.key === 'ritual') amuletGainMult *= 1 + 0.08 * lv
+    if (def.key === 'helpless') {
+      // Body responds under force; processes shame into kink; deeper sub bias
+      laraPleasureBonusPct += 3 * lv
+      shameRelief += lv
+      dominationFloorBonus -= lv
+    }
   }
 
   return {

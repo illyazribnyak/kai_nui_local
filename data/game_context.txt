@@ -790,6 +790,8 @@ XP нараховується: +15–30 за відповідну сцену, +5
 - atmosphere: "romantic" | "passionate" | "rough" | "magical" | "dark" | "ritual"
 - phase: завжди "foreplay" на початку
 - context_bonuses: бонуси від погоди, локації, часу доби (масив {source, value})
+- **coercion / trap:** UI вмикає режим примусу (опір Сила/Спритність/Харизма, здача, інший orgasm-fork). Не давай Ларі «веселих» домінантних поз/ходів. Прокачує кінк **Безсилля**.
+- **voluntary:** звичайний контроль, mutual consent.
 
 ### 2. Зміна фази (PHASE)
 [PHASE]{"phase":"main","label":"Основна дія"}[/PHASE]

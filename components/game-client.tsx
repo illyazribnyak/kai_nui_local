@@ -35,20 +35,25 @@ import { DiceRollPopup, DualPleasureMeter, PhaseIndicator, StaminaBar, ComboCoun
 import { SexSkillMovesBar, type HudMove } from './sex-skill-moves'
 import { SexLiveHud } from './sex-live-hud'
 import {
-  SEX_POSITIONS,
   applyFitMicroLocal,
+  buildCoercionChoices,
   buildDesireImpulses,
   buildFitMicroActions,
   buildFitStrip,
   buildFreeActions,
   buildOrgasmFork,
   buildPartnerReactionChoices,
+  filterPositionsForScene,
   getPartnerMemories,
   getPosition,
   hasBodyState,
   inventPartnerMemoryFact,
+  isCoercionScene,
+  isMoveAllowedInScene,
+  isPositionAllowed,
   nextPressure,
   savePartnerMemory,
+  sceneTypeLabel,
   tickBodyStates,
   upsertBodyState,
   type SexPositionId,
@@ -527,10 +532,13 @@ export default function GameClient() {
                 soundEngine.playAchievement()
               }
               if (parsed?.sexScene) {
-                setSexScene(parsed.sexScene); setSceneSummary(null)
-                if (parsed.sexScene.context_bonuses) setContextBonuses(parsed.sexScene.context_bonuses)
-                setPhase({ phase: parsed.sexScene.phase || 'foreplay', label: 'Прелюдія' })
-                setStamina({ value: 100, tempo: 'medium' })
+                applySexSceneStart(parsed.sexScene)
+                if (isCoercionScene(parsed.sexScene.type)) {
+                  toast.message(
+                    `⛓️ ${sceneTypeLabel(parsed.sexScene.type)} — опір або здача`,
+                    { duration: 3500 }
+                  )
+                }
               }
               if (parsed?.phase) setPhase(parsed.phase)
               if (parsed?.pleasure) setPleasure({ lara: Number(parsed.pleasure.lara ?? 0), partner: Number(parsed.pleasure.partner ?? 0) })
@@ -777,32 +785,55 @@ export default function GameClient() {
       return
     }
     const mods = computeSkillModifiers(skills)
+    const knotLocked = hasBodyState(bodyStates, 'knot_lock')
     const list = listAvailableSexMoves(skills, {
       phase: phase?.phase || 'foreplay',
       multiUnlocked: mods.multiOrgasmUnlocked,
       amuletEnergy: gameState?.amuletEnergy ?? 0,
     })
-    const unlocked = list.filter((a) => a.unlocked)
-    const locked = list.filter((a) => !a.unlocked).slice(0, 3)
-    const shown = [...unlocked, ...locked].slice(0, 12)
-    setSexHudMoves(
-      shown.map((a) => ({
+    const mapped = list.map((a) => {
+      const gate = isMoveAllowedInScene(a.move, {
+        sceneType: sexScene.type,
+        knotLocked,
+      })
+      const unlocked = a.unlocked && gate.ok
+      return {
         id: a.move.id,
         label: a.move.label,
         icon: a.move.icon,
-        unlocked: a.unlocked,
-        reason: a.reason,
+        unlocked,
+        reason: !gate.ok ? gate.reason : a.reason,
         skillName: a.move.skillName,
         description: a.move.description,
-      }))
-    )
-  }, [sexScene, skills, phase?.phase, gameState?.amuletEnergy])
+      }
+    })
+    const unlocked = mapped.filter((m) => m.unlocked)
+    const locked = mapped.filter((m) => !m.unlocked).slice(0, 4)
+    setSexHudMoves([...unlocked, ...locked].slice(0, 12))
+  }, [sexScene, skills, phase?.phase, gameState?.amuletEnergy, bodyStates])
 
   const runSexSkillMove = async (moveId: string) => {
     if (sexMoveBusy || isLoading || !sexScene) return
     if (hasBodyState(bodyStates, 'knot_lock') && moveId.startsWith('pos_')) {
       toast.error('У замку — спочатку дочекайся')
       return
+    }
+    {
+      const moveMeta = listAvailableSexMoves(skills, {
+        phase: phase?.phase || 'foreplay',
+        multiUnlocked: computeSkillModifiers(skills).multiOrgasmUnlocked,
+        amuletEnergy: gameState?.amuletEnergy ?? 0,
+      }).find((a) => a.move.id === moveId)
+      if (moveMeta) {
+        const g2 = isMoveAllowedInScene(moveMeta.move, {
+          sceneType: sexScene.type,
+          knotLocked: hasBodyState(bodyStates, 'knot_lock'),
+        })
+        if (!g2.ok) {
+          toast.error(g2.reason)
+          return
+        }
+      }
     }
     setSexMoveBusy(true)
     try {
@@ -819,6 +850,8 @@ export default function GameClient() {
           orgasmChain,
           amuletEnergy: gameState?.amuletEnergy ?? 0,
           partnerName: sexScene?.partner,
+          sceneType: sexScene?.type,
+          knotLocked: hasBodyState(bodyStates, 'knot_lock'),
         }),
       })
       const body = await res.json().catch(() => ({}))
@@ -901,6 +934,7 @@ export default function GameClient() {
             multiUnlocked: mods.multiOrgasmUnlocked,
             edgeSkill: skillLevel(skills, 'Еджинг'),
             partnerName: partner,
+            sceneType: sexScene?.type,
           })
         )
       }
@@ -1432,6 +1466,7 @@ export default function GameClient() {
                   </div>
                   <SexLiveHud
                     partnerName={sexScene?.partner}
+                    sceneType={sexScene?.type}
                     pressure={sexPressure}
                     fit={buildFitStrip(
                       skills,
@@ -1439,20 +1474,33 @@ export default function GameClient() {
                       getPosition(sexPosition).orifice,
                       hasBodyState(bodyStates, 'knot_lock')
                     )}
-                    fitActions={buildFitMicroActions(hasBodyState(bodyStates, 'knot_lock'))}
+                    fitActions={buildFitMicroActions(
+                      hasBodyState(bodyStates, 'knot_lock'),
+                      sexScene?.type
+                    )}
                     onFitAction={(id) => {
                       const r = applyFitMicroLocal(id, sexPressure, bodyStates)
                       setSexPressure(r.pressure)
                       setBodyStates(r.bodyStates)
-                      const act = buildFitMicroActions(false).find((a) => a.id === id)
+                      const act = buildFitMicroActions(
+                        hasBodyState(bodyStates, 'knot_lock'),
+                        sexScene?.type
+                      ).find((a) => a.id === id)
                       if (act) void sendMessage(act.prompt)
                     }}
-                    positions={SEX_POSITIONS}
+                    positions={filterPositionsForScene({
+                      sceneType: sexScene?.type,
+                      knotLocked: hasBodyState(bodyStates, 'knot_lock'),
+                    })}
                     positionId={sexPosition}
                     positionLocked={hasBodyState(bodyStates, 'knot_lock')}
                     onPosition={(id) => {
-                      if (hasBodyState(bodyStates, 'knot_lock')) {
-                        toast.error('У замку — позу не змінити')
+                      const allowed = isPositionAllowed(id, {
+                        sceneType: sexScene?.type,
+                        knotLocked: hasBodyState(bodyStates, 'knot_lock'),
+                      })
+                      if (!allowed.ok) {
+                        toast.error(allowed.reason)
                         return
                       }
                       setSexPosition(id as SexPositionId)
@@ -1461,11 +1509,14 @@ export default function GameClient() {
                     }}
                     controlMode={sexControlMode}
                     onControlMode={setSexControlMode}
-                    freeActions={buildFreeActions(sexScene?.partner)}
+                    freeActions={buildFreeActions(sexScene?.partner, sexScene?.type)}
                     onFreeAction={(a) => void sendMessage(a.prompt)}
+                    coercionChoices={buildCoercionChoices(sexScene?.partner, sexScene?.type)}
+                    onCoercionChoice={(c) => void sendMessage(c.prompt)}
                     reactionChoices={buildPartnerReactionChoices(
                       sexScene?.partner,
-                      reactions[reactions.length - 1]?.text
+                      reactions[reactions.length - 1]?.text,
+                      sexScene?.type
                     )}
                     onReaction={(c) => void sendMessage(c.prompt)}
                     bodyStates={bodyStates}
@@ -1473,12 +1524,16 @@ export default function GameClient() {
                     orgasmFork={orgasmFork}
                     onOrgasmFork={(o) => {
                       setOrgasmFork(null)
-                      if (o.id === 'continue') {
+                      if (o.id === 'continue' || o.id === 'endure' || o.id === 'body_betrays') {
                         setMultiOrgasm(null)
                       }
                       void sendMessage(o.prompt)
                     }}
-                    impulses={buildDesireImpulses(gameState?.desire ?? 0, sexScene?.partner)}
+                    impulses={
+                      isCoercionScene(sexScene?.type)
+                        ? [] // impulses are voluntary desire; coercion uses resist strip
+                        : buildDesireImpulses(gameState?.desire ?? 0, sexScene?.partner)
+                    }
                     onImpulse={(i) => void sendMessage(i.prompt)}
                     busy={sexMoveBusy || isLoading}
                   />

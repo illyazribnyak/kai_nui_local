@@ -25,6 +25,11 @@ import type {
   SexControlMode,
   SexPositionId,
 } from '@/lib/game/sex-scene-live'
+import {
+  initialPressureForScene,
+  isCoercionScene,
+  isPositionAllowed,
+} from '@/lib/game/sex-scene-live'
 
 export function useSexSceneState() {
   const [sexScene, setSexScene] = useState<SexSceneData | null>(null)
@@ -67,16 +72,20 @@ export function useSexSceneState() {
     setPhase({ phase: data.phase || 'foreplay', label: 'Прелюдія' })
     setStamina({ value: 100, tempo: 'medium' })
     setCombo(null)
-    setDomination(0)
+    // Coercion starts sub-leaning; voluntary neutral
+    setDomination(isCoercionScene(data.type) ? -25 : 0)
     setReactions([])
     setSceneMood(null)
     setLaraDialogue([])
     setMultiOrgasm(null)
-    setActiveTempo('medium')
-    setSexPressure(15)
+    setActiveTempo(isCoercionScene(data.type) ? 'fast' : 'medium')
+    setSexPressure(initialPressureForScene(data.type))
     setBodyStates([])
-    setSexPosition('missionary')
-    setSexControlMode('moves')
+    // Prefer allowed start pose under trap/coercion
+    const startPos: SexPositionId = isCoercionScene(data.type) ? 'doggy' : 'missionary'
+    const ok = isPositionAllowed(startPos, { sceneType: data.type })
+    setSexPosition(ok.ok ? startPos : 'missionary')
+    setSexControlMode(isCoercionScene(data.type) ? 'free' : 'moves')
     setOrgasmFork(null)
     if (data.context_bonuses) setContextBonuses(data.context_bonuses)
   }, [])

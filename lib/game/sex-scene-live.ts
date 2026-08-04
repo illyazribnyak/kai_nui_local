@@ -13,6 +13,105 @@ import {
 import type { SkillLike } from '@/lib/game/body-capacity'
 import type { PenisStatsData } from '@/lib/game/sex-types'
 
+// ─── Scene type / coercion ─────────────────────────────────────────────────
+
+export type SexSceneType =
+  | 'voluntary'
+  | 'coercion'
+  | 'trap'
+  | 'ritual'
+  | 'trade'
+
+export function normalizeSceneType(type?: string | null): SexSceneType {
+  const t = String(type || 'voluntary').toLowerCase().trim()
+  if (
+    t === 'voluntary' ||
+    t === 'coercion' ||
+    t === 'trap' ||
+    t === 'ritual' ||
+    t === 'trade'
+  ) {
+    return t
+  }
+  // LLM sometimes uses UA synonyms
+  if (/примус|force|non.?consent|rape/.test(t)) return 'coercion'
+  if (/пастк|trap|сітк/.test(t)) return 'trap'
+  if (/ритуал/.test(t)) return 'ritual'
+  if (/торг|trade|обмін/.test(t)) return 'trade'
+  return 'voluntary'
+}
+
+/** Against will: coercion or physical trap */
+export function isCoercionScene(type?: string | null): boolean {
+  const t = normalizeSceneType(type)
+  return t === 'coercion' || t === 'trap'
+}
+
+export function isTrapScene(type?: string | null): boolean {
+  return normalizeSceneType(type) === 'trap'
+}
+
+export function sceneTypeLabel(type?: string | null): string {
+  switch (normalizeSceneType(type)) {
+    case 'coercion':
+      return 'Примус'
+    case 'trap':
+      return 'Пастка'
+    case 'ritual':
+      return 'Ритуал'
+    case 'trade':
+      return 'Обмін'
+    default:
+      return 'Добровільно'
+  }
+}
+
+export function sceneTypeBanner(type?: string | null): {
+  title: string
+  subtitle: string
+  tone: 'danger' | 'ritual' | 'trade' | 'safe'
+} | null {
+  const t = normalizeSceneType(type)
+  if (t === 'coercion') {
+    return {
+      title: '⛓️ Примус',
+      subtitle: 'Не її воля — можна опиратись (Сила / Спритність / Харизма) або піддатись',
+      tone: 'danger',
+    }
+  }
+  if (t === 'trap') {
+    return {
+      title: '🪤 Пастка',
+      subtitle: 'Фізично обмежена — менше поз і «веселих» ходів, втеча складніша',
+      tone: 'danger',
+    }
+  }
+  if (t === 'ritual') {
+    return {
+      title: '🔮 Ритуал',
+      subtitle: 'Секс як обряд — правила племʼя / амулет',
+      tone: 'ritual',
+    }
+  }
+  if (t === 'trade') {
+    return {
+      title: '🤝 Обмін',
+      subtitle: 'Угода тілом — можна торгуватись, але ціна реальна',
+      tone: 'trade',
+    }
+  }
+  return null
+}
+
+/** Starting pressure for non-voluntary scenes */
+export function initialPressureForScene(type?: string | null): number {
+  const t = normalizeSceneType(type)
+  if (t === 'trap') return 55
+  if (t === 'coercion') return 40
+  if (t === 'ritual') return 25
+  return 15
+}
+
 // ─── Positions (F) ─────────────────────────────────────────────────────────
 
 export type SexPositionId =
@@ -86,6 +185,154 @@ export const SEX_POSITIONS: SexPositionDef[] = [
 
 export function getPosition(id: string | null | undefined): SexPositionDef {
   return SEX_POSITIONS.find((p) => p.id === id) || SEX_POSITIONS[0]
+}
+
+/**
+ * Gate positions by scene type / knot lock.
+ * Trap: only forced-friendly poses. Coercion: no Lara-on-top control.
+ */
+export function filterPositionsForScene(opts: {
+  sceneType?: string | null
+  knotLocked?: boolean
+}): SexPositionDef[] {
+  if (opts.knotLocked) {
+    // UI freezes current; list still returns all but locked flag prevents switch
+    return SEX_POSITIONS
+  }
+  if (isTrapScene(opts.sceneType)) {
+    return SEX_POSITIONS.filter(
+      (p) => p.id === 'missionary' || p.id === 'doggy' || p.id === 'oral'
+    )
+  }
+  if (isCoercionScene(opts.sceneType)) {
+    // Partner leads — no cowgirl (Lara control), no free standing dance
+    return SEX_POSITIONS.filter((p) => p.id !== 'cowgirl')
+  }
+  return SEX_POSITIONS
+}
+
+export function isPositionAllowed(
+  positionId: string,
+  opts: { sceneType?: string | null; knotLocked?: boolean }
+): { ok: true } | { ok: false; reason: string } {
+  if (opts.knotLocked) {
+    return { ok: false, reason: 'У замку — позу змінити не можна' }
+  }
+  const allowed = filterPositionsForScene(opts)
+  if (!allowed.some((p) => p.id === positionId)) {
+    if (isTrapScene(opts.sceneType)) {
+      return { ok: false, reason: 'Пастка: ця поза недоступна' }
+    }
+    if (isCoercionScene(opts.sceneType)) {
+      return { ok: false, reason: 'Примус: партнер не дає тобі вести' }
+    }
+    return { ok: false, reason: 'Поза недоступна' }
+  }
+  return { ok: true }
+}
+
+/**
+ * Server/client gate for skill moves under coercion / trap / knot.
+ */
+export function isMoveAllowedInScene(
+  move: { id: string; category: string; label?: string },
+  opts: { sceneType?: string | null; knotLocked?: boolean }
+): { ok: true } | { ok: false; reason: string } {
+  if (opts.knotLocked) {
+    if (
+      move.category === 'domination' ||
+      move.category === 'riding' ||
+      move.id.startsWith('pos_') ||
+      move.id === 'sed_dance'
+    ) {
+      return { ok: false, reason: 'У замку вузла — цей хід недоступний' }
+    }
+  }
+  if (!isCoercionScene(opts.sceneType)) return { ok: true }
+
+  if (move.category === 'domination') {
+    return { ok: false, reason: 'Примус: домінування недоступне' }
+  }
+  if (move.category === 'riding') {
+    return { ok: false, reason: 'Примус: ти не зверху і не ведеш' }
+  }
+  if (move.id === 'end_control' || move.category === 'edging') {
+    return { ok: false, reason: 'Примус: контроль темпу не у тебе' }
+  }
+  if (isTrapScene(opts.sceneType)) {
+    if (move.category === 'public' || move.id === 'sed_dance' || move.id === 'pub_show') {
+      return { ok: false, reason: 'Пастка: немає простору для шоу' }
+    }
+  }
+  return { ok: true }
+}
+
+// ─── Coercion resist / submit choices ──────────────────────────────────────
+
+export type CoercionChoice = {
+  id: 'resist_str' | 'resist_agi' | 'resist_cha' | 'submit' | 'freeze'
+  label: string
+  icon: string
+  prompt: string
+  /** Attribute hint for LLM dice */
+  skillHint: string
+  dc: number
+  /** Softer / no roll */
+  safe?: boolean
+}
+
+export function buildCoercionChoices(
+  partnerName?: string | null,
+  sceneType?: string | null
+): CoercionChoice[] {
+  if (!isCoercionScene(sceneType)) return []
+  const who = partnerName || 'агресор'
+  const trap = isTrapScene(sceneType)
+  const baseDc = trap ? 16 : 14
+  return [
+    {
+      id: 'resist_str',
+      label: 'Сила',
+      icon: '💪',
+      skillHint: 'Сила',
+      dc: baseDc,
+      prompt: `Лара намагається відштовхнути ${who} силою (кидок Сила DC${baseDc}). Якщо успіх — шанс вирватись; якщо провал — гірше.`,
+    },
+    {
+      id: 'resist_agi',
+      label: 'Втекти',
+      icon: '🏃',
+      skillHint: 'Спритність',
+      dc: trap ? baseDc + 1 : baseDc,
+      prompt: `Лара рветься вислизнути від ${who} (кидок Спритність DC${trap ? baseDc + 1 : baseDc}). ${trap ? 'Пастка ускладнює втечу.' : ''}`,
+    },
+    {
+      id: 'resist_cha',
+      label: 'Вмовити',
+      icon: '🗣️',
+      skillHint: 'Харизма',
+      dc: baseDc + 1,
+      prompt: `Лара намагається словами / поглядом зупинити ${who} (кидок Харизма DC${baseDc + 1}).`,
+    },
+    {
+      id: 'submit',
+      label: 'Піддатись',
+      icon: '🙇',
+      skillHint: '—',
+      dc: 0,
+      safe: true,
+      prompt: `Лара перестає опиратись — тіло піддається ${who}, навіть якщо розум проти. Може прокачати кінк «Безсилля».`,
+    },
+    {
+      id: 'freeze',
+      label: 'Заціпеніти',
+      icon: '🧊',
+      skillHint: '—',
+      dc: 0,
+      safe: true,
+      prompt: `Лара заціпеніла: ні боротьби, ні згоди — тіло «не тут». ${who} діє, вона майже не реагує голосом.`,
+    },
+  ]
 }
 
 // ─── Control mode (G) ──────────────────────────────────────────────────────
@@ -243,9 +490,40 @@ export type PartnerReactionChoice = {
 
 export function buildPartnerReactionChoices(
   partnerName?: string | null,
-  lastReaction?: string | null
+  lastReaction?: string | null,
+  sceneType?: string | null
 ): PartnerReactionChoice[] {
   const who = partnerName || 'партнер'
+  if (isCoercionScene(sceneType)) {
+    const base: PartnerReactionChoice[] = [
+      {
+        id: 'react_yield',
+        label: 'Піддатись тілом',
+        icon: '🥺',
+        prompt: `Лара піддається ${who}: тіло м'якне, навіть якщо очі повні страху/гніву.`,
+      },
+      {
+        id: 'react_fight',
+        label: 'Опиратись',
+        icon: '✊',
+        prompt: `Лара б'ється / виривається від ${who} — ризиковано, може гірше.`,
+        risk: true,
+      },
+      {
+        id: 'react_plead',
+        label: 'Благати',
+        icon: '🙏',
+        prompt: `Лара благає ${who} зупинитись або хоча б пом'якшити — голос зривається.`,
+      },
+      {
+        id: 'react_shut',
+        label: 'Замкнутись',
+        icon: '😶',
+        prompt: `Лара мовчить і закривається внутрішньо — тіло «відсутнє», поки ${who} діє.`,
+      },
+    ]
+    return base
+  }
   const base: PartnerReactionChoice[] = [
     {
       id: 'react_yield',
@@ -343,12 +621,22 @@ export function inventPartnerMemoryFact(opts: {
 // ─── Orgasm fork (J) ───────────────────────────────────────────────────────
 
 export type OrgasmForkOption = {
-  id: 'continue' | 'end' | 'edge' | 'switch_focus'
+  id:
+    | 'continue'
+    | 'end'
+    | 'edge'
+    | 'switch_focus'
+    | 'endure'
+    | 'break_free'
+    | 'submit_deeper'
+    | 'body_betrays'
   label: string
   icon: string
   prompt: string
   needsMulti?: boolean
   needsEdge?: boolean
+  /** Coercion-only fork styling */
+  coercion?: boolean
 }
 
 export function buildOrgasmFork(opts: {
@@ -357,39 +645,82 @@ export function buildOrgasmFork(opts: {
   multiUnlocked: boolean
   edgeSkill: number
   partnerName?: string
+  sceneType?: string | null
 }): OrgasmForkOption[] {
   const who = opts.partnerName || 'партнер'
+  if (!(opts.laraOrgasm || opts.partnerOrgasm)) return []
+
+  // Coercion / trap: different emotional fork
+  if (isCoercionScene(opts.sceneType)) {
+    const list: OrgasmForkOption[] = [
+      {
+        id: 'endure',
+        label: 'Терпіти далі',
+        icon: '😣',
+        coercion: true,
+        prompt: `Пік минув, але ${who} не відпускає. Лара терпить далі — тіло гаряче, розум холодний або зламаний.`,
+      },
+      {
+        id: 'body_betrays',
+        label: 'Тіло зрадило',
+        icon: '💜',
+        coercion: true,
+        prompt: `Оргазм ${opts.laraOrgasm ? 'Лари' : 'партнера'} — і тіло Лари зрадило волю: тремтіння, сльози/сором/збудження змішані. Кінк «Безсилля» може прокачатись.`,
+      },
+      {
+        id: 'break_free',
+        label: 'Ривок на втечу',
+        icon: '⚡',
+        coercion: true,
+        prompt: `На хвилі піку Лара робить ривок — спроба вирватись від ${who} (Сила/Спритність, DC високе).`,
+      },
+      {
+        id: 'submit_deeper',
+        label: 'Здатись глибше',
+        icon: '⛓️',
+        coercion: true,
+        prompt: `Лара ламається глибше: перестає боротись, підлаштовується під ${who}. Сором + можливий бонус до кінку безсилля.`,
+      },
+      {
+        id: 'end',
+        label: 'Кінець / знесилилась',
+        icon: '🌑',
+        coercion: true,
+        prompt: `Сцена з ${who} обривається: Лара знесилена, сцена примусу закінчується. Наслідки — сором, гнів, травма або дивний кайф.`,
+      },
+    ]
+    return list
+  }
+
   const optsList: OrgasmForkOption[] = []
-  if (opts.laraOrgasm || opts.partnerOrgasm) {
+  optsList.push({
+    id: 'end',
+    label: 'Завершити',
+    icon: '🏁',
+    prompt: `Сцена з ${who} доходить до ніжного/гарячого завершення. Лара відсторонюється після піку.`,
+  })
+  optsList.push({
+    id: 'continue',
+    label: 'Продовжити',
+    icon: '🔁',
+    prompt: `Після оргазму Лара не зупиняється — продовжує з ${who}, тіло ще тремтить.`,
+    needsMulti: true,
+  })
+  if (opts.edgeSkill >= 1) {
     optsList.push({
-      id: 'end',
-      label: 'Завершити',
-      icon: '🏁',
-      prompt: `Сцена з ${who} доходить до ніжного/гарячого завершення. Лара відсторонюється після піку.`,
-    })
-    optsList.push({
-      id: 'continue',
-      label: 'Продовжити',
-      icon: '🔁',
-      prompt: `Після оргазму Лара не зупиняється — продовжує з ${who}, тіло ще тремтить.`,
-      needsMulti: true,
-    })
-    if (opts.edgeSkill >= 1) {
-      optsList.push({
-        id: 'edge',
-        label: 'Зупинитись на краю',
-        icon: '⏸️',
-        prompt: `Лара різко гальмує на межі (або гальмує ${who}) — еджинг, не дає зірватись одразу.`,
-        needsEdge: true,
-      })
-    }
-    optsList.push({
-      id: 'switch_focus',
-      label: 'Змінити фокус',
-      icon: '🔄',
-      prompt: `Лара змінює фокус: тепер увага на іншому типі ласки / позі з ${who}.`,
+      id: 'edge',
+      label: 'Зупинитись на краю',
+      icon: '⏸️',
+      prompt: `Лара різко гальмує на межі (або гальмує ${who}) — еджинг, не дає зірватись одразу.`,
+      needsEdge: true,
     })
   }
+  optsList.push({
+    id: 'switch_focus',
+    label: 'Змінити фокус',
+    icon: '🔄',
+    prompt: `Лара змінює фокус: тепер увага на іншому типі ласки / позі з ${who}.`,
+  })
   return optsList.filter((o) => {
     if (o.needsMulti && !opts.multiUnlocked) return false
     if (o.needsEdge && opts.edgeSkill < 1) return false
@@ -444,8 +775,28 @@ export type FreeAction = {
   prompt: string
 }
 
-export function buildFreeActions(partnerName?: string): FreeAction[] {
+export function buildFreeActions(
+  partnerName?: string,
+  sceneType?: string | null
+): FreeAction[] {
   const who = partnerName || 'партнер'
+  if (isCoercionScene(sceneType)) {
+    // No romantic free control — limited reactions only
+    return [
+      {
+        id: 'free_look',
+        label: 'Дивитись / відвести очі',
+        icon: '👀',
+        prompt: `Лара або впирається поглядом у ${who}, або відводить очі — єдиний контроль, що лишився.`,
+      },
+      {
+        id: 'free_whisper',
+        label: 'Слова / благання',
+        icon: '👄',
+        prompt: `Лара щось каже ${who}: благання, лайка або тихе «ні» — без сили змінити хід.`,
+      },
+    ]
+  }
   return [
     {
       id: 'free_kiss',
@@ -484,7 +835,10 @@ export type FitMicroAction = {
   risk?: boolean
 }
 
-export function buildFitMicroActions(locked: boolean): FitMicroAction[] {
+export function buildFitMicroActions(
+  locked: boolean,
+  sceneType?: string | null
+): FitMicroAction[] {
   if (locked) {
     return [
       {
@@ -492,6 +846,30 @@ export function buildFitMicroActions(locked: boolean): FitMicroAction[] {
         label: 'Дихати / терпіти',
         icon: '😮‍💨',
         prompt: 'Лара в «замку» — дихає, терпить, чекає поки вузол спаде.',
+      },
+    ]
+  }
+  if (isCoercionScene(sceneType)) {
+    // Partner controls depth; Lara can only plead/endure/lube if allowed
+    return [
+      {
+        id: 'slower',
+        label: 'Благати повільніше',
+        icon: '🙏',
+        prompt: 'Лара благає сповільнитись — партнер може ігнорувати.',
+      },
+      {
+        id: 'lube',
+        label: 'Змазка / слина (якщо дають)',
+        icon: '💧',
+        prompt: 'Лара намагається додати слину/змазку — менше болю, якщо дозволять.',
+      },
+      {
+        id: 'deeper',
+        label: 'Прийняти глибше',
+        icon: '⬇️',
+        prompt: 'Лара змушена / змушує себе прийняти глибше — тиск і ризик.',
+        risk: true,
       },
     ]
   }

@@ -151,6 +151,41 @@ export const KINK_CATALOG: KinkDefinition[] = [
     relatedSkills: ['Ритуал насолоди', 'Екстаз сили', 'Ритуальне шоу'],
     effectByLevel: 'amulet ×(1+0.08×Lv); fact/quest hooks.',
   },
+  {
+    key: 'helpless',
+    name: 'Безсилля',
+    icon: '🔗',
+    category: 'power',
+    description: 'Тяга до примусу / безсилля: тіло реагує, коли воля зламана',
+    levelMeanings: [
+      'сором + іскра',
+      'збуджує думка «не можу»',
+      'оргазм проти волі «смакує»',
+      'шукає / провокує безсилля',
+      'одержимість helplessness',
+    ],
+    triggerKeywords: [
+      'примус',
+      'безсил',
+      'неволя',
+      'проти волі',
+      'forced',
+      'coercion',
+      'пастк',
+      'зв\'язан',
+      'зв’язан',
+      'тримає силою',
+      'не відпуска',
+      'зґвалт',
+      'rape',
+      'helpless',
+      'не може втект',
+      'використав',
+    ],
+    relatedSkills: ['Покірність', 'Прохання та благання', 'Повна довіра', 'Чутливість'],
+    effectByLevel:
+      'у coercion/trap: lara pleasure +3%×Lv; shame relief +Lv; submission path сильніший.',
+  },
 ]
 
 export function findKinkDef(key: string): KinkDefinition | undefined {

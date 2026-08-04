@@ -15,6 +15,7 @@ import {
   tempoKey,
   type SexMove,
 } from '@/lib/game/sex-moves'
+import { isMoveAllowedInScene } from '@/lib/game/sex-scene-live'
 
 export interface SexTurnStateIn {
   pleasure: { lara: number; partner: number }
@@ -25,6 +26,10 @@ export interface SexTurnStateIn {
   amuletEnergy?: number
   partnerName?: string
   orgasmChain?: number
+  /** SEX_SCENE_START.type — gates domination/riding under coercion */
+  sceneType?: string | null
+  /** Hyenoid knot lock active */
+  knotLocked?: boolean
 }
 
 export interface SexTurnXpGrant {
@@ -123,6 +128,19 @@ export function resolveSexTurn(
   const mods = computeSkillModifiers(skills)
   const tempo = tempoKey(state.tempo)
   const phaseBefore = phaseKey(state.phase)
+
+  // Coercion / trap / knot gates (server-authoritative)
+  const sceneGate = isMoveAllowedInScene(move, {
+    sceneType: state.sceneType,
+    knotLocked: Boolean(state.knotLocked),
+  })
+  if (!sceneGate.ok) {
+    return {
+      ok: false,
+      error: sceneGate.reason,
+      code: 'SCENE_GATED',
+    }
+  }
 
   const availability = listAvailableSexMoves(skills, {
     phase: phaseBefore,

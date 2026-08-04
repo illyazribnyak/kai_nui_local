@@ -62,6 +62,8 @@ export async function POST(request: NextRequest) {
         amuletEnergy: Number(body?.amuletEnergy ?? gameState?.amuletEnergy ?? 0),
         partnerName: body?.partnerName ? String(body.partnerName) : undefined,
         orgasmChain: Number(body?.orgasmChain ?? 0),
+        sceneType: body?.sceneType != null ? String(body.sceneType) : null,
+        knotLocked: Boolean(body?.knotLocked),
       },
       skills
     )
