@@ -58,24 +58,41 @@ export function LaraCard({ gameState, skills, compact }: Props) {
     [gameState, skills]
   )
   const [previewKey, setPreviewKey] = useState<LaraLookKey | null>(null)
+  const [galleryHero, setGalleryHero] = useState<{ src: string; label: string; reasons: string[] } | null>(null)
   const activeLook = previewKey ? LARA_LOOKS[previewKey] : appearance.look
+
+  // Prefer auto-picked gallery photo unless user previews a built-in look
+  const heroSrc = previewKey ? activeLook.avatar : (galleryHero?.src || activeLook.avatar)
+  const heroTitle = previewKey
+    ? activeLook.label
+    : galleryHero
+      ? galleryHero.label
+      : activeLook.label
+  const heroSub = previewKey
+    ? activeLook.description
+    : galleryHero
+      ? galleryHero.reasons.slice(0, 2).join(' · ') || 'Авто з галереї'
+      : activeLook.description
 
   if (compact) {
     return (
       <div className="flex items-center gap-3 bg-muted/30 rounded-xl p-3 border border-border/50">
         <div className={`relative w-14 h-14 rounded-full overflow-hidden ring-2 ${appearance.look.accent} flex-shrink-0`}>
           <Image
-            src={appearance.look.avatar}
+            src={galleryHero?.src || appearance.look.avatar}
             alt="Лара Крафт"
             fill
             className="object-cover"
             sizes="56px"
-            key={appearance.look.avatar}
+            key={galleryHero?.src || appearance.look.avatar}
+            unoptimized={Boolean(galleryHero?.src)}
           />
         </div>
         <div className="min-w-0">
           <h3 className="text-sm font-bold truncate">Лара Крафт</h3>
-          <p className="text-[10px] text-muted-foreground truncate">{appearance.look.label}</p>
+          <p className="text-[10px] text-muted-foreground truncate">
+            {galleryHero?.label || appearance.look.label}
+          </p>
           <p className="text-[10px] text-muted-foreground truncate">📍 {gameState?.location || 'Невідомо'}</p>
         </div>
       </div>
@@ -84,23 +101,32 @@ export function LaraCard({ gameState, skills, compact }: Props) {
 
   return (
     <div className="space-y-3">
-      {/* Hero portrait */}
+      {/* Hero portrait — gallery auto-pick or built-in look */}
       <div className="relative rounded-xl overflow-hidden border border-border/60 bg-gradient-to-b from-slate-900/80 to-emerald-950/40">
         <div className="relative w-full aspect-square max-h-48 mx-auto">
           <Image
-            src={activeLook.avatar}
-            alt={activeLook.label}
+            src={heroSrc}
+            alt={heroTitle}
             fill
             className="object-cover"
             sizes="(max-width: 400px) 100vw, 280px"
-            key={activeLook.avatar}
+            key={heroSrc}
             priority
+            unoptimized={heroSrc.includes('lara-gallery')}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-3">
             <h3 className="text-base font-bold text-white drop-shadow">Лара Крафт</h3>
-            <p className="text-[11px] text-white/80">{activeLook.label} — {activeLook.description}</p>
+            <p className="text-[11px] text-white/80">
+              {heroTitle}
+              {heroSub ? ` — ${heroSub}` : ''}
+            </p>
           </div>
+          {galleryHero && !previewKey && (
+            <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-rose-900/90 text-rose-100 border border-rose-500/40">
+              Галерея
+            </span>
+          )}
           {gameState?.isDarkLara && (
             <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-purple-900/90 text-purple-200 border border-purple-500/40">
               Темна
@@ -188,8 +214,21 @@ export function LaraCard({ gameState, skills, compact }: Props) {
         </div>
       )}
 
-      {/* Drop-in user gallery (public/avatars/lara-gallery/) */}
-      <LaraGalleryPanel />
+      {/* Drop-in gallery — auto-picks portrait from game state + filename tags */}
+      <LaraGalleryPanel
+        gameState={gameState}
+        onActiveChange={(src, meta) => {
+          if (src && meta) {
+            setGalleryHero({
+              src,
+              label: meta.label,
+              reasons: meta.reasons || [],
+            })
+          } else {
+            setGalleryHero(null)
+          }
+        }}
+      />
 
       {/* Body kit constructor */}
       <LaraBodyKit
