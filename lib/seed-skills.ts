@@ -74,6 +74,21 @@ export const INITIAL_SKILLS = [
   { name: 'Еджинг', category: 'edging', description: 'Тримати партнера/себе на межі' },
   { name: 'Множинний еджинг', category: 'edging', description: 'Кілька циклів затримки' },
   { name: 'Заборона оргазму', category: 'edging', description: 'Повний контроль дозволу кінчати' },
+  // Публічність
+  { name: 'Натяк на людях', category: 'public', description: 'Флірт і натяки при свідках' },
+  { name: 'Секс на виду', category: 'public', description: 'Близькість, де можуть побачити' },
+  { name: 'Ритуальне шоу', category: 'public', description: 'Секс як вистава / обряд племені' },
+  { name: 'Без сорому', category: 'public', description: 'Повна втрата сорому на людях' },
+  // Кремпай / насіння
+  { name: 'Прийняти всередині', category: 'creampie', description: 'Просити фініш всередині' },
+  { name: 'Кремпай', category: 'creampie', description: 'Прийняти оргазм партнера в собі' },
+  { name: 'Ризик насіння', category: 'creampie', description: 'Свідомий ризик вагітності' },
+  { name: 'Прийняти все', category: 'creampie', description: 'Максимальна відкритість до насіння' },
+  // Aftercare
+  { name: 'Обійми після', category: 'aftercare', description: 'Фізична близькість після сексу' },
+  { name: 'Aftercare', category: 'aftercare', description: 'Турбота, вода, тепло, спокій' },
+  { name: 'Слова підтримки', category: 'aftercare', description: 'М\'які слова після жорсткої сцени' },
+  { name: 'Зцілення близькості', category: 'aftercare', description: 'Відновлення довіри й тіла' },
 ] as const
 
 export async function seedSkills() {

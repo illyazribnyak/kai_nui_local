@@ -20,12 +20,23 @@ describe('sex skill tree integrity', () => {
     }
   })
 
-  it('has 52 nodes (6 core×4 + 7 intimacy×4)', () => {
-    assert.equal(SEX_SKILL_TREE.length, 52)
+  it('has 64 nodes (6 core + 10 act branches × 4)', () => {
+    assert.equal(SEX_SKILL_TREE.length, 64)
   })
 
-  it('has separate intimacy branches', () => {
-    for (const cat of ['dirty_talk', 'handjob', 'blowjob', 'deepthroat', 'anal', 'riding', 'edging'] as const) {
+  it('has separate intimacy branches including public/creampie/aftercare', () => {
+    for (const cat of [
+      'dirty_talk',
+      'handjob',
+      'blowjob',
+      'deepthroat',
+      'anal',
+      'riding',
+      'edging',
+      'public',
+      'creampie',
+      'aftercare',
+    ] as const) {
       const nodes = SEX_SKILL_TREE.filter((n) => n.category === cat)
       assert.equal(nodes.length, 4, cat)
     }

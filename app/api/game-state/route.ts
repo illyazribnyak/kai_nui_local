@@ -18,10 +18,20 @@ export async function GET() {
     let quests = await prisma.quest.findMany({ orderBy: { createdAt: 'asc' } })
     const diary = await prisma.diaryEntry.findMany({ orderBy: { createdAt: 'desc' }, take: 50 })
     let skills = await prisma.skill.findMany()
-    if (skills.length === 0) {
+    {
       const { seedSkills } = await import('@/lib/seed-skills')
       await seedSkills()
       skills = await prisma.skill.findMany()
+    }
+    let kinks: any[] = []
+    try {
+      const { seedKinks } = await import('@/lib/seed-kinks')
+      await seedKinks()
+      kinks = await prisma.kink.findMany({
+        orderBy: [{ discovered: 'desc' }, { level: 'desc' }, { name: 'asc' }],
+      })
+    } catch {
+      kinks = []
     }
 
     // Seed locations and tribes if needed
@@ -69,6 +79,7 @@ export async function GET() {
       inventory,
       quests,
       skills,
+      kinks,
       locations,
       tribeReputations,
       achievements,

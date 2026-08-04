@@ -40,6 +40,9 @@ import {
   detectNewlyLeveledSkills,
   detectNewlyUnlockedNodes,
 } from '@/lib/game/sex-synergies'
+import { applyKinkTriggers, listKinks } from '@/lib/game/kink-service'
+import { seedKinks } from '@/lib/seed-kinks'
+import { computeKinkModifiers } from '@/lib/game/kink-effects'
 
 function buildSystemPrompt(
   gameState: any,
@@ -217,9 +220,14 @@ ${summaryBlock}
 ## Навички під час сексу (ДЕРЕВО — сервер застосовує механіку):
 - Рівень 0 = Лара незручна; 1–2 = база (+1 d20); 3–4 = вправна (+2); 5 = майстриня (+5)
 - «Множинне задоволення» ≥2 обовʼязкове для MULTI_ORGASM continue
-- Техніка підвищує pleasure партнера; витривалість — floor stamina; dom/sub — шкала domination; магія тіла — amulet_gain
-- ЗАВЖДИ нараховуй SKILL_UPDATE XP (5–25) за релевантні дії. Назви навичок ТОЧНО:
-${SKILL_NAMES.join(', ')}
+- Окремі гілки: брудні слова, дрочка, мінет, горло, анал, вершниця, еджинг, публічність, насіння/кремпай, aftercare
+- ЗАВЖДИ нараховуй SKILL_UPDATE XP (5–25). Назви ТОЧНО з каталогу.
+- КІНКИ (окремо від навичок): при сцені з кінком додай
+  [KINK_TRIGGER]{"key":"breeding","xp":12}[/KINK_TRIGGER]
+  keys: breeding, creampie, public, size, monster, marking, praise, degrade, cumplay, control, service, ritual
+- new_fetish у SEX_SCENE_END також відкриває/качає кінк.
+
+Доступні навички: ${SKILL_NAMES.join(', ')}
 
 # === 🍕 ГОЛОД ТА СПРАГА ===
 - Голод і спрага: 0-100 (де 100 = критично). Зростають з кожною дією (+3-8).
@@ -600,7 +608,7 @@ ${aiResponse.substring(0, 6000)}
 
 // === МЕРЖ ОНОВЛЕНЬ: DeepSeek теги + Gemini аналіз ===
 function mergeUpdates(
-  deepseekUpdates: { stat: any, inv: any[], rel: any[], quest: any[], diary: any[], skill: any[], tribe: any[], achievement: any[], disease: any[], facts: any[], choices: string[], diceRolls: any[], sexScene: any, phase: any, pleasure: any, stamina: any, combo: any, domination: number | null, reactions: any[], erogenousZones: any[], sexChoices: any[], sceneSummary: any, sceneMood: any, laraDialogue: any[], multiOrgasm: any, penisStats: any },
+  deepseekUpdates: { stat: any, inv: any[], rel: any[], quest: any[], diary: any[], skill: any[], tribe: any[], achievement: any[], disease: any[], facts: any[], choices: string[], diceRolls: any[], sexScene: any, phase: any, pleasure: any, stamina: any, combo: any, domination: number | null, reactions: any[], erogenousZones: any[], sexChoices: any[], sceneSummary: any, sceneMood: any, laraDialogue: any[], multiOrgasm: any, penisStats: any, kinkTriggers?: Array<{ key: string; xp?: number }> },
   geminiUpdates: { statUpdates: any, invUpdates: any[], relUpdates: any[], questUpdates: any[], diaryUpdates: any[], skillUpdates: any[], tribeUpdates: any[], achievementUpdates: any[] }
 ) {
   const mergedStat = { ...geminiUpdates.statUpdates, ...deepseekUpdates.stat }
@@ -672,6 +680,7 @@ function mergeUpdates(
     laraDialogue: deepseekUpdates.laraDialogue || [],
     multiOrgasm: deepseekUpdates.multiOrgasm,
     penisStats: deepseekUpdates.penisStats,
+    kinkTriggers: deepseekUpdates.kinkTriggers || [],
   }
 }
 
@@ -876,7 +885,21 @@ function parseDeepSeekTags(content: string) {
     multiOrgasm = safeParseJSON(multiOrgasmMatch[1].trim(), 'MULTI_ORGASM')
   }
 
-  return { stat: statUpdate, inv: invUpdates, rel: relUpdates, quest: questUpdates, diary: diaryUpdates, skill: skillUpdates, tribe: tribeUpdates, achievement: achievements, disease: diseaseUpdates, facts, choices, diceRolls, sexScene, phase, pleasure, stamina, combo, domination, reactions, erogenousZones, sexChoices, sceneSummary, sceneMood, laraDialogue, multiOrgasm, penisStats }
+  // KINK_TRIGGER — { key, xp? } or array
+  const kinkTriggers: Array<{ key: string; xp?: number }> = []
+  for (const m of content.matchAll(/\[KINK_TRIGGER\](.*?)\[\/KINK_TRIGGER\]/gs)) {
+    const p = safeParseJSON(m[1].trim(), 'KINK_TRIGGER')
+    if (!p) continue
+    if (Array.isArray(p)) {
+      for (const item of p) {
+        if (item?.key) kinkTriggers.push({ key: String(item.key), xp: item.xp })
+      }
+    } else if (p.key) {
+      kinkTriggers.push({ key: String(p.key), xp: p.xp })
+    }
+  }
+
+  return { stat: statUpdate, inv: invUpdates, rel: relUpdates, quest: questUpdates, diary: diaryUpdates, skill: skillUpdates, tribe: tribeUpdates, achievement: achievements, disease: diseaseUpdates, facts, choices, diceRolls, sexScene, phase, pleasure, stamina, combo, domination, reactions, erogenousZones, sexChoices, sceneSummary, sceneMood, laraDialogue, multiOrgasm, penisStats, kinkTriggers }
 }
 
 function cleanDisplayContent(content: string): string {
@@ -909,6 +932,7 @@ function cleanDisplayContent(content: string): string {
     .replace(/\[LARA_DIALOGUE\].*?\[\/LARA_DIALOGUE\]/gs, '')
     .replace(/\[MULTI_ORGASM\].*?\[\/MULTI_ORGASM\]/gs, '')
     .replace(/\[PENIS_STATS\].*?\[\/PENIS_STATS\]/gs, '')
+    .replace(/\[KINK_TRIGGER\].*?\[\/KINK_TRIGGER\]/gs, '')
     .trim()
 }
 
@@ -1057,9 +1081,17 @@ export async function POST(request: NextRequest) {
             merged.stat = applyNewDaySurvival(merged.stat)
           }
 
-          // 5.6 Sex skill tree: mechanical modifiers (pleasure, stamina, multi-orgasm, amulet…)
-          // Use pre-turn skills so bonuses are based on levels before this turn's XP.
-          const sexSkillResult = applySexSkillModifiers(merged as any, skills)
+          // 5.6 Sex skill tree + kinks: mechanical modifiers
+          try {
+            await seedKinks()
+          } catch { /* ignore if table missing mid-migrate */ }
+          let kinksForMods: any[] = []
+          try {
+            kinksForMods = await listKinks()
+          } catch {
+            kinksForMods = []
+          }
+          const sexSkillResult = applySexSkillModifiers(merged as any, skills, kinksForMods)
 
           // 5.6b Skill-gated SEX_CHOICES (filter risk + inject skill moves)
           const phaseForGate =
@@ -1106,6 +1138,49 @@ export async function POST(request: NextRequest) {
           await tickDiseases()
           const completedQuests = await syncQuestLadder()
 
+          // 6b. Kinks — apply XP from tags / fetish / narrative
+          let kinkProgress: Awaited<ReturnType<typeof applyKinkTriggers>> = []
+          try {
+            const narrativeForKink = displayContent || fullContent
+            kinkProgress = await applyKinkTriggers({
+              narrativeText: narrativeForKink,
+              explicitKeys: merged.kinkTriggers || [],
+              fetishName: merged.sceneSummary?.new_fetish || null,
+              skills,
+            })
+          } catch (e) {
+            console.warn('kink trigger error', e)
+          }
+
+          // Pregnancy / amulet / shame from kinks (post-mod; persist shame if needed)
+          try {
+            const kinksNow = await listKinks()
+            const km = computeKinkModifiers(kinksNow)
+            if (merged.sceneSummary?.pregnancy_risk != null && km.pregnancyRiskMult > 1) {
+              merged.sceneSummary.pregnancy_risk = Math.min(
+                100,
+                Math.round(Number(merged.sceneSummary.pregnancy_risk) * km.pregnancyRiskMult)
+              )
+            }
+            if (merged.sceneSummary?.amulet_gain != null && km.amuletGainMult > 1) {
+              const gain = Math.round(Number(merged.sceneSummary.amulet_gain) * km.amuletGainMult)
+              merged.sceneSummary.amulet_gain = gain
+              const base = Number(gameState?.amuletEnergy ?? 0)
+              await prisma.gameState.update({
+                where: { id: 'singleton' },
+                data: { amuletEnergy: Math.min(100, base + Math.max(0, gain - Number(merged.sceneSummary.amulet_gain || gain))) },
+              }).catch(() => {})
+            }
+            if (km.shameRelief > 0) {
+              const shame = Number(gameState?.shame ?? 0)
+              const nextShame = Math.max(0, shame - km.shameRelief)
+              await prisma.gameState.update({
+                where: { id: 'singleton' },
+                data: { shame: nextShame },
+              }).catch(() => {})
+            }
+          } catch { /* ignore */ }
+
           // Default choices if AI forgot
           let finalChoices: string[] = merged.choices?.length ? [...merged.choices] : []
           if (finalChoices.length === 0 && !merged.sexChoices?.length) {
@@ -1142,6 +1217,12 @@ export async function POST(request: NextRequest) {
           const updatedAchievements = await prisma.achievement.findMany({ orderBy: { unlockedAt: 'desc' } })
           const updatedDiseases = await prisma.disease.findMany()
           const updatedFacts = await prisma.worldFact.findMany({ orderBy: { createdAt: 'asc' } })
+          let updatedKinks: any[] = []
+          try {
+            updatedKinks = await listKinks()
+          } catch {
+            updatedKinks = []
+          }
 
           // Skill progression feedback for client toasts
           const skillLevelUps = detectNewlyLeveledSkills(skills, updatedSkills)
@@ -1239,6 +1320,7 @@ export async function POST(request: NextRequest) {
             laraDialogue: merged.laraDialogue,
             multiOrgasm: merged.multiOrgasm,
             penisStats: merged.penisStats,
+            kinks: updatedKinks,
             skillProgress: {
               levelUps: skillLevelUps,
               treeUnlocks: skillTreeUnlocks,
@@ -1248,6 +1330,7 @@ export async function POST(request: NextRequest) {
                 icon: s.icon,
                 description: s.description,
               })),
+              kinkProgress,
               sceneEnded: Boolean(merged.sceneSummary),
             },
           })}\n\n`))

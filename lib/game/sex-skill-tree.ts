@@ -20,6 +20,9 @@ export type SexSkillCategory =
   | 'anal'
   | 'riding'
   | 'edging'
+  | 'public'
+  | 'creampie'
+  | 'aftercare'
 
 export interface SexSkillNode {
   id: string
@@ -56,6 +59,9 @@ export const SEX_SKILL_CATEGORIES: {
   { id: 'anal', label: 'Анал', icon: '🍑', color: 'orange', activeClass: 'bg-orange-600 text-white shadow-orange-600/30' },
   { id: 'riding', label: 'Вершниця', icon: '🏇', color: 'amber', activeClass: 'bg-amber-600 text-slate-950 shadow-amber-600/30' },
   { id: 'edging', label: 'Еджинг', icon: '⏸️', color: 'slate', activeClass: 'bg-slate-600 text-white shadow-slate-600/30' },
+  { id: 'public', label: 'Публічність', icon: '👀', color: 'sky', activeClass: 'bg-sky-600 text-white shadow-sky-600/30' },
+  { id: 'creampie', label: 'Насіння', icon: '💦', color: 'stone', activeClass: 'bg-stone-500 text-white shadow-stone-500/30' },
+  { id: 'aftercare', label: 'Aftercare', icon: '🤍', color: 'teal', activeClass: 'bg-teal-600 text-white shadow-teal-600/30' },
 ]
 
 /** Linear trees per category — order = progression within branch. */
@@ -640,6 +646,147 @@ export const SEX_SKILL_TREE: SexSkillNode[] = [
     effectByLevel: 'Блокує partner orgasm пока Lv-check. Domination +5×Lv. Потрібен verbal/dom для flavor.',
     levelMeanings: ['просити дозволу', 'відмова', 'жорстка заборона', 'ламання', 'оргазм лише з дозволу'],
     diceKeywords: ['заборона оргазму', 'не кінчати', 'permission'],
+  },
+
+  // ═══════════════════════════════════════════
+  // ПУБЛІЧНІСТЬ
+  // ═══════════════════════════════════════════
+  {
+    id: 'pub_1',
+    name: 'Натяк на людях',
+    category: 'public',
+    icon: '😏',
+    description: 'Флірт і натяки при свідках',
+    effectByLevel: 'Shame −Lv. NPC desire +2×Lv. d20 exhibition soft +рівень.',
+    levelMeanings: ['червоніє', 'сміється', 'провокує', 'не ховає', 'ламає табу'],
+    diceKeywords: ['натяк', 'на людях', 'при свідках', 'флірт публіч'],
+  },
+  {
+    id: 'pub_2',
+    name: 'Секс на виду',
+    category: 'public',
+    parentName: 'Натяк на людях',
+    icon: '👀',
+    description: 'Близькість, де можуть побачити',
+    effectByLevel: 'Pleasure +2%/Lv. Public kink XP. Risk public дозволений з Lv≥1.',
+    levelMeanings: ['ризик бути спійманою', 'напівприховано', 'відкрито', 'не зупиняється', 'хоче очей'],
+    diceKeywords: ['на виду', 'публічн.*секс', 'підгля', 'exhibition'],
+  },
+  {
+    id: 'pub_3',
+    name: 'Ритуальне шоу',
+    category: 'public',
+    parentName: 'Секс на виду',
+    icon: '🎭',
+    description: 'Секс як вистава / обряд племені',
+    effectByLevel: 'Tribe rep + при успіху. Amulet +Lv. Ritual kink synergy.',
+    levelMeanings: ['учасниця', 'центр уваги', 'жриця шоу', 'ламає плем’я', 'легенда ритуалу'],
+    diceKeywords: ['ритуальне шоу', 'обряд секс', 'вистава'],
+  },
+  {
+    id: 'pub_4',
+    name: 'Без сорому',
+    category: 'public',
+    parentName: 'Ритуальне шоу',
+    icon: '🔥',
+    description: 'Повна втрата сорому на людях',
+    effectByLevel: 'Shame floor −10×Lv (мін 0). Public orgasm без штрафу. Crit exhibition 19–20 при Lv5.',
+    levelMeanings: ['майже без сорому', 'сміється з сорому', 'провокує натовп', 'оргазм на очах', 'нуль сорому'],
+    diceKeywords: ['без сорому', 'нуль сором', 'exhibition master'],
+  },
+
+  // ═══════════════════════════════════════════
+  // КРЕМПАЙ / НАСІННЯ
+  // ═══════════════════════════════════════════
+  {
+    id: 'cr_1',
+    name: 'Прийняти всередині',
+    category: 'creampie',
+    icon: '🤲',
+    description: 'Просити фініш всередині',
+    effectByLevel: 'Finish-inside pleasure +2%/Lv. Відкриває creampie-ходи.',
+    levelMeanings: ['просить обережно', 'хоче всередині', 'благає', 'тримає', 'не відпускає'],
+    diceKeywords: ['всередині', 'не виймай', 'кінчи в'],
+  },
+  {
+    id: 'cr_2',
+    name: 'Кремпай',
+    category: 'creampie',
+    parentName: 'Прийняти всередині',
+    icon: '💦',
+    description: 'Прийняти оргазм партнера в собі',
+    effectByLevel: 'Amulet +1×Lv. Partner orgasm threshold −2×Lv. Creampie kink XP.',
+    levelMeanings: ['приймає', 'насолоджується', 'витікає', 'просить ще', 'ритуал кремпаю'],
+    diceKeywords: ['кремпай', 'creampie', 'наповн'],
+  },
+  {
+    id: 'cr_3',
+    name: 'Ризик насіння',
+    category: 'creampie',
+    parentName: 'Кремпай',
+    icon: '🤰',
+    description: 'Свідомий ризик вагітності',
+    effectByLevel: 'pregnancy_risk ×(1+0.1×Lv). Breeding kink. d20 will/desire.',
+    levelMeanings: ['ризик ок', 'хоче ризик', 'благає завагітніти', 'ламає захист', 'тільки насіння'],
+    diceKeywords: ['ризик', 'вагіт', 'насін', 'breed'],
+  },
+  {
+    id: 'cr_4',
+    name: 'Прийняти все',
+    category: 'creampie',
+    parentName: 'Ризик насіння',
+    icon: '🌊',
+    description: 'Максимальна відкритість до насіння',
+    effectByLevel: 'Amulet min +5 при finish. Multi-creampie. Partner + Lara climax sync bonus.',
+    levelMeanings: ['всередині+ззовні', 'обличчя+всередині', 'подвійний фініш', 'ритуал насіння', 'повне прийняття'],
+    diceKeywords: ['прийняти все', 'все насіння', 'облити й всередині'],
+  },
+
+  // ═══════════════════════════════════════════
+  // AFTERCARE
+  // ═══════════════════════════════════════════
+  {
+    id: 'ac_1',
+    name: 'Обійми після',
+    category: 'aftercare',
+    icon: '🤗',
+    description: 'Фізична близькість після сексу',
+    effectByLevel: 'Shame −2×Lv. Bond + при REL. Немає stamina cost у post-scene.',
+    levelMeanings: ['торкається', 'обіймає', 'не відпускає', 'колисає', 'зцілює дотиком'],
+    diceKeywords: ['обійм', 'після сексу', 'пригорн'],
+  },
+  {
+    id: 'ac_2',
+    name: 'Aftercare',
+    category: 'aftercare',
+    parentName: 'Обійми після',
+    icon: '🤍',
+    description: 'Турбота, вода, тепло, спокій',
+    effectByLevel: 'Hunger/thirst −small. Next-turn stamina +5×Lv. Soft praise kink XP.',
+    levelMeanings: ['вода/тканина', 'тепло', 'тиша разом', 'повний догляд', 'ритуал aftercare'],
+    diceKeywords: ['aftercare', 'турбот', 'догляд після'],
+  },
+  {
+    id: 'ac_3',
+    name: 'Слова підтримки',
+    category: 'aftercare',
+    parentName: 'Aftercare',
+    icon: '💬',
+    description: 'М\'які слова після жорсткої сцени',
+    effectByLevel: 'Shame −3×Lv. Fear −. Bond +. d20 soft charisma.',
+    levelMeanings: ['ти тихо', 'ти в безпеці', 'я з тобою', 'гордість', 'любов/повага'],
+    diceKeywords: ['підтримк', 'ти в безпеці', 'м\'які слова'],
+  },
+  {
+    id: 'ac_4',
+    name: 'Зцілення близькості',
+    category: 'aftercare',
+    parentName: 'Слова підтримки',
+    icon: '💚',
+    description: 'Відновлення довіри й тіла',
+    effectByLevel: 'Heal light (narrative). Amulet +Lv/2. Body_magic synergy. Clears mild disease chance.',
+    levelMeanings: ['спокій', 'відновлення', 'довіра', 'зцілення', 'повне оновлення'],
+    diceKeywords: ['зцілення близькості', 'відновл', 'heal after'],
   },
 ]
 

@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2, MoreVertical, Target, Volume2, VolumeX, Users, Hammer, History } from 'lucide-react'
 import { soundEngine } from '@/lib/audio'
-import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData, WorldFactData } from '@/lib/types'
+import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData, WorldFactData, KinkData } from '@/lib/types'
+import { KinksPanel } from './kinks-panel'
 import type { ClientTokenUsage, TagLogData } from '@/lib/game/sex-types'
 import { chapterProgressPercent, ENDING_PATHS } from '@/lib/game/chapters'
 import { QUEST_LADDER_TITLES } from '@/lib/game/quest-ladder-data'
@@ -52,6 +53,7 @@ export default function GameClient() {
   const [quests, setQuests] = useState<QuestData[]>([])
   const [diary, setDiary] = useState<DiaryEntryData[]>([])
   const [skills, setSkills] = useState<SkillData[]>([])
+  const [kinks, setKinks] = useState<KinkData[]>([])
   const [locations, setLocations] = useState<LocationData[]>([])
   const [tribeReputations, setTribeReputations] = useState<TribeReputationData[]>([])
   const [achievements, setAchievements] = useState<AchievementData[]>([])
@@ -174,6 +176,7 @@ export default function GameClient() {
       setQuests(data?.quests ?? [])
       setDiary(data?.diary ?? [])
       setSkills(data?.skills ?? [])
+      setKinks(data?.kinks ?? [])
       setLocations(data?.locations ?? [])
       setTribeReputations(data?.tribeReputations ?? [])
       setAchievements(data?.achievements ?? [])
@@ -471,10 +474,25 @@ export default function GameClient() {
                     duration: 4000,
                   })
                 }
-                if (sp.sceneEnded && (sp.levelUps?.length || sp.treeUnlocks?.length || sp.newSynergies?.length)) {
-                  toast.message('📊 Підсумок сцени: навички оновлено', { duration: 2500 })
+                for (const k of sp.kinkProgress || []) {
+                  if (k.newlyDiscovered) {
+                    toast.success(`${k.icon || '🎭'} Новий кінк: ${k.name}`, { duration: 4000 })
+                  } else if (k.leveled) {
+                    toast.success(`${k.icon || '🎭'} ${k.name}: Lv${k.fromLevel} → Lv${k.toLevel}`, {
+                      duration: 3500,
+                    })
+                  } else {
+                    toast.message(`${k.icon || '🎭'} ${k.name} +${k.xp} XP`, { duration: 2500 })
+                  }
+                }
+                if (
+                  sp.sceneEnded &&
+                  (sp.levelUps?.length || sp.treeUnlocks?.length || sp.newSynergies?.length || sp.kinkProgress?.length)
+                ) {
+                  toast.message('📊 Підсумок сцени: навички/кінки оновлено', { duration: 2500 })
                 }
               }
+              if (parsed?.kinks) setKinks(parsed.kinks)
               if (parsed?.diceRolls?.length > 0) {
                 setDiceRoll(parsed.diceRolls[parsed.diceRolls.length - 1])
                 soundEngine.playDiceRoll()
@@ -681,6 +699,7 @@ export default function GameClient() {
     { id: 'inventory', icon: <Package className="w-3.5 h-3.5" />, label: 'Інвентар' },
     { id: 'lore', icon: <Scroll className="w-3.5 h-3.5" />, label: 'Лор' },
     { id: 'skills', icon: <Flame className="w-3.5 h-3.5" />, label: 'Навички' },
+    { id: 'kinks', icon: <Heart className="w-3.5 h-3.5" />, label: 'Кінки' },
     { id: 'tribes', icon: <Compass className="w-3.5 h-3.5" />, label: 'Племена' },
     { id: 'diary', icon: <Feather className="w-3.5 h-3.5" />, label: 'Щоденник' },
     { id: 'achievements', icon: <Gem className="w-3.5 h-3.5" />, label: 'Нагороди' },
@@ -2095,6 +2114,11 @@ export default function GameClient() {
             {/* SKILLS TAB */}
             {sidebarTab === 'skills' && (
               <SkillTree skills={skills} />
+            )}
+
+            {/* KINKS TAB */}
+            {sidebarTab === 'kinks' && (
+              <KinksPanel kinks={kinks} />
             )}
 
             {/* MAP TAB */}

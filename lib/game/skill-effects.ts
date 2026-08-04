@@ -10,6 +10,11 @@ import {
   computeActiveSynergies,
   type ActiveSynergy,
 } from '@/lib/game/sex-synergies'
+import {
+  computeKinkModifiers,
+  type KinkLike,
+  type KinkModifierSummary,
+} from '@/lib/game/kink-effects'
 
 export interface SkillLike {
   name: string
@@ -37,6 +42,8 @@ export interface SkillModifierSummary {
   /** Lara orgasm at 100 - relief */
   laraOrgasmThreshold: number
   synergies: ActiveSynergy[]
+  /** Optional kink modifiers (when kinks passed to compute) */
+  kinks?: KinkModifierSummary
 }
 
 export function skillLevel(skills: SkillLike[] | null | undefined, name: string): number {
@@ -99,7 +106,10 @@ export function resolveSexSkillDiceBonus(
   return { bonus: clamp(best, 0, 10), matchedSkill: matched }
 }
 
-export function computeSkillModifiers(skills: SkillLike[] | null | undefined): SkillModifierSummary {
+export function computeSkillModifiers(
+  skills: SkillLike[] | null | undefined,
+  kinks?: KinkLike[] | null
+): SkillModifierSummary {
   const multiLv = skillLevel(skills, 'Множинне задоволення')
   const tenderLv = skillLevel(skills, 'Ніжний дотик')
   const handsLv = skillLevel(skills, 'Майстерність рук')
@@ -174,6 +184,24 @@ export function computeSkillModifiers(skills: SkillLike[] | null | undefined): S
 
   const laraOrgasmThreshold = Math.max(70, 100 - (senseLv >= 2 ? 10 : 0) - syn.laraOrgasmThresholdRelief)
 
+  // Public / creampie / aftercare
+  const pubLv = skillLevel(skills, 'Секс на виду')
+  const creamLv = skillLevel(skills, 'Кремпай')
+  const afterLv = skillLevel(skills, 'Aftercare')
+  partnerPleasureBonusPct += creamLv * 2 + Math.floor(categoryLevels(skills, 'creampie') * 0.5)
+  laraPleasureBonusPct +=
+    pubLv * 1 + afterLv * 1 + Math.floor(categoryLevels(skills, 'public') * 0.3) + skillLevel(skills, 'Без сорому')
+
+  const kinkMods = kinks ? computeKinkModifiers(kinks) : null
+  if (kinkMods) {
+    partnerPleasureBonusPct += kinkMods.partnerPleasureBonusPct
+    laraPleasureBonusPct += kinkMods.laraPleasureBonusPct
+    amuletGainMultiplier *= kinkMods.amuletGainMult
+    if (kinkMods.dominationFloorBonus > 0) {
+      dominationFloor = Math.max(dominationFloor ?? 0, kinkMods.dominationFloorBonus)
+    }
+  }
+
   const lines: string[] = []
   for (const node of SEX_SKILL_TREE) {
     const lv = skillLevel(skills, node.name)
@@ -182,6 +210,9 @@ export function computeSkillModifiers(skills: SkillLike[] | null | undefined): S
   }
   for (const s of synergies) {
     lines.push(`✦ Синергія «${s.name}»: ${s.description}`)
+  }
+  if (kinkMods?.lines.length) {
+    lines.push(...kinkMods.lines)
   }
 
   const diceHints = SEX_SKILL_TREE
@@ -207,6 +238,7 @@ export function computeSkillModifiers(skills: SkillLike[] | null | undefined): S
     dominationFloor,
     laraOrgasmThreshold,
     synergies,
+    kinks: kinkMods || undefined,
   }
 }
 
@@ -229,9 +261,10 @@ export function applySexSkillModifiers(
     sexChoices?: any[] | null
     diceRolls?: any[]
   },
-  skills: SkillLike[] | null | undefined
+  skills: SkillLike[] | null | undefined,
+  kinks?: KinkLike[] | null
 ): { applied: string[]; modifiers: SkillModifierSummary } {
-  const modifiers = computeSkillModifiers(skills)
+  const modifiers = computeSkillModifiers(skills, kinks)
   const applied: string[] = []
 
   // Pleasure boosts

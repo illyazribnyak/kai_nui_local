@@ -213,3 +213,16 @@ export interface AchievementData {
   icon: string
   unlockedAt: string
 }
+
+export interface KinkData {
+  id: string
+  key: string
+  name: string
+  description: string
+  icon: string
+  level: number
+  xp: number
+  maxXp: number
+  discovered: boolean
+  category: string
+}

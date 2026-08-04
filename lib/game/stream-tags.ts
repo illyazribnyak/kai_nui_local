@@ -26,6 +26,7 @@ export type StreamTagType =
   | 'lara_dialogue'
   | 'multi_orgasm'
   | 'penis_stats'
+  | 'kink_trigger'
 
 export interface CompleteStreamTag {
   type: StreamTagType
@@ -58,6 +59,7 @@ const COMPLETE_TAG_PATTERNS: { pattern: RegExp; type: StreamTagType }[] = [
   { pattern: /\[LARA_DIALOGUE\](.*?)\[\/LARA_DIALOGUE\]/gs, type: 'lara_dialogue' },
   { pattern: /\[MULTI_ORGASM\](.*?)\[\/MULTI_ORGASM\]/gs, type: 'multi_orgasm' },
   { pattern: /\[PENIS_STATS\](.*?)\[\/PENIS_STATS\]/gs, type: 'penis_stats' },
+  { pattern: /\[KINK_TRIGGER\](.*?)\[\/KINK_TRIGGER\]/gs, type: 'kink_trigger' },
 ]
 
 const TAG_NAMES = [
@@ -65,7 +67,7 @@ const TAG_NAMES = [
   'TRIBE_UPDATE', 'ACHIEVEMENT', 'DISEASE_ADD', 'DISEASE_REMOVE', 'FACT_ADD', 'FACT_REMOVE',
   'CHOICES', 'DICE_ROLL', 'SEX_SCENE_START', 'PHASE', 'PLEASURE', 'STAMINA', 'COMBO',
   'DOMINATION', 'REACTION', 'EROGENOUS', 'SEX_CHOICES', 'SEX_SCENE_END', 'SCENE_MOOD',
-  'LARA_DIALOGUE', 'MULTI_ORGASM', 'PENIS_STATS',
+  'LARA_DIALOGUE', 'MULTI_ORGASM', 'PENIS_STATS', 'KINK_TRIGGER',
 ]
 
 /** Remove complete and trailing incomplete game tags from streamed text. */
