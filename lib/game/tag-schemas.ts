@@ -66,6 +66,29 @@ export const RelUpdateSchema = z.object({
   trust: num(0, 100).optional(),
   fear: num(0, 100).optional(),
   respect: num(0, 100).optional(),
+  location: z.string().max(120).optional(),
+  // NPC own stats (1–20 attrs; dominance/libido 0–100)
+  strength: num(1, 20).optional(),
+  agility: num(1, 20).optional(),
+  endurance: num(1, 20).optional(),
+  charisma: num(1, 20).optional(),
+  willpower: num(1, 20).optional(),
+  dominance: num(0, 100).optional(),
+  libido: num(0, 100).optional(),
+  stats: z
+    .object({
+      strength: num(1, 20).optional(),
+      agility: num(1, 20).optional(),
+      endurance: num(1, 20).optional(),
+      charisma: num(1, 20).optional(),
+      willpower: num(1, 20).optional(),
+      dominance: num(0, 100).optional(),
+      libido: num(0, 100).optional(),
+    })
+    .passthrough()
+    .optional(),
+  // kink key → 0–5 or [{key,level}]
+  kinks: z.union([z.record(z.string(), num(0, 5)), z.array(z.any())]).optional(),
 })
 
 export const InvUpdateSchema = z.object({

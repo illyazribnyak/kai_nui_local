@@ -65,6 +65,18 @@ export interface RelationshipData {
   fear: number
   respect: number
   location?: string
+  /** NPC attributes 1–20 (0 = unset) */
+  strength?: number
+  agility?: number
+  endurance?: number
+  charisma?: number
+  willpower?: number
+  /** Sexual lead preference 0–100 */
+  dominance?: number
+  /** Drive 0–100 */
+  libido?: number
+  /** JSON map kink key → level */
+  kinksJson?: string
 }
 
 export interface DiseaseData {
@@ -116,6 +128,16 @@ export interface RelationshipUpdate {
   trust?: number
   fear?: number
   respect?: number
+  location?: string
+  strength?: number
+  agility?: number
+  endurance?: number
+  charisma?: number
+  willpower?: number
+  dominance?: number
+  libido?: number
+  /** Map key→level or array of {key,level} */
+  kinks?: Record<string, number> | Array<{ key: string; level: number }>
 }
 
 export interface DiseaseUpdate {

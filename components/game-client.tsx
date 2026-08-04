@@ -2125,6 +2125,12 @@ export default function GameClient() {
                             <div className="h-0.5 bg-muted rounded-full overflow-hidden"><div className="h-full bg-blue-500 rounded-full" style={{ width: `${rel?.respect ?? 50}%` }} /></div>
                           </div>
                         </div>
+                        {(rel?.strength ?? 0) > 0 && (
+                          <div className="text-[9px] font-mono text-cyan-300/80 pt-0.5">
+                            С{rel.strength} Сп{rel.agility} В{rel.endurance} Х{rel.charisma} Во{rel.willpower}
+                            <span className="text-muted-foreground"> · дом{rel.dominance ?? 50} ліб{rel.libido ?? 50}</span>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -2514,6 +2520,83 @@ export default function GameClient() {
                             }}
                           />
                         </div>
+
+                        {/* NPC stats */}
+                        {(rel.strength ?? 0) > 0 && (
+                          <div className="grid grid-cols-5 gap-1 mb-1.5 text-[8px] font-mono">
+                            {[
+                              { k: 'С', v: rel.strength, tip: 'Сила' },
+                              { k: 'Сп', v: rel.agility, tip: 'Спритність' },
+                              { k: 'В', v: rel.endurance, tip: 'Витривалість' },
+                              { k: 'Х', v: rel.charisma, tip: 'Харизма' },
+                              { k: 'Во', v: rel.willpower, tip: 'Воля' },
+                            ].map((s) => (
+                              <div
+                                key={s.k}
+                                title={s.tip}
+                                className="text-center rounded bg-slate-800/50 border border-border/40 py-0.5 text-slate-200"
+                              >
+                                <span className="text-muted-foreground">{s.k}</span>{' '}
+                                <span className="font-bold text-cyan-300">{s.v}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {(rel.strength ?? 0) > 0 && (
+                          <div className="flex gap-2 mb-1.5 text-[9px] text-muted-foreground">
+                            <span title="Сексуальне домінування">
+                              👑 дом <span className="text-amber-300 font-mono">{rel.dominance ?? 50}</span>
+                            </span>
+                            <span title="Лібідо">
+                              🔥 ліб <span className="text-rose-300 font-mono">{rel.libido ?? 50}</span>
+                            </span>
+                            <span title="Довіра / страх / повага">
+                              🤝{rel.trust} 😨{rel.fear} ⭐{rel.respect}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* NPC kinks */}
+                        {(() => {
+                          let kinks: Record<string, number> = {}
+                          try {
+                            kinks = rel.kinksJson ? JSON.parse(rel.kinksJson) : {}
+                          } catch {
+                            kinks = {}
+                          }
+                          const entries = Object.entries(kinks)
+                            .filter(([, lv]) => Number(lv) > 0)
+                            .sort((a, b) => Number(b[1]) - Number(a[1]))
+                            .slice(0, 8)
+                          if (!entries.length) return null
+                          const labels: Record<string, string> = {
+                            breeding: '🤰Заплід',
+                            creampie: '💦Кремпай',
+                            public: '👀Публіч',
+                            size: '📏Розмір',
+                            monster: '🐺Нелюдь',
+                            marking: '💋Мітки',
+                            praise: '🌸Похвала',
+                            degrade: '⛓️Приниз',
+                            cumplay: '🤍Сперма',
+                            control: '🎮Контроль',
+                            service: '🙇Служіння',
+                            ritual: '🔮Ритуал',
+                            helpless: '🔗Безсилля',
+                          }
+                          return (
+                            <div className="flex flex-wrap gap-1 mb-1.5">
+                              {entries.map(([key, lv]) => (
+                                <span
+                                  key={key}
+                                  className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-200 border border-rose-500/25"
+                                >
+                                  {labels[key] || key} Lv{lv}
+                                </span>
+                              ))}
+                            </div>
+                          )
+                        })()}
 
                         {/* Personality traits */}
                         {rel.personality && (

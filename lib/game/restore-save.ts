@@ -69,9 +69,20 @@ export async function restorePlaythrough(saved: any) {
           trust: r.trust ?? 50,
           fear: r.fear ?? 0,
           respect: r.respect ?? 50,
+          location: r.location ?? 'Острів Кай-Нуї',
+          strength: r.strength ?? 0,
+          agility: r.agility ?? 0,
+          endurance: r.endurance ?? 0,
+          charisma: r.charisma ?? 0,
+          willpower: r.willpower ?? 0,
+          dominance: r.dominance ?? 50,
+          libido: r.libido ?? 50,
+          kinksJson: r.kinksJson ?? '{}',
         },
       })
     }
+    // Fill missing NPC profiles (stats/kinks) for canon cast after restore
+    await seedCanonNpcs()
   } else {
     await seedCanonNpcs()
   }

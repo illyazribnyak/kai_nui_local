@@ -96,6 +96,18 @@ model Relationship {
   fear        Int    @default(0)
   respect     Int    @default(50)
   location    String @default("Селище Кай-Тору")
+  /// NPC attributes (same scale as Lara: 1–20). 0 = not yet assigned.
+  strength    Int    @default(0)
+  agility     Int    @default(0)
+  endurance   Int    @default(0)
+  charisma    Int    @default(0)
+  willpower   Int    @default(0)
+  /// Sexual control preference 0–100 (high = leads/dominates)
+  dominance   Int    @default(50)
+  /// Sexual drive 0–100
+  libido      Int    @default(50)
+  /// JSON map of kink key → level 0–5, e.g. {"control":4,"breeding":2}
+  kinksJson   String @default("{}")
 }
 
 model Disease {

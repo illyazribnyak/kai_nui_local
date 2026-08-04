@@ -56,6 +56,15 @@ export async function applyStatUpdates(statUpdate: any) {
 }
 
 export async function applyRelUpdates(relUpdates: any[], dayNumber: number = 1) {
+  const {
+    resolveNpcProfile,
+    serializeKinks,
+    hasAssignedStats,
+    parseKinksJson,
+    normalizeKinkMap,
+    mergeKinkMaps,
+  } = await import('@/lib/game/npc-profile')
+
   for (const rel of relUpdates) {
     if (!rel?.name) continue
     const bondVal = rel.bond !== undefined ? clamp(Number(rel.bond) || 0, 0, 10) : undefined
@@ -73,24 +82,96 @@ export async function applyRelUpdates(relUpdates: any[], dayNumber: number = 1) 
     if (rel.trust !== undefined) updateData.trust = clamp(Number(rel.trust) || 0, 0, 100)
     if (rel.fear !== undefined) updateData.fear = clamp(Number(rel.fear) || 0, 0, 100)
     if (rel.respect !== undefined) updateData.respect = clamp(Number(rel.respect) || 0, 0, 100)
+    if (rel.location) updateData.location = String(rel.location).slice(0, 120)
 
-    await prisma.relationship.upsert({
-      where: { name: rel.name },
-      update: updateData,
-      create: {
+    // Optional LLM-provided stats / kinks
+    const llmStats = {
+      strength: rel.strength ?? rel.stats?.strength,
+      agility: rel.agility ?? rel.stats?.agility,
+      endurance: rel.endurance ?? rel.stats?.endurance,
+      charisma: rel.charisma ?? rel.stats?.charisma,
+      willpower: rel.willpower ?? rel.stats?.willpower,
+      dominance: rel.dominance ?? rel.stats?.dominance,
+      libido: rel.libido ?? rel.stats?.libido,
+    }
+    const llmKinks = rel.kinks ?? rel.kinksJson
+
+    const existing = await prisma.relationship.findUnique({ where: { name: rel.name } })
+
+    if (!existing) {
+      const resolved = resolveNpcProfile({
         name: rel.name,
-        bond: bondVal ?? 0,
-        tribe: rel.tribe ?? '',
-        notes: rel.notes ?? '',
-        met: rel.met ?? true,
-        personality: rel.personality ?? '',
-        archetype: rel.archetype ?? '',
-        attitude: (VALID_ATTITUDES as readonly string[]).includes(rel.attitude) ? rel.attitude : 'neutral',
-        trust: rel.trust !== undefined ? clamp(Number(rel.trust) || 0, 0, 100) : 50,
-        fear: rel.fear !== undefined ? clamp(Number(rel.fear) || 0, 0, 100) : 0,
-        respect: rel.respect !== undefined ? clamp(Number(rel.respect) || 0, 0, 100) : 50,
-        metOnDay: dayNumber,
-      },
+        tribe: rel.tribe,
+        archetype: rel.archetype,
+        stats: llmStats,
+        kinks: llmKinks,
+      })
+      await prisma.relationship.create({
+        data: {
+          name: rel.name,
+          bond: bondVal ?? 0,
+          tribe: rel.tribe ?? '',
+          notes: rel.notes ?? '',
+          met: rel.met ?? true,
+          personality: rel.personality ?? '',
+          archetype: rel.archetype ?? '',
+          attitude: (VALID_ATTITUDES as readonly string[]).includes(rel.attitude)
+            ? rel.attitude
+            : 'neutral',
+          trust: rel.trust !== undefined ? clamp(Number(rel.trust) || 0, 0, 100) : 50,
+          fear: rel.fear !== undefined ? clamp(Number(rel.fear) || 0, 0, 100) : 0,
+          respect: rel.respect !== undefined ? clamp(Number(rel.respect) || 0, 0, 100) : 50,
+          location: rel.location ? String(rel.location).slice(0, 120) : 'Острів Кай-Нуї',
+          metOnDay: dayNumber,
+          strength: resolved.stats.strength,
+          agility: resolved.stats.agility,
+          endurance: resolved.stats.endurance,
+          charisma: resolved.stats.charisma,
+          willpower: resolved.stats.willpower,
+          dominance: resolved.stats.dominance,
+          libido: resolved.stats.libido,
+          kinksJson: serializeKinks(resolved.kinks),
+        },
+      })
+      continue
+    }
+
+    // Existing: fill missing profile; merge kink updates if provided
+    if (!hasAssignedStats(existing) || hasAssignedStats(llmStats)) {
+      const resolved = resolveNpcProfile({
+        name: rel.name,
+        tribe: rel.tribe || existing.tribe,
+        archetype: rel.archetype || existing.archetype,
+        stats: hasAssignedStats(llmStats)
+          ? llmStats
+          : hasAssignedStats(existing)
+            ? existing
+            : null,
+        kinks: llmKinks,
+      })
+      if (!hasAssignedStats(existing) || hasAssignedStats(llmStats)) {
+        updateData.strength = resolved.stats.strength
+        updateData.agility = resolved.stats.agility
+        updateData.endurance = resolved.stats.endurance
+        updateData.charisma = resolved.stats.charisma
+        updateData.willpower = resolved.stats.willpower
+        updateData.dominance = resolved.stats.dominance
+        updateData.libido = resolved.stats.libido
+      }
+      if (llmKinks != null) {
+        const merged = mergeKinkMaps(parseKinksJson(existing.kinksJson), normalizeKinkMap(llmKinks))
+        updateData.kinksJson = serializeKinks(merged)
+      } else if (!existing.kinksJson || existing.kinksJson === '{}') {
+        updateData.kinksJson = serializeKinks(resolved.kinks)
+      }
+    } else if (llmKinks != null) {
+      const merged = mergeKinkMaps(parseKinksJson(existing.kinksJson), normalizeKinkMap(llmKinks))
+      updateData.kinksJson = serializeKinks(merged)
+    }
+
+    await prisma.relationship.update({
+      where: { name: rel.name },
+      data: updateData,
     })
   }
 }

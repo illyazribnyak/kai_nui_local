@@ -60,6 +60,7 @@ import {
 import { applyKinkTriggers, listKinks } from '@/lib/game/kink-service'
 import { seedKinks } from '@/lib/seed-kinks'
 import { computeKinkModifiers } from '@/lib/game/kink-effects'
+import { formatNpcProfileForPrompt } from '@/lib/game/npc-profile'
 
 function buildSystemPrompt(
   gameState: any,
@@ -102,7 +103,7 @@ ${gameState?.endingPath ? `Шлях кінцівки: ${ENDING_PATHS[gameState.e
     : ''
 
   const relBlock = relationships?.length > 0
-    ? `\n--- СТОСУНКИ ---\n${relationships?.map?.((r: any) => `${r?.name} (${r?.tribe}, ${r?.archetype || '?'}): Bond ${r?.bond}/10, ставлення: ${r?.attitude || 'neutral'}, довіра:${r?.trust ?? 50} страх:${r?.fear ?? 0} повага:${r?.respect ?? 50}${r?.personality ? ` [риси: ${r.personality}]` : ''}${r?.notes ? ` — ${r.notes}` : ''}`).join?.('\n') ?? ''}\n---\n`
+    ? `\n--- СТОСУНКИ / NPC (їхні статы + кінки) ---\n${relationships?.map?.((r: any) => formatNpcProfileForPrompt(r)).join?.('\n') ?? ''}\n---\n`
     : ''
 
   // factsBlock already defined above
@@ -436,6 +437,11 @@ ${formatRecipesForPrompt()}
 - Якщо Лара ГОВОРИТЬ з NPC, ВЗАЄМОДІЄ, БАЧИТЬ когось — ЗАВЖДИ додавай REL_UPDATE з met:true!
 - Кожна розмова з NPC = REL_UPDATE bond±, attitude, personality, archetype, notes!
 - Навіть якщо bond не змінюється — додавай REL_UPDATE щоб NPC був у вкладці Персонажі!
+- ПРИ ПЕРШІЙ зустрічі з НОВИМ NPC (не з канон-списку вище) ОБОВ'ЯЗКОВО задай їхні **статы** і **кінки**:
+  strength,agility,endurance,charisma,willpower (1–20), dominance,libido (0–100),
+  kinks: {"control":3,"breeding":2,...} ключі з каталогу кінків (breeding,creampie,public,size,monster,marking,praise,degrade,cumplay,control,service,ritual,helpless).
+  Приклад: [REL_UPDATE]{"name":"Рорік","met":true,"tribe":"Кай-Тору","archetype":"мисливець","personality":"грубий,веселий","attitude":"curious","strength":13,"agility":12,"endurance":11,"charisma":8,"willpower":9,"dominance":60,"libido":75,"kinks":{"public":2,"creampie":2,"praise":1}}[/REL_UPDATE]
+- Канонічні NPC (Тане, Зек, Грух…) уже мають статы/кінки — НЕ перезаписуй їх щоразу; оновлюй лише bond/attitude/trust/notes.
 
 # === 📋 ПРИКЛАДИ ПРАВИЛЬНИХ ВІДПОВІДЕЙ ===
 
