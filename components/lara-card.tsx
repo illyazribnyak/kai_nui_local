@@ -11,6 +11,7 @@ import {
   type LaraLookKey,
 } from '@/lib/game/lara-appearance'
 import { LaraBodyKit } from './lara-body-kit'
+import { LaraGalleryPanel } from './lara-gallery-panel'
 import { getDesireLabel, getMoodEmoji, getMoodLabel } from '@/lib/game/ui-labels'
 
 type Props = {
@@ -186,6 +187,9 @@ export function LaraCard({ gameState, skills, compact }: Props) {
           ))}
         </div>
       )}
+
+      {/* Drop-in user gallery (public/avatars/lara-gallery/) */}
+      <LaraGalleryPanel />
 
       {/* Body kit constructor */}
       <LaraBodyKit
