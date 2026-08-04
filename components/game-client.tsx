@@ -790,8 +790,14 @@ export default function GameClient() {
         setShowHeaderMenu(false)
       }
     }
-    document.addEventListener('mousedown', onDoc)
-    return () => document.removeEventListener('mousedown', onDoc)
+    // capture:false + slight delay so the open click doesn't immediately close
+    const t = window.setTimeout(() => {
+      document.addEventListener('mousedown', onDoc)
+    }, 0)
+    return () => {
+      window.clearTimeout(t)
+      document.removeEventListener('mousedown', onDoc)
+    }
   }, [showHeaderMenu])
 
   const runExport = async () => {
@@ -1123,8 +1129,8 @@ export default function GameClient() {
         />
       )}
 
-      {/* Header */}
-      <header className="flex-shrink-0 border-b border-border/80 bg-card/70 backdrop-blur-md relative z-10">
+      {/* Header — high z so AI menu is never under chat/sidebar */}
+      <header className="flex-shrink-0 border-b border-border/80 bg-card/70 backdrop-blur-md relative z-[100]">
         <div className="flex items-center justify-between px-3 sm:px-4 h-14 gap-2">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center flex-shrink-0">
@@ -1183,13 +1189,6 @@ export default function GameClient() {
               }}
             />
 
-            <span
-              className="hidden sm:inline-flex items-center px-2 py-1 rounded-lg border border-border/80 bg-card/60 text-[10px] font-medium text-muted-foreground"
-              title="Поточний AI-провайдер (меню ⋮)"
-            >
-              {selectedProvider === 'auto' ? '⚡ Смарт' : selectedProvider === 'dual' ? '🔀 Дует' : selectedProvider === 'gemini' ? '♊ Gemini' : '🐋 Deep'}
-            </span>
-
             <button
               onClick={() => setShowTimelineModal(true)}
               className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
@@ -1211,11 +1210,31 @@ export default function GameClient() {
               {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
             </button>
 
-            <div className="relative" ref={headerMenuRef}>
+            <div className="relative flex items-center gap-1" ref={headerMenuRef}>
               <button
+                type="button"
                 onClick={() => setShowHeaderMenu((v) => !v)}
-                className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                title="Меню"
+                className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-semibold transition-colors ${
+                  showHeaderMenu
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-primary/35 bg-primary/10 text-primary hover:bg-primary/20'
+                }`}
+                title="Провайдер AI — натисни, щоб відкрити"
+                aria-expanded={showHeaderMenu}
+              >
+                {selectedProvider === 'auto' ? '⚡ Смарт' : selectedProvider === 'dual' ? '🔀 Дует' : selectedProvider === 'gemini' ? '♊ Gemini' : '🐋 Deep'}
+                <span className="text-[8px] opacity-80">{showHeaderMenu ? '▴' : '▾'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowHeaderMenu((v) => !v)}
+                className={`p-2 rounded-lg transition-colors ${
+                  showHeaderMenu
+                    ? 'bg-primary/20 text-primary'
+                    : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                }`}
+                title="Меню: AI, сейви, нова гра"
+                aria-expanded={showHeaderMenu}
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
@@ -1225,26 +1244,35 @@ export default function GameClient() {
                     initial={{ opacity: 0, y: -6, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                    className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-border bg-card shadow-xl z-50 py-1 overflow-hidden"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="absolute right-0 top-full mt-1 w-[min(18rem,calc(100vw-1.5rem))] rounded-xl border border-border bg-card shadow-2xl z-[200] py-1 overflow-hidden max-h-[min(70vh,28rem)] overflow-y-auto panel-scroll"
                   >
-                    <div className="px-3 py-2 border-b border-border bg-muted/40 text-xs">
-                      <div className="font-medium text-muted-foreground mb-1.5 flex items-center justify-between">
-                        <span>Провайдер AI:</span>
-                        {(tokenUsage?.cumulativeTotalTokens ?? 0) > 0 && (
-                          <span className="text-[10px] text-emerald-400 font-mono" title="Загальна кількість токениів гри">
-                            🎟️ {(tokenUsage?.cumulativeTotalTokens ?? 0).toLocaleString()}
-                          </span>
-                        )}
+                    <div className="px-3 py-2.5 border-b border-border bg-muted/40 text-xs">
+                      <div className="font-semibold text-foreground mb-1.5 flex items-center justify-between gap-2">
+                        <span>Провайдер AI</span>
+                        <button
+                          type="button"
+                          className="text-[10px] text-muted-foreground hover:text-foreground px-1"
+                          onClick={() => setShowHeaderMenu(false)}
+                          title="Закрити"
+                        >
+                          ✕
+                        </button>
                       </div>
-                      <div className="grid grid-cols-4 gap-1">
+                      {(tokenUsage?.cumulativeTotalTokens ?? 0) > 0 && (
+                        <p className="text-[10px] text-emerald-400 font-mono mb-1.5" title="Загальна кількість токенів гри">
+                          🎟️ {(tokenUsage?.cumulativeTotalTokens ?? 0).toLocaleString()} токенів
+                        </p>
+                      )}
+                      <div className="grid grid-cols-2 gap-1.5">
                         <button
                           type="button"
                           onClick={() => selectProvider('auto')}
                           title="⚡ Смарт-гібрид: DeepSeek наратив, Gemini аналізує лише за потреби"
-                          className={`px-1 py-1 text-[10px] rounded transition-colors text-center font-medium ${
+                          className={`px-2 py-2 text-[11px] rounded-lg transition-colors text-center font-medium border ${
                             selectedProvider === 'auto'
-                              ? 'bg-primary text-primary-foreground font-bold'
-                              : 'bg-muted/80 hover:bg-muted text-muted-foreground'
+                              ? 'bg-primary text-primary-foreground border-primary font-bold'
+                              : 'bg-muted/80 hover:bg-muted text-muted-foreground border-border/60'
                           }`}
                         >
                           ⚡ Смарт
@@ -1253,10 +1281,10 @@ export default function GameClient() {
                           type="button"
                           onClick={() => selectProvider('dual')}
                           title="🔀 Повний дует: DeepSeek наратив, Gemini завжди робить повний аналіз"
-                          className={`px-1 py-1 text-[10px] rounded transition-colors text-center font-medium ${
+                          className={`px-2 py-2 text-[11px] rounded-lg transition-colors text-center font-medium border ${
                             selectedProvider === 'dual'
-                              ? 'bg-primary text-primary-foreground font-bold'
-                              : 'bg-muted/80 hover:bg-muted text-muted-foreground'
+                              ? 'bg-primary text-primary-foreground border-primary font-bold'
+                              : 'bg-muted/80 hover:bg-muted text-muted-foreground border-border/60'
                           }`}
                         >
                           🔀 Дует
@@ -1265,10 +1293,10 @@ export default function GameClient() {
                           type="button"
                           onClick={() => selectProvider('gemini')}
                           title="♊ Gemini 2.0 Flash Solo"
-                          className={`px-1 py-1 text-[10px] rounded transition-colors text-center font-medium ${
+                          className={`px-2 py-2 text-[11px] rounded-lg transition-colors text-center font-medium border ${
                             selectedProvider === 'gemini'
-                              ? 'bg-primary text-primary-foreground font-bold'
-                              : 'bg-muted/80 hover:bg-muted text-muted-foreground'
+                              ? 'bg-primary text-primary-foreground border-primary font-bold'
+                              : 'bg-muted/80 hover:bg-muted text-muted-foreground border-border/60'
                           }`}
                         >
                           ♊ Gemini
@@ -1277,15 +1305,21 @@ export default function GameClient() {
                           type="button"
                           onClick={() => selectProvider('deepseek')}
                           title="🐋 DeepSeek Chat Solo"
-                          className={`px-1 py-1 text-[10px] rounded transition-colors text-center font-medium ${
+                          className={`px-2 py-2 text-[11px] rounded-lg transition-colors text-center font-medium border ${
                             selectedProvider === 'deepseek'
-                              ? 'bg-primary text-primary-foreground font-bold'
-                              : 'bg-muted/80 hover:bg-muted text-muted-foreground'
+                              ? 'bg-primary text-primary-foreground border-primary font-bold'
+                              : 'bg-muted/80 hover:bg-muted text-muted-foreground border-border/60'
                           }`}
                         >
                           🐋 Deep
                         </button>
                       </div>
+                      <p className="mt-1.5 text-[9px] text-muted-foreground/80 leading-snug">
+                        {selectedProvider === 'auto' && 'Смарт: DeepSeek оповідає, Gemini — лише коли треба глибокий аналіз.'}
+                        {selectedProvider === 'dual' && 'Дует: DeepSeek + Gemini завжди аналізує кожен хід.'}
+                        {selectedProvider === 'gemini' && 'Лише Gemini 2.0 Flash.'}
+                        {selectedProvider === 'deepseek' && 'Лише DeepSeek Chat.'}
+                      </p>
                       <div className="mt-2 pt-2 border-t border-border/60">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-muted-foreground">Гучність</span>
@@ -1305,29 +1339,34 @@ export default function GameClient() {
                               soundEngine.setMuted(false)
                             }
                           }}
-                          className="w-full h-1.5 accent-primary cursor-pointer"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          className="w-full h-2 accent-primary cursor-pointer"
                         />
                       </div>
                     </div>
                     <button
+                      type="button"
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
                       onClick={() => { setShowHeaderMenu(false); openSaveModal('save') }}
                     >
                       <Save className="w-4 h-4 text-primary" /> Зберегти слот
                     </button>
                     <button
+                      type="button"
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
                       onClick={() => { setShowHeaderMenu(false); openSaveModal('load') }}
                     >
                       <Download className="w-4 h-4 text-primary" /> Завантажити слот
                     </button>
                     <button
+                      type="button"
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
                       onClick={() => { setShowHeaderMenu(false); void runExport() }}
                     >
                       <Feather className="w-4 h-4 text-primary" /> Експорт JSON
                     </button>
                     <button
+                      type="button"
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
                       onClick={() => { setShowHeaderMenu(false); importInputRef.current?.click() }}
                     >
@@ -1335,6 +1374,7 @@ export default function GameClient() {
                     </button>
                     <div className="h-px bg-border my-1" />
                     <button
+                      type="button"
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left text-red-400"
                       onClick={() => { setShowHeaderMenu(false); void resetGame() }}
                     >
