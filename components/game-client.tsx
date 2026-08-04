@@ -139,26 +139,52 @@ export default function GameClient() {
   const chatEndRef = useRef<HTMLDivElement>(null)
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const stickToBottomRef = useRef(true)
+  const [showScrollTop, setShowScrollTop] = useState(false)
+  const [showScrollBottom, setShowScrollBottom] = useState(false)
+  const [actionsCollapsed, setActionsCollapsed] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
 
+  const scrollChatBy = useCallback((delta: number) => {
+    const el = chatScrollRef.current
+    if (!el) return
+    el.scrollBy({ top: delta, behavior: 'smooth' })
+  }, [])
+
   const scrollToBottom = useCallback((force = false) => {
+    const el = chatScrollRef.current
+    if (!el) {
+      if (force) chatEndRef?.current?.scrollIntoView?.({ behavior: 'smooth' })
+      return
+    }
     if (!force && !stickToBottomRef.current) return
-    chatEndRef?.current?.scrollIntoView?.({ behavior: force ? 'smooth' : 'auto' })
+    el.scrollTop = el.scrollHeight
+  }, [])
+
+  const scrollToTop = useCallback(() => {
+    const el = chatScrollRef.current
+    if (!el) return
+    stickToBottomRef.current = false
+    el.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 
   const onChatScroll = useCallback(() => {
     const el = chatScrollRef.current
     if (!el) return
-    // Near bottom (±80px) → keep auto-follow; else allow reading history
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight
-    stickToBottomRef.current = dist < 80
+    const atTop = el.scrollTop < 40
+    stickToBottomRef.current = dist < 100
+    setShowScrollTop(el.scrollTop > 80)
+    setShowScrollBottom(dist > 100)
+    void atTop
   }, [])
 
   useEffect(() => {
     scrollToBottom(false)
-  }, [messages, streamingContent, scrollToBottom])
+    // refresh button visibility after content change
+    requestAnimationFrame(() => onChatScroll())
+  }, [messages, streamingContent, scrollToBottom, onChatScroll])
 
   useEffect(() => {
     loadGameState()
@@ -1079,7 +1105,10 @@ export default function GameClient() {
   }
 
   return (
-    <div className="h-dvh max-h-dvh flex flex-col bg-background overflow-hidden relative">
+    <div
+      className="fixed inset-0 flex flex-col bg-background overflow-hidden"
+      style={{ height: '100dvh', maxHeight: '100dvh' }}
+    >
       {/* Atmosphere layers */}
       <div className="pointer-events-none absolute inset-0 island-atmosphere" aria-hidden />
       <div className="pointer-events-none absolute inset-0 island-vignetting" aria-hidden />
@@ -1340,10 +1369,10 @@ export default function GameClient() {
         )}
       </header>
 
-      {/* Main content */}
-      <div className="flex-1 flex min-h-0 overflow-hidden relative z-10">
-        {/* Chat area */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+      {/* Main content — h-0+flex-1 forces real viewport height (not content height) */}
+      <div className="flex-1 h-0 min-h-0 flex overflow-hidden relative z-10">
+        {/* Chat column */}
+        <div className="flex-1 w-0 min-w-0 min-h-0 flex flex-col overflow-hidden">
           {apiKeyOk === false && (
             <div className="flex-shrink-0 border-b border-amber-500/30 bg-gradient-to-r from-amber-950/50 to-red-950/40 px-3 sm:px-4 py-2.5">
               <div className="max-w-3xl mx-auto space-y-1.5">
@@ -1362,11 +1391,12 @@ export default function GameClient() {
               </div>
             </div>
           )}
-          {/* Messages */}
+          {/* Messages pane: h-0 flex-1 = scroll inside fixed viewport slice */}
+          <div className="relative flex-1 h-0 min-h-0 overflow-hidden">
           <div
             ref={chatScrollRef}
             onScroll={onChatScroll}
-            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden chat-scroll px-3 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4 overscroll-contain"
+            className="h-full max-h-full overflow-y-scroll overflow-x-hidden chat-scroll px-3 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4 overscroll-contain"
           >
             {/* Location Banner */}
             <LocationBanner
@@ -1466,8 +1496,73 @@ export default function GameClient() {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Action chrome: max height + scroll so buttons never overflow the viewport */}
-          <div className="flex-shrink-0 min-h-0 max-h-[min(42vh,22rem)] overflow-y-auto overflow-x-hidden panel-scroll overscroll-contain border-t border-border/60 bg-card/20">
+          {/* Floating scroll controls — always visible so chat is navigable */}
+          <div className="pointer-events-none absolute right-2 sm:right-4 bottom-2 z-20 flex flex-col gap-1">
+            <button
+              type="button"
+              title="На початок чату"
+              onClick={scrollToTop}
+              className={`pointer-events-auto w-10 h-10 rounded-full border shadow-lg flex items-center justify-center text-base font-bold transition-opacity ${
+                showScrollTop
+                  ? 'bg-card/95 border-primary/50 text-primary hover:bg-primary/20 opacity-100'
+                  : 'bg-card/70 border-border/60 text-muted-foreground opacity-70 hover:opacity-100'
+              }`}
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              title="Вгору"
+              onClick={() => {
+                stickToBottomRef.current = false
+                scrollChatBy(-(chatScrollRef.current?.clientHeight || 240) * 0.8)
+              }}
+              className="pointer-events-auto w-10 h-10 rounded-full bg-card/90 border border-border shadow-md text-foreground hover:bg-muted flex items-center justify-center text-sm"
+            >
+              ⋀
+            </button>
+            <button
+              type="button"
+              title="Вниз"
+              onClick={() => scrollChatBy((chatScrollRef.current?.clientHeight || 240) * 0.8)}
+              className="pointer-events-auto w-10 h-10 rounded-full bg-card/90 border border-border shadow-md text-foreground hover:bg-muted flex items-center justify-center text-sm"
+            >
+              ⋁
+            </button>
+            <button
+              type="button"
+              title="В кінець чату"
+              onClick={() => {
+                stickToBottomRef.current = true
+                scrollToBottom(true)
+              }}
+              className={`pointer-events-auto w-10 h-10 rounded-full border shadow-lg flex items-center justify-center text-base font-bold ${
+                showScrollBottom
+                  ? 'bg-primary text-primary-foreground border-primary opacity-100'
+                  : 'bg-primary/70 text-primary-foreground border-primary/50 opacity-80 hover:opacity-100'
+              }`}
+            >
+              ↓
+            </button>
+          </div>
+          </div>
+
+          {/* Action chrome — collapsible so chat stays visible */}
+          <div className="flex-shrink-0 border-t border-border/60 bg-card/30">
+            <div className="flex items-center justify-between px-3 py-1 max-w-3xl mx-auto">
+              <span className="text-[10px] text-muted-foreground">
+                {sexScene ? 'Секс / дії' : 'Варіанти дій'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setActionsCollapsed((v) => !v)}
+                className="text-[10px] px-2 py-0.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                {actionsCollapsed ? 'Розгорнути ▴' : 'Згорнути ▾'}
+              </button>
+            </div>
+          {!actionsCollapsed && (
+          <div className="min-h-0 max-h-[min(28vh,16rem)] overflow-y-scroll overflow-x-hidden panel-scroll overscroll-contain">
             {/* Sex scene HUD */}
             <AnimatePresence>
               {sexScene && (
@@ -1773,6 +1868,8 @@ export default function GameClient() {
               </div>
             )}
           </div>
+          )}
+          </div>
 
           {/* Input area — always pinned above the fold */}
           <div className="flex-shrink-0 border-t border-border bg-card/50 backdrop-blur-sm p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
@@ -1836,7 +1933,7 @@ export default function GameClient() {
         <aside
           className={`${
             showSidebar ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
-          } absolute lg:relative right-0 top-0 h-full max-h-full w-[min(100%,20rem)] sm:w-80 border-l border-border bg-card overflow-hidden transition-transform duration-300 z-30 flex flex-col min-h-0 shadow-2xl lg:shadow-none`}
+          } absolute lg:relative right-0 top-0 h-full max-h-full w-[min(100%,20rem)] sm:w-80 border-l border-border bg-card overflow-hidden transition-transform duration-300 z-30 flex flex-col min-h-0 shadow-2xl lg:shadow-none flex-shrink-0`}
         >
           {/* Loading indicator */}
           <AnimatePresence>
@@ -1922,7 +2019,7 @@ export default function GameClient() {
           </div>
 
           {/* Sidebar Content */}
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden panel-scroll p-4">
+          <div className="flex-1 min-h-0 overflow-y-scroll overflow-x-hidden sidebar-scroll panel-scroll p-4">
             {/* STATS TAB */}
             {sidebarTab === 'stats' && (
               <div className="space-y-5">
