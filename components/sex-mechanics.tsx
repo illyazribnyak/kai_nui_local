@@ -163,23 +163,39 @@ export function PartnerReaction({ text, emotion }: { text: string; emotion: stri
   )
 }
 
-// ====== 8. SEX CHOICE CARDS (with risk) ======
-export function SexChoiceCards({ options, onSelect }: { options: { text: string; bonus: string; risk?: boolean }[]; onSelect: (text: string) => void }) {
+// ====== 8. SEX CHOICE CARDS (with risk + optional skill move) ======
+export function SexChoiceCards({
+  options,
+  onSelect,
+  onSkillMove,
+}: {
+  options: { text: string; bonus: string; risk?: boolean; skillMoveId?: string }[]
+  onSelect: (text: string) => void
+  onSkillMove?: (moveId: string) => void
+}) {
   return (
     <div className="space-y-2 min-w-0">
       <p className="text-xs text-pink-300/80 text-center mb-1">🎭 Оберіть дію:</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-lg mx-auto">
         {options.map((opt, i) => (
           <motion.button key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-            onClick={() => onSelect(opt.text)}
+            onClick={() => {
+              if (opt.skillMoveId && onSkillMove) onSkillMove(opt.skillMoveId)
+              else onSelect(opt.text)
+            }}
             className={`text-left p-3 rounded-xl border transition-all active:scale-95 min-w-0 ${
-              opt.risk
+              opt.skillMoveId
+                ? 'border-violet-500/45 bg-violet-950/40 hover:bg-violet-900/50 hover:border-violet-400/60'
+                : opt.risk
                 ? 'border-red-500/50 bg-red-950/40 hover:bg-red-900/50 hover:border-red-400/70 hover:shadow-lg hover:shadow-red-500/20'
                 : 'border-pink-500/30 bg-pink-950/30 hover:bg-pink-900/40 hover:border-pink-400/50'
             }`}>
             <p className="text-sm font-medium text-white break-words">{opt.text}</p>
-            <p className={`text-[10px] mt-1 break-words ${opt.risk ? 'text-red-300' : 'text-pink-300/70'}`}>{opt.bonus}</p>
-            {opt.risk && <span className="text-[9px] text-red-400 font-bold">⚠️ РИЗИК</span>}
+            <p className={`text-[10px] mt-1 break-words ${
+              opt.skillMoveId ? 'text-violet-300' : opt.risk ? 'text-red-300' : 'text-pink-300/70'
+            }`}>{opt.bonus}</p>
+            {opt.skillMoveId && <span className="text-[9px] text-violet-300 font-bold">🌳 НАВИЧКА</span>}
+            {opt.risk && !opt.skillMoveId && <span className="text-[9px] text-red-400 font-bold">⚠️ РИЗИК</span>}
           </motion.button>
         ))}
       </div>
@@ -212,6 +228,32 @@ export function ContextBonusBadges({ bonuses }: { bonuses: { source: string; val
       {bonuses.map((b, i) => (
         <span key={i} className="text-[10px] bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-2 py-0.5 text-white/70">
           {b.source} <span className="text-emerald-400 font-bold">{b.value}</span>
+        </span>
+      ))}
+    </motion.div>
+  )
+}
+
+// ====== 10b. SKILL SYNERGY BADGES ======
+export function SkillSynergyBadges({
+  synergies,
+}: {
+  synergies: Array<{ id: string; name: string; icon: string; description?: string }>
+}) {
+  if (!synergies?.length) return null
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-wrap gap-1.5 justify-center max-w-3xl mx-auto"
+    >
+      {synergies.map((s) => (
+        <span
+          key={s.id}
+          title={s.description || s.name}
+          className="text-[10px] px-2 py-0.5 rounded-full border border-amber-500/40 bg-amber-950/50 text-amber-100"
+        >
+          {s.icon} {s.name}
         </span>
       ))}
     </motion.div>

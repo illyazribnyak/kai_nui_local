@@ -17,6 +17,7 @@ import {
   skillLevel,
 } from '@/lib/game/skill-effects'
 import { SEX_MOVES } from '@/lib/game/sex-moves'
+import { SEX_SYNERGIES, computeActiveSynergies } from '@/lib/game/sex-synergies'
 
 interface SkillTreeProps {
   skills: SkillData[]
@@ -27,6 +28,7 @@ export function SkillTree({ skills }: SkillTreeProps) {
   const [selectedNode, setSelectedNode] = useState<SexSkillNode | null>(null)
 
   const modifiers = useMemo(() => computeSkillModifiers(skills), [skills])
+  const activeSynergies = useMemo(() => computeActiveSynergies(skills), [skills])
   const branchNodes = useMemo(
     () => SEX_SKILL_TREE.filter((n) => n.category === activeBranch),
     [activeBranch]
@@ -71,8 +73,38 @@ export function SkillTree({ skills }: SkillTreeProps) {
               <li>Amulet ×{modifiers.amuletGainMultiplier.toFixed(2)}</li>
             )}
             {modifiers.seductionCritOn19 && <li className="text-amber-300">✓ Крит зваблення 19–20</li>}
+            {activeSynergies.map((s) => (
+              <li key={s.id} className="text-amber-200">
+                {s.icon} {s.name}
+              </li>
+            ))}
           </ul>
         )}
+      </div>
+
+      {/* All synergies reference */}
+      <div className="rounded-xl border border-border/50 bg-muted/20 p-2.5 space-y-1">
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Синергії гілок</p>
+        <div className="space-y-1 max-h-28 overflow-y-auto panel-scroll">
+          {SEX_SYNERGIES.map((s) => {
+            const on = activeSynergies.some((a) => a.id === s.id)
+            return (
+              <div
+                key={s.id}
+                className={`text-[10px] px-2 py-1 rounded-lg border ${
+                  on
+                    ? 'border-amber-500/40 bg-amber-950/30 text-amber-100'
+                    : 'border-border/40 text-muted-foreground opacity-70'
+                }`}
+              >
+                <span className="font-semibold">
+                  {on ? '✓' : '○'} {s.icon} {s.name}
+                </span>
+                <span className="block text-[9px] opacity-80">{s.condition}</span>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Branch Selectors */}

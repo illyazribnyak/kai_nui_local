@@ -52,6 +52,8 @@ export interface SexChoiceOption {
   text: string
   bonus: string
   risk?: boolean
+  /** If set, client runs /api/sex-turn instead of free-text chat */
+  skillMoveId?: string
 }
 
 export interface SceneMoodData {

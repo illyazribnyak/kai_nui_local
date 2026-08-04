@@ -209,9 +209,8 @@ export function resolveSexTurn(
   let amuletGain = 0
   let chain = Number(state.orgasmChain ?? 0)
 
-  // Orgasm thresholds
-  const senseLv = skillLevel(skills, 'Чутливість')
-  const laraThreshold = senseLv >= 2 ? 90 : 100
+  // Orgasm thresholds (skills + synergies)
+  const laraThreshold = mods.laraOrgasmThreshold ?? 100
   if (lara >= laraThreshold) {
     laraOrgasm = true
     events.push('orgasm:lara')

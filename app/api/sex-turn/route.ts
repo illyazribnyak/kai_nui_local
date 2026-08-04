@@ -11,6 +11,11 @@ import {
 } from '@/lib/game/sex-turn'
 import { listAvailableSexMoves } from '@/lib/game/sex-moves'
 import { computeSkillModifiers } from '@/lib/game/skill-effects'
+import {
+  detectNewSynergies,
+  detectNewlyLeveledSkills,
+  detectNewlyUnlockedNodes,
+} from '@/lib/game/sex-synergies'
 
 /**
  * POST /api/sex-turn
@@ -84,18 +89,32 @@ export async function POST(request: NextRequest) {
     const updatedState = await prisma.gameState.findUnique({ where: { id: 'singleton' } })
     const mods = computeSkillModifiers(updatedSkills)
 
+    const skillProgress = {
+      levelUps: detectNewlyLeveledSkills(skills, updatedSkills),
+      treeUnlocks: detectNewlyUnlockedNodes(skills, updatedSkills),
+      newSynergies: detectNewSynergies(skills, updatedSkills).map((s) => ({
+        id: s.id,
+        name: s.name,
+        icon: s.icon,
+        description: s.description,
+      })),
+    }
+
     return NextResponse.json({
       success: true,
       result,
       chatMessage: buildSexMoveChatMessage(result),
       skills: updatedSkills,
       gameState: updatedState,
+      skillProgress,
       skillModifiers: {
         multiOrgasmUnlocked: mods.multiOrgasmUnlocked,
         partnerPleasureBonusPct: mods.partnerPleasureBonusPct,
         laraPleasureBonusPct: mods.laraPleasureBonusPct,
         staminaFloor: mods.staminaFloor,
         dominationBias: mods.dominationBias,
+        laraOrgasmThreshold: mods.laraOrgasmThreshold,
+        synergies: mods.synergies.map((s) => ({ id: s.id, name: s.name, icon: s.icon })),
       },
     })
   } catch (e: any) {

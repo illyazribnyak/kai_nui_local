@@ -5,6 +5,11 @@
 
 import { clamp } from '@/lib/game/json'
 import { SEX_SKILL_TREE, type SexSkillCategory, type SexSkillNode } from '@/lib/game/sex-skill-tree'
+import {
+  aggregateSynergyEffects,
+  computeActiveSynergies,
+  type ActiveSynergy,
+} from '@/lib/game/sex-synergies'
 
 export interface SkillLike {
   name: string
@@ -29,6 +34,9 @@ export interface SkillModifierSummary {
   amuletGainMin: number
   seductionCritOn19: boolean
   dominationFloor: number | null
+  /** Lara orgasm at 100 - relief */
+  laraOrgasmThreshold: number
+  synergies: ActiveSynergy[]
 }
 
 export function skillLevel(skills: SkillLike[] | null | undefined, name: string): number {
@@ -106,24 +114,35 @@ export function computeSkillModifiers(skills: SkillLike[] | null | undefined): S
   const ecstasyLv = skillLevel(skills, 'Екстаз сили')
   const auraLv = skillLevel(skills, 'Аура бажання')
 
-  const partnerPleasureBonusPct =
-    tenderLv * 2 + handsLv * 5 + (handsLv >= 5 ? 10 : 0)
-  const laraPleasureBonusPct = senseLv * 2 + kissLv * 1
+  const synergies = computeActiveSynergies(skills)
+  const syn = aggregateSynergyEffects(synergies)
 
-  let staminaFloor = longLv * 3
+  let partnerPleasureBonusPct =
+    tenderLv * 2 + handsLv * 5 + (handsLv >= 5 ? 10 : 0) + syn.partnerPleasureBonusPct
+  let laraPleasureBonusPct = senseLv * 2 + kissLv * 1 + syn.laraPleasureBonusPct
+
+  let staminaFloor = longLv * 3 + syn.staminaFloorBonus
   if (tirelessLv >= 5) staminaFloor = Math.max(staminaFloor, 15)
 
   const dominationBias = voiceLv * 5 - subLv * 5
-  const dominationFloor = fullDomLv >= 3 ? 20 : null
+  let dominationFloor: number | null = fullDomLv >= 3 ? 20 : null
+  if (syn.dominationFloorBonus > 0) {
+    dominationFloor = Math.max(dominationFloor ?? 0, syn.dominationFloorBonus)
+  }
 
-  const amuletGainMultiplier = 1 + ecstasyLv * 0.1 + ritualLv * 0.05
+  let amuletGainMultiplier = (1 + ecstasyLv * 0.1 + ritualLv * 0.05) * syn.amuletMult
   const amuletGainMin = ecstasyLv >= 5 ? 15 : 0
+
+  const laraOrgasmThreshold = Math.max(70, 100 - (senseLv >= 2 ? 10 : 0) - syn.laraOrgasmThresholdRelief)
 
   const lines: string[] = []
   for (const node of SEX_SKILL_TREE) {
     const lv = skillLevel(skills, node.name)
     if (lv <= 0) continue
     lines.push(`• ${node.name} Lv${lv}: ${node.effectByLevel}`)
+  }
+  for (const s of synergies) {
+    lines.push(`✦ Синергія «${s.name}»: ${s.description}`)
   }
 
   const diceHints = SEX_SKILL_TREE
@@ -147,6 +166,8 @@ export function computeSkillModifiers(skills: SkillLike[] | null | undefined): S
     amuletGainMin,
     seductionCritOn19: auraLv >= 5,
     dominationFloor,
+    laraOrgasmThreshold,
+    synergies,
   }
 }
 
@@ -285,6 +306,8 @@ export function formatActiveSkillEffectsForPrompt(skills: SkillLike[] | null | u
     m.laraPleasureBonusPct ? `Lara pleasure +${m.laraPleasureBonusPct}%` : null,
     m.staminaFloor ? `Stamina floor ${m.staminaFloor}` : null,
     m.dominationBias ? `Domination bias ${m.dominationBias > 0 ? '+' : ''}${m.dominationBias}` : null,
+    m.laraOrgasmThreshold < 100 ? `Порог оргазму Лари: ${m.laraOrgasmThreshold}` : null,
+    m.synergies.length ? `Синергії: ${m.synergies.map((s) => s.name).join(', ')}` : null,
   ].filter(Boolean)
 
   return [
@@ -292,7 +315,8 @@ export function formatActiveSkillEffectsForPrompt(skills: SkillLike[] | null | u
     ...m.lines,
     'Зведення:',
     ...gates.map((g) => `- ${g}`),
-    'При d20 у сексі вказуй skill назвою навички або ключовим словом (зваблення, дотик, витривалість…) — сервер додасть бонус.',
+    'SEX_CHOICES: risk/бондаж лише якщо навички дозволяють (сервер відфільтрує). Краще пропонуй ходи з дерева.',
+    'При d20 у сексі вказуй skill назвою навички або ключовим словом — сервер додасть бонус.',
     'Завжди видавай SKILL_UPDATE XP за релевантні дії (5–25).',
   ].join('\n')
 }

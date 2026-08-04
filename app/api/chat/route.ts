@@ -34,6 +34,12 @@ import {
 import { formatRecipesForPrompt } from '@/lib/game/crafting'
 import { needsDeepAnalysis } from '@/lib/game/needs-analysis'
 import { applySexSkillModifiers, formatActiveSkillEffectsForPrompt } from '@/lib/game/skill-effects'
+import { filterAndEnrichSexChoices } from '@/lib/game/sex-choices-gate'
+import {
+  detectNewSynergies,
+  detectNewlyLeveledSkills,
+  detectNewlyUnlockedNodes,
+} from '@/lib/game/sex-synergies'
 
 function buildSystemPrompt(
   gameState: any,
@@ -1055,6 +1061,28 @@ export async function POST(request: NextRequest) {
           // Use pre-turn skills so bonuses are based on levels before this turn's XP.
           const sexSkillResult = applySexSkillModifiers(merged as any, skills)
 
+          // 5.6b Skill-gated SEX_CHOICES (filter risk + inject skill moves)
+          const phaseForGate =
+            merged.phase?.phase ||
+            merged.sexScene?.phase ||
+            'foreplay'
+          const inSexContext = Boolean(
+            merged.sexScene ||
+            merged.sexChoices?.length ||
+            merged.pleasure ||
+            merged.sceneSummary ||
+            merged.multiOrgasm
+          )
+          let sexChoicesGate: ReturnType<typeof filterAndEnrichSexChoices> | null = null
+          if (inSexContext || merged.sexChoices?.length) {
+            sexChoicesGate = filterAndEnrichSexChoices(merged.sexChoices, skills, {
+              phase: phaseForGate,
+              amuletEnergy: Number(merged.stat?.amuletEnergy ?? gameState?.amuletEnergy ?? 0),
+            })
+            merged.sexChoices = sexChoicesGate.choices
+            sexSkillResult.applied.push(...sexChoicesGate.applied)
+          }
+
           // Apply amulet_gain from scene summary into STAT if AI forgot absolute energy
           if (merged.sceneSummary?.amulet_gain != null) {
             const gain = Math.max(0, Number(merged.sceneSummary.amulet_gain) || 0)
@@ -1115,6 +1143,11 @@ export async function POST(request: NextRequest) {
           const updatedDiseases = await prisma.disease.findMany()
           const updatedFacts = await prisma.worldFact.findMany({ orderBy: { createdAt: 'asc' } })
 
+          // Skill progression feedback for client toasts
+          const skillLevelUps = detectNewlyLeveledSkills(skills, updatedSkills)
+          const skillTreeUnlocks = detectNewlyUnlockedNodes(skills, updatedSkills)
+          const newSynergies = detectNewSynergies(skills, updatedSkills)
+
           const tagLog = {
             ...buildTagLog({
               mode: promptMode,
@@ -1133,7 +1166,16 @@ export async function POST(request: NextRequest) {
               laraPleasureBonusPct: sexSkillResult.modifiers.laraPleasureBonusPct,
               staminaFloor: sexSkillResult.modifiers.staminaFloor,
               dominationBias: sexSkillResult.modifiers.dominationBias,
+              laraOrgasmThreshold: sexSkillResult.modifiers.laraOrgasmThreshold,
+              synergies: sexSkillResult.modifiers.synergies.map((s) => ({
+                id: s.id,
+                name: s.name,
+                icon: s.icon,
+              })),
             },
+            sexChoicesGate: sexChoicesGate
+              ? { removedRisk: sexChoicesGate.removedRisk, injected: sexChoicesGate.injected }
+              : null,
           }
 
           const analyzerLabel = geminiAnalysis.provider === 'gemini'
@@ -1197,6 +1239,17 @@ export async function POST(request: NextRequest) {
             laraDialogue: merged.laraDialogue,
             multiOrgasm: merged.multiOrgasm,
             penisStats: merged.penisStats,
+            skillProgress: {
+              levelUps: skillLevelUps,
+              treeUnlocks: skillTreeUnlocks,
+              newSynergies: newSynergies.map((s) => ({
+                id: s.id,
+                name: s.name,
+                icon: s.icon,
+                description: s.description,
+              })),
+              sceneEnded: Boolean(merged.sceneSummary),
+            },
           })}\n\n`))
 
           // 8. Auto-compress history if needed

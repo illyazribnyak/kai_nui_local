@@ -28,10 +28,11 @@ import { collectCompleteTags, safeParseJSON, stripAllTags } from '@/lib/game/str
 import { toast } from 'sonner'
 import { getAvatar, getLaraAvatar, getTribeAvatar } from '@/lib/avatar-utils'
 import Image from 'next/image'
-import { DiceRollPopup, DualPleasureMeter, PhaseIndicator, StaminaBar, ComboCounter, DominationScale, PartnerReaction, SexChoiceCards, ErogenousDiscovery, ContextBonusBadges, SceneSummaryCard, SceneAtmosphere, SceneMoodIndicator, LaraDialogueCards, MultiOrgasmPopup, PenisStatsCard, TempoControlButtons } from './sex-mechanics'
+import { DiceRollPopup, DualPleasureMeter, PhaseIndicator, StaminaBar, ComboCounter, DominationScale, PartnerReaction, SexChoiceCards, ErogenousDiscovery, ContextBonusBadges, SkillSynergyBadges, SceneSummaryCard, SceneAtmosphere, SceneMoodIndicator, LaraDialogueCards, MultiOrgasmPopup, PenisStatsCard, TempoControlButtons } from './sex-mechanics'
 import { SexSkillMovesBar, type HudMove } from './sex-skill-moves'
 import { listAvailableSexMoves } from '@/lib/game/sex-moves'
 import { computeSkillModifiers } from '@/lib/game/skill-effects'
+import { computeActiveSynergies } from '@/lib/game/sex-synergies'
 import { OnboardingOverlay } from './onboarding'
 import { CombatOverlay } from './combat-overlay'
 import { CraftingModal } from './crafting-modal'
@@ -455,6 +456,25 @@ export default function GameClient() {
               if (parsed?.tagLog) setLastTagLog(parsed.tagLog)
               if (parsed?.tokenUsage) setTokenUsage(parsed.tokenUsage)
               if (parsed?.promptMode) setPromptModeLabel(parsed.promptMode)
+              // Skill tree progression toasts (C+D)
+              const sp = parsed?.skillProgress
+              if (sp) {
+                for (const u of sp.levelUps || []) {
+                  toast.success(`🌳 ${u.name}: Lv${u.from} → Lv${u.to}`, { duration: 3200 })
+                }
+                for (const name of sp.treeUnlocks || []) {
+                  toast.message(`🔓 Відкрито в дереві: ${name}`, { duration: 3500 })
+                }
+                for (const s of sp.newSynergies || []) {
+                  toast.success(`${s.icon || '✦'} Синергія: ${s.name}`, {
+                    description: s.description,
+                    duration: 4000,
+                  })
+                }
+                if (sp.sceneEnded && (sp.levelUps?.length || sp.treeUnlocks?.length || sp.newSynergies?.length)) {
+                  toast.message('📊 Підсумок сцени: навички оновлено', { duration: 2500 })
+                }
+              }
               if (parsed?.diceRolls?.length > 0) {
                 setDiceRoll(parsed.diceRolls[parsed.diceRolls.length - 1])
                 soundEngine.playDiceRoll()
@@ -764,6 +784,21 @@ export default function GameClient() {
 
       for (const g of result.xpGrants || []) {
         toast.success(`🌳 ${g.name} +${g.xp} XP`, { duration: 2500 })
+      }
+      const sp = body.skillProgress
+      if (sp) {
+        for (const u of sp.levelUps || []) {
+          toast.success(`🌳 ${u.name}: Lv${u.from} → Lv${u.to}`, { duration: 3000 })
+        }
+        for (const name of sp.treeUnlocks || []) {
+          toast.message(`🔓 Відкрито: ${name}`, { duration: 3200 })
+        }
+        for (const s of sp.newSynergies || []) {
+          toast.success(`${s.icon || '✦'} Синергія: ${s.name}`, {
+            description: s.description,
+            duration: 4000,
+          })
+        }
       }
       if (result.phaseChanged) {
         toast.message(`Фаза: ${result.phaseLabel}`)
@@ -1269,6 +1304,7 @@ export default function GameClient() {
                     busy={sexMoveBusy || isLoading}
                     onSelect={(id) => void runSexSkillMove(id)}
                   />
+                  <SkillSynergyBadges synergies={computeActiveSynergies(skills)} />
                   {contextBonuses.length > 0 && <ContextBonusBadges bonuses={contextBonuses} />}
                   {reactions.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 justify-center max-w-3xl mx-auto">
@@ -1387,7 +1423,11 @@ export default function GameClient() {
                   exit={{ opacity: 0, y: 10 }}
                   className="border-b border-pink-500/30 bg-pink-950/20 backdrop-blur-sm px-3 sm:px-4 pt-3 pb-2"
                 >
-                  <SexChoiceCards options={sexChoices} onSelect={(text) => { setSexChoices([]); sendChoice(text) }} />
+                  <SexChoiceCards
+                    options={sexChoices}
+                    onSelect={(text) => { setSexChoices([]); sendChoice(text) }}
+                    onSkillMove={(moveId) => { setSexChoices([]); void runSexSkillMove(moveId) }}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
