@@ -7,6 +7,7 @@ export type SidebarTab =
   | 'kinks'
   | 'gallery'
   | 'body'
+  | 'capacity'
   | 'map'
   | 'tribes'
   | 'achievements'

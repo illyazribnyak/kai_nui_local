@@ -18,38 +18,6 @@ type Props = {
   compact?: boolean
 }
 
-function CapBar({
-  label,
-  comfort,
-  max,
-  unit,
-  color,
-}: {
-  label: string
-  comfort: number
-  max: number
-  unit: string
-  color: string
-}) {
-  const pct = Math.min(100, (max / 20) * 100)
-  const comfortPct = Math.min(100, (comfort / 20) * 100)
-  return (
-    <div className="space-y-0.5">
-      <div className="flex justify-between text-[10px]">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="font-mono text-foreground/70">
-          {comfort}–{max}
-          {unit}
-        </span>
-      </div>
-      <div className="h-1.5 bg-muted rounded-full overflow-hidden relative">
-        <div className={`absolute inset-y-0 left-0 ${color} opacity-40 rounded-full`} style={{ width: `${pct}%` }} />
-        <div className={`absolute inset-y-0 left-0 ${color} rounded-full`} style={{ width: `${comfortPct}%` }} />
-      </div>
-    </div>
-  )
-}
-
 export function LaraCard({ gameState, skills, compact }: Props) {
   const appearance = useMemo(
     () => buildLaraAppearance(gameState, skills),
@@ -193,50 +161,10 @@ export function LaraCard({ gameState, skills, compact }: Props) {
         </div>
       )}
 
-      {/* Body capacity */}
-      <div className="space-y-2 bg-muted/20 rounded-xl p-2.5 border border-border/40">
-        <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Тіло · місткість / розтяг
-        </h4>
-        <p className="text-[9px] text-muted-foreground/80">
-          Світла смуга = комфорт, тьмяна = максимум. Росте зі скілами вагіни / аналу / горла.
-        </p>
-        <CapBar
-          label="Вагіна ⌀ см"
-          comfort={appearance.capacity.vaginal.comfortDiameterCm}
-          max={appearance.capacity.vaginal.maxDiameterCm}
-          unit=""
-          color="bg-pink-500"
-        />
-        <CapBar
-          label="Вагіна глибина см"
-          comfort={appearance.capacity.vaginal.comfortDepthCm}
-          max={appearance.capacity.vaginal.maxDepthCm}
-          unit=""
-          color="bg-rose-500"
-        />
-        <CapBar
-          label="Анал ⌀ см"
-          comfort={appearance.capacity.anal.comfortDiameterCm}
-          max={appearance.capacity.anal.maxDiameterCm}
-          unit=""
-          color="bg-orange-500"
-        />
-        <CapBar
-          label="Анал глибина см"
-          comfort={appearance.capacity.anal.comfortDepthCm}
-          max={appearance.capacity.anal.maxDepthCm}
-          unit=""
-          color="bg-amber-600"
-        />
-        <CapBar
-          label="Горло глибина см"
-          comfort={appearance.capacity.oral.comfortDepthCm}
-          max={appearance.capacity.oral.maxDepthCm}
-          unit=""
-          color="bg-violet-500"
-        />
-      </div>
+      <p className="text-[9px] text-muted-foreground/80 text-center rounded-lg border border-border/40 bg-muted/15 px-2 py-1.5">
+        📐 Місткість / розтяг і додаткові статы тіла — у меню{' '}
+        <span className="text-primary font-medium">⋯ → Місткість</span>
+      </p>
 
       {/* Quick combat/ stat strip */}
       <div className="grid grid-cols-5 gap-1 text-center">

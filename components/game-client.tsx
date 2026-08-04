@@ -32,6 +32,7 @@ import { getAvatar, getLaraAvatar, getTribeAvatar } from '@/lib/avatar-utils'
 import { LaraCard } from './lara-card'
 import { LaraGalleryPanel } from './lara-gallery-panel'
 import { LaraBodyKit } from './lara-body-kit'
+import { LaraCapacityPanel } from './lara-capacity-panel'
 import Image from 'next/image'
 import { DiceRollPopup, DualPleasureMeter, PhaseIndicator, StaminaBar, ComboCounter, DominationScale, PartnerReaction, SexChoiceCards, ErogenousDiscovery, ContextBonusBadges, SkillSynergyBadges, SceneSummaryCard, SceneAtmosphere, SceneMoodIndicator, LaraDialogueCards, MultiOrgasmPopup, PenisStatsCard, TempoControlButtons } from './sex-mechanics'
 import { SexSkillMovesBar, type HudMove } from './sex-skill-moves'
@@ -778,6 +779,7 @@ export default function GameClient() {
     { id: 'kinks', icon: <Heart className="w-3.5 h-3.5" />, label: 'Кінки' },
     { id: 'gallery', icon: <Images className="w-3.5 h-3.5" />, label: 'Галерея' },
     { id: 'body', icon: <Users className="w-3.5 h-3.5" />, label: 'Тіло' },
+    { id: 'capacity', icon: <Target className="w-3.5 h-3.5" />, label: 'Місткість' },
     { id: 'tribes', icon: <Compass className="w-3.5 h-3.5" />, label: 'Племена' },
     { id: 'diary', icon: <Feather className="w-3.5 h-3.5" />, label: 'Щоденник' },
     { id: 'achievements', icon: <Gem className="w-3.5 h-3.5" />, label: 'Нагороди' },
@@ -2063,7 +2065,7 @@ export default function GameClient() {
             {/* STATS TAB */}
             {sidebarTab === 'stats' && (
               <div className="space-y-5">
-                {/* Lara character card — multi-avatar + body capacity */}
+                {/* Lara character card — portrait / looks (capacity is own tab) */}
                 <LaraCard gameState={gameState} skills={skills} />
                 <div className="text-[10px] text-muted-foreground px-0.5">
                   📍 {gameState?.location || 'Невідомо'} · День {gameState?.dayNumber || 1} ·{' '}
@@ -2522,6 +2524,11 @@ export default function GameClient() {
                 sexAtmosphere={sexScene?.atmosphere ? String(sexScene.atmosphere) : null}
                 sexSceneType={sexScene?.type ? String(sexScene.type) : null}
               />
+            )}
+
+            {/* CAPACITY TAB — orifice stretch + extended body stats */}
+            {sidebarTab === 'capacity' && (
+              <LaraCapacityPanel gameState={gameState} skills={skills} />
             )}
 
             {/* MAP TAB */}
