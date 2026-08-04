@@ -74,6 +74,33 @@ export const SEX_SYNERGIES: SkillSynergy[] = [
     active: (s) => skillLevel(s, 'Солодкі слова') >= 2 && skillLevel(s, "Зв'язування") >= 2,
     effects: { partnerPleasureBonusPct: 6, laraPleasureBonusPct: 4 },
   },
+  {
+    id: 'filthy_hands',
+    name: 'Брудні руки',
+    icon: '🗣️✋',
+    description: 'Брудні розмови + дрочка: сильніший partner pleasure',
+    condition: '«Брудні розмови» ≥2 і «Дрочка руками» ≥2',
+    active: (s) => skillLevel(s, 'Брудні розмови') >= 2 && skillLevel(s, 'Дрочка руками') >= 2,
+    effects: { partnerPleasureBonusPct: 12 },
+  },
+  {
+    id: 'throat_master',
+    name: 'Горло майстра',
+    icon: '💋🌊',
+    description: 'Мінет + глибоке горло: oral orgasms швидші',
+    condition: '«Мінет» ≥2 і «Глибоке горло» ≥2',
+    active: (s) => skillLevel(s, 'Мінет') >= 2 && skillLevel(s, 'Глибоке горло') >= 2,
+    effects: { partnerPleasureBonusPct: 15, laraPleasureBonusPct: 4 },
+  },
+  {
+    id: 'filthy_anal',
+    name: 'Брудний анал',
+    icon: '🗣️🍑',
+    description: 'Брудні розмови + анал: контроль і збудження',
+    condition: '«Брудні розмови» ≥2 і «Анал» ≥2',
+    active: (s) => skillLevel(s, 'Брудні розмови') >= 2 && skillLevel(s, 'Анал') >= 2,
+    effects: { partnerPleasureBonusPct: 10, laraPleasureBonusPct: 8, dominationFloorBonus: 5 },
+  },
 ]
 
 export interface ActiveSynergy {

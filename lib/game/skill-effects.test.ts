@@ -20,8 +20,15 @@ describe('sex skill tree integrity', () => {
     }
   })
 
-  it('has 24 nodes (6 branches × 4)', () => {
-    assert.equal(SEX_SKILL_TREE.length, 24)
+  it('has 29 nodes (6×4 + 5 acts)', () => {
+    assert.equal(SEX_SKILL_TREE.length, 29)
+  })
+
+  it('includes intimacy acts branch', () => {
+    const acts = SEX_SKILL_TREE.filter((n) => n.category === 'acts')
+    assert.equal(acts.length, 5)
+    assert.ok(acts.some((n) => n.name === 'Мінет'))
+    assert.ok(acts.some((n) => n.name === 'Анал'))
   })
 })
 

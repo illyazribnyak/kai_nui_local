@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db'
 
-const INITIAL_SKILLS = [
+/** Full skill catalog — also used to upsert missing skills on existing DBs. */
+export const INITIAL_SKILLS = [
   // Зваблення
   { name: 'Чарівний погляд', category: 'seduction', description: 'Вміння зачарувати поглядом' },
   { name: 'Солодкі слова', category: 'seduction', description: 'Мистецтво еротичних компліментів' },
@@ -18,7 +19,7 @@ const INITIAL_SKILLS = [
   { name: 'Невтомність', category: 'endurance', description: 'Невичерпна сексуальна енергія' },
   // Домінування
   { name: 'Владний голос', category: 'domination', description: 'Командний тон, що збуджує' },
-  { name: 'Зв\'язування', category: 'domination', description: 'Мистецтво еротичного бондажу' },
+  { name: "Зв'язування", category: 'domination', description: 'Мистецтво еротичного бондажу' },
   { name: 'Покарання та нагорода', category: 'domination', description: 'Гра з болем і насолодою' },
   { name: 'Повна влада', category: 'domination', description: 'Абсолютний контроль над партнером' },
   // Підкорення
@@ -29,22 +30,36 @@ const INITIAL_SKILLS = [
   // Магія тіла
   { name: 'Цілюща ласка', category: 'body_magic', description: 'Дотик, що зцілює тіло й душу' },
   { name: 'Ритуал насолоди', category: 'body_magic', description: 'Магічний ритуал через секс' },
-  { name: 'Зв\'язок душ', category: 'body_magic', description: 'Телепатичний зв\'язок під час близькості' },
+  { name: "Зв'язок душ", category: 'body_magic', description: 'Телепатичний зв\'язок під час близькості' },
   { name: 'Екстаз сили', category: 'body_magic', description: 'Перетворення оргазму на магічну енергію' },
-]
+  // Інтимні акти (нова гілка)
+  { name: 'Брудні розмови', category: 'acts', description: 'Брудні слова, стогін, вербальне збудження' },
+  { name: 'Дрочка руками', category: 'acts', description: 'Майстерність ручної стимуляції партнера' },
+  { name: 'Мінет', category: 'acts', description: 'Оральні ласки, ритм і техніка' },
+  { name: 'Глибоке горло', category: 'acts', description: 'Глибоке прийняття, контроль дихання' },
+  { name: 'Анал', category: 'acts', description: 'Анальна близькість: підготовка, темп, контроль' },
+] as const
 
+/**
+ * Ensure all catalog skills exist. Never resets existing levels/XP.
+ */
 export async function seedSkills() {
-  const existing = await prisma.skill.count()
-  if (existing > 0) return // already seeded
-
-  await prisma.skill.createMany({
-    data: INITIAL_SKILLS.map(s => ({
-      name: s.name,
-      category: s.category,
-      description: s.description,
-      level: 0,
-      xp: 0,
-      maxXp: 100,
-    })),
-  })
+  for (const s of INITIAL_SKILLS) {
+    await prisma.skill.upsert({
+      where: { name: s.name },
+      create: {
+        name: s.name,
+        category: s.category,
+        description: s.description,
+        level: 0,
+        xp: 0,
+        maxXp: 100,
+      },
+      update: {
+        // keep progression; refresh metadata only
+        category: s.category,
+        description: s.description,
+      },
+    })
+  }
 }

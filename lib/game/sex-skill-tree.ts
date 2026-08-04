@@ -10,6 +10,7 @@ export type SexSkillCategory =
   | 'domination'
   | 'submission'
   | 'body_magic'
+  | 'acts'
 
 export interface SexSkillNode {
   id: string
@@ -39,6 +40,7 @@ export const SEX_SKILL_CATEGORIES: {
   { id: 'domination', label: 'Домінування', icon: '⛓️', color: 'red', activeClass: 'bg-red-600 text-white shadow-red-600/30' },
   { id: 'submission', label: 'Підкорення', icon: '🦋', color: 'violet', activeClass: 'bg-violet-600 text-white shadow-violet-600/30' },
   { id: 'body_magic', label: 'Магія тіла', icon: '✨', color: 'amber', activeClass: 'bg-amber-500 text-slate-950 shadow-amber-500/30' },
+  { id: 'acts', label: 'Акти', icon: '🔥', color: 'fuchsia', activeClass: 'bg-fuchsia-600 text-white shadow-fuchsia-600/30' },
 ]
 
 /** Linear trees per category — order = progression. */
@@ -287,6 +289,57 @@ export const SEX_SKILL_TREE: SexSkillNode[] = [
     description: 'Перетворення оргазму на магічну енергію',
     effectByLevel: 'amulet_gain ×(1 + 0.1×рівень). Рівень 5: мінімум +15 amulet за оргазм.',
     diceKeywords: ['екстаз', 'енергія', 'амулет', 'магія', 'сила'],
+  },
+
+  // —— Інтимні акти
+  {
+    id: 'act_1',
+    name: 'Брудні розмови',
+    category: 'acts',
+    icon: '🗣️',
+    description: 'Брудні слова, стогін, вербальне збудження',
+    effectByLevel: 'd20 dirty talk/харизма +рівень. Partner pleasure +1% за рівень на вербальних ходах. Рівень ≥3: +desire підказка AI.',
+    diceKeywords: ['брудн', 'розмов', 'dirty', 'talk', 'словес', 'стогін', 'вербаль', 'харизма'],
+  },
+  {
+    id: 'act_2',
+    name: 'Дрочка руками',
+    category: 'acts',
+    parentName: 'Брудні розмови',
+    icon: '✋',
+    description: 'Майстерність ручної стимуляції партнера',
+    effectByLevel: 'partner pleasure +3% за рівень на hand-ходах. d20 руки/техніка +рівень. Рівень 5: +8 flat partner pleasure на дрочці.',
+    diceKeywords: ['дроч', 'ручн', 'handjob', 'руками', 'мастурб', 'стимул'],
+  },
+  {
+    id: 'act_3',
+    name: 'Мінет',
+    category: 'acts',
+    parentName: 'Дрочка руками',
+    icon: '💋',
+    description: 'Оральні ласки, ритм і техніка',
+    effectByLevel: 'partner pleasure +4% за рівень на oral-ходах. d20 мінет +рівень. Рівень ≥3: швидший partner orgasm (−5 до порогу партнера наративно).',
+    diceKeywords: ['мінет', 'орал', 'blowjob', 'рот', 'язик', 'смокт'],
+  },
+  {
+    id: 'act_4',
+    name: 'Глибоке горло',
+    category: 'acts',
+    parentName: 'Мінет',
+    icon: '🌊',
+    description: 'Глибоке прийняття, контроль дихання',
+    effectByLevel: 'потрібен Мінет ≥1. d20 deepthroat +рівень; partner pleasure +5%×рівень. Рівень ≥3: stamina cost oral −2. Рівень 5: crit oral на 19–20.',
+    diceKeywords: ['глибок', 'горл', 'deepthroat', 'deep', 'throat', 'глибина'],
+  },
+  {
+    id: 'act_5',
+    name: 'Анал',
+    category: 'acts',
+    parentName: 'Мінет',
+    icon: '🍑',
+    description: 'Анальна близькість: підготовка, темп, контроль',
+    effectByLevel: 'd20 анал +рівень. Partner + lara pleasure на anal-ходах +3%×рівень. Рівень ≥2: risk-anal дозволений. Рівень ≥4: stamina floor +5 у anal.',
+    diceKeywords: ['анал', 'anal', 'задн', 'попка', 'підготовк'],
   },
 ]
 

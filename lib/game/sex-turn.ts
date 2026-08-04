@@ -139,10 +139,18 @@ export function resolveSexTurn(
   }
 
   const cost = move.staminaCost[tempo]
-  // Tireless reduces fast cost
+  // Tireless reduces fast cost; deepthroat skill reduces oral cost
   const tireless = skillLevel(skills, 'Невтомність')
-  const adjustedCost =
+  const deepLv = skillLevel(skills, 'Глибоке горло')
+  let adjustedCost =
     tempo === 'fast' && tireless > 0 ? Math.max(1, cost - tireless) : cost
+  if (move.id === 'act_deep' && deepLv >= 3) {
+    adjustedCost = Math.max(1, adjustedCost - 2)
+  }
+  if (move.id === 'act_anal' && skillLevel(skills, 'Анал') >= 4) {
+    // handled via stamina floor later; small cost relief
+    adjustedCost = Math.max(1, adjustedCost - 1)
+  }
 
   let stamina = Number(state.stamina ?? 100)
   if (stamina < adjustedCost && stamina <= mods.staminaFloor) {
@@ -169,9 +177,31 @@ export function resolveSexTurn(
   dPartner *= lvScale
   dLara *= lvScale
 
-  // Dom/sub category flavor
+  // Dom/sub / acts category flavor
   if (move.category === 'submission') dLara *= 1.1
   if (move.category === 'technique') dPartner *= 1.05
+  if (move.category === 'acts') {
+    if (move.id === 'act_dirty') {
+      dPartner *= 1 + skillLevel(skills, 'Брудні розмови') * 0.03
+      dLara *= 1 + skillLevel(skills, 'Брудні розмови') * 0.02
+    }
+    if (move.id === 'act_handjob') {
+      dPartner *= 1 + skillLevel(skills, 'Дрочка руками') * 0.05
+      if (skillLevel(skills, 'Дрочка руками') >= 5) dPartner += 8
+    }
+    if (move.id === 'act_bj') {
+      dPartner *= 1 + skillLevel(skills, 'Мінет') * 0.06
+    }
+    if (move.id === 'act_deep') {
+      dPartner *= 1 + skillLevel(skills, 'Глибоке горло') * 0.08
+      // deepthroat costs less stamina at high level
+      // (adjusted below after cost computed — patch cost here via side effect)
+    }
+    if (move.id === 'act_anal') {
+      dPartner *= 1 + skillLevel(skills, 'Анал') * 0.05
+      dLara *= 1 + skillLevel(skills, 'Анал') * 0.04
+    }
+  }
 
   dPartner = Math.round(dPartner)
   dLara = Math.round(dLara)

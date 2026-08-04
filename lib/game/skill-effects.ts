@@ -113,13 +113,27 @@ export function computeSkillModifiers(skills: SkillLike[] | null | undefined): S
   const ritualLv = skillLevel(skills, 'Ритуал насолоди')
   const ecstasyLv = skillLevel(skills, 'Екстаз сили')
   const auraLv = skillLevel(skills, 'Аура бажання')
+  const dirtyLv = skillLevel(skills, 'Брудні розмови')
+  const handjobLv = skillLevel(skills, 'Дрочка руками')
+  const bjLv = skillLevel(skills, 'Мінет')
+  const deepLv = skillLevel(skills, 'Глибоке горло')
+  const analLv = skillLevel(skills, 'Анал')
 
   const synergies = computeActiveSynergies(skills)
   const syn = aggregateSynergyEffects(synergies)
 
   let partnerPleasureBonusPct =
-    tenderLv * 2 + handsLv * 5 + (handsLv >= 5 ? 10 : 0) + syn.partnerPleasureBonusPct
-  let laraPleasureBonusPct = senseLv * 2 + kissLv * 1 + syn.laraPleasureBonusPct
+    tenderLv * 2 +
+    handsLv * 5 +
+    (handsLv >= 5 ? 10 : 0) +
+    dirtyLv * 1 +
+    handjobLv * 2 +
+    bjLv * 3 +
+    deepLv * 2 +
+    analLv * 2 +
+    syn.partnerPleasureBonusPct
+  let laraPleasureBonusPct =
+    senseLv * 2 + kissLv * 1 + dirtyLv * 1 + analLv * 1 + syn.laraPleasureBonusPct
 
   let staminaFloor = longLv * 3 + syn.staminaFloorBonus
   if (tirelessLv >= 5) staminaFloor = Math.max(staminaFloor, 15)

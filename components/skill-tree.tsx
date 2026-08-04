@@ -44,7 +44,7 @@ export function SkillTree({ skills }: SkillTreeProps) {
       <div className="rounded-xl border border-pink-500/30 bg-pink-950/20 p-3 space-y-1.5">
         <div className="flex items-center gap-1.5 text-xs font-bold text-pink-200">
           <Zap className="w-3.5 h-3.5 text-pink-400" />
-          Активні ефекти ({activeCount}/24)
+          Активні ефекти ({activeCount}/{SEX_SKILL_TREE.length})
         </div>
         {modifiers.lines.length === 0 ? (
           <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -108,7 +108,7 @@ export function SkillTree({ skills }: SkillTreeProps) {
       </div>
 
       {/* Branch Selectors */}
-      <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-muted/40 border border-border/60">
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 p-1 rounded-xl bg-muted/40 border border-border/60">
         {SEX_SKILL_CATEGORIES.map((cat) => (
           <button
             key={cat.id}
