@@ -69,6 +69,7 @@ import { OnboardingOverlay } from './onboarding'
 import { CombatOverlay } from './combat-overlay'
 import { CraftingModal } from './crafting-modal'
 import { WardrobeModal } from './wardrobe-modal'
+import { SoundscapePanel } from './soundscape-panel'
 import { TimelineModal } from './timeline-modal'
 import { LocationBanner } from './location-banner'
 import { AchievementsGallery } from './achievements-gallery'
@@ -813,9 +814,11 @@ export default function GameClient() {
   const PRIMARY_TABS: { id: SidebarTab; icon: React.ReactNode; label: string }[] = [
     { id: 'stats', icon: <Shield className="w-3.5 h-3.5" />, label: 'Стати' },
     { id: 'map', icon: <MapPin className="w-3.5 h-3.5" />, label: 'Карта' },
-    { id: 'quests', icon: <BookOpen className="w-3.5 h-3.5" />, label: 'Квести' },
     { id: 'characters', icon: <Users className="w-3.5 h-3.5" />, label: 'NPC' },
+    { id: 'audio', icon: <Volume2 className="w-3.5 h-3.5" />, label: 'Аудіо' },
+    { id: 'quests', icon: <BookOpen className="w-3.5 h-3.5" />, label: 'Квести' },
   ]
+
   const MORE_TABS: { id: SidebarTab; icon: React.ReactNode; label: string }[] = [
     { id: 'inventory', icon: <Package className="w-3.5 h-3.5" />, label: 'Інвентар' },
     { id: 'lore', icon: <Scroll className="w-3.5 h-3.5" />, label: 'Лор' },
@@ -2674,8 +2677,12 @@ export default function GameClient() {
               )
             })()}
 
+            {/* AUDIO TAB */}
+            {sidebarTab === 'audio' && <SoundscapePanel />}
+
             {/* TRIBES TAB */}
             {sidebarTab === 'tribes' && (
+
               <div className="space-y-3">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">🏠 Племена острова</h3>
                 {tribeReputations.length === 0 ? (

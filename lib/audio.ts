@@ -188,6 +188,67 @@ class SoundEngine {
       osc.stop(now + i * 0.15 + 0.85)
     })
   }
+
+  // --- Ambient Procedural Soundscapes ---
+  private activeAmbientOsc: OscillatorNode | null = null
+  private activeAmbientGain: GainNode | null = null
+  private activeAmbientType: string | null = null
+
+  public playAmbient(type: 'ocean' | 'jungle' | 'tribal' | 'amulet' | 'none') {
+    this.stopAmbient()
+    if (type === 'none' || this.isMuted || this.volume <= 0) return
+
+    const ctx = this.initCtx()
+    if (!ctx) return
+
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    if (type === 'ocean') {
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(80, ctx.currentTime)
+      gain.gain.setValueAtTime(this.master(0.1), ctx.currentTime)
+    } else if (type === 'jungle') {
+      osc.type = 'triangle'
+      osc.frequency.setValueAtTime(320, ctx.currentTime)
+      gain.gain.setValueAtTime(this.master(0.08), ctx.currentTime)
+    } else if (type === 'tribal') {
+      osc.type = 'sawtooth'
+      osc.frequency.setValueAtTime(110, ctx.currentTime)
+      gain.gain.setValueAtTime(this.master(0.12), ctx.currentTime)
+    } else if (type === 'amulet') {
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(432, ctx.currentTime)
+      gain.gain.setValueAtTime(this.master(0.09), ctx.currentTime)
+    }
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+
+    this.activeAmbientOsc = osc
+    this.activeAmbientGain = gain
+    this.activeAmbientType = type
+  }
+
+  public stopAmbient() {
+    if (this.activeAmbientOsc) {
+      try {
+        this.activeAmbientOsc.stop()
+        this.activeAmbientOsc.disconnect()
+      } catch {
+        /* ignore */
+      }
+      this.activeAmbientOsc = null
+      this.activeAmbientGain = null
+      this.activeAmbientType = null
+    }
+  }
+
+  public getActiveAmbientType(): string | null {
+    return this.activeAmbientType
+  }
 }
 
 export const soundEngine = new SoundEngine()
+

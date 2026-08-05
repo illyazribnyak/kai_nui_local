@@ -13,6 +13,7 @@ export type SidebarTab =
   | 'achievements'
   | 'characters'
   | 'lore'
+  | 'audio'
 
 export const ATTITUDE_LABELS: Record<string, { label: string; emoji: string; color: string }> = {
   hostile: { label: 'Ворожий', emoji: '😡', color: 'text-red-500' },
