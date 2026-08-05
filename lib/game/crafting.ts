@@ -262,6 +262,49 @@ export const CRAFTING_RECIPES: CraftingRecipe[] = [
     resultQuantity: 1,
   },
   {
+    id: 'wooden_dildo',
+    name: 'Дерев\'яний фалоімітатор',
+    category: 'інтимне',
+    description: 'Простий гладкий фалоімітатор з м\'якої палиці',
+    ingredients: [{ name: 'Гнучка гілка', quantity: 1 }],
+    resultQuantity: 1,
+  },
+  {
+    id: 'stone_dildo',
+    name: 'Кам\'яний фалоімітатор',
+    category: 'інтимне',
+    description: 'Гладкий річковий камінь довгастої форми',
+    ingredients: [{ name: 'Камінь', quantity: 1 }],
+    resultQuantity: 1,
+  },
+  {
+    id: 'leaf_panties',
+    name: 'Прості трусики з листя',
+    category: 'одяг',
+    description: 'Легкі трусики з пальмового листя, сплетені ліаною',
+    ingredients: [
+      { name: 'Цілюще листя', quantity: 1 },
+      { name: 'Ліана', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'fruit_juice',
+    name: 'Фруктовий сік',
+    category: 'напій',
+    description: 'Свіжовичавлений прохолодний сік з листя та фруктів',
+    ingredients: [{ name: 'Цілюще листя', quantity: 1 }],
+    resultQuantity: 1,
+  },
+  {
+    id: 'wooden_stick',
+    name: 'Загострена палиця',
+    category: 'зброя',
+    description: 'Проста загострена гілка для самозахисту',
+    ingredients: [{ name: 'Гнучка гілка', quantity: 1 }],
+    resultQuantity: 1,
+  },
+  {
     id: 'tribal_dildo',
     name: 'Полірований кістяний фалоімітатор',
     category: 'інтимне',
@@ -278,8 +321,7 @@ export const CRAFTING_RECIPES: CraftingRecipe[] = [
     category: 'інтимне',
     description: 'Гладкий дзеркальний обсидіановий затор із містичним сяйвом',
     ingredients: [
-      { name: 'Обсидіан', quantity: 1 },
-      { name: 'Ліана', quantity: 1 },
+      { name: 'Камінь', quantity: 1 },
     ],
     resultQuantity: 1,
   },
@@ -287,10 +329,9 @@ export const CRAFTING_RECIPES: CraftingRecipe[] = [
     id: 'silk_restraints',
     name: 'Шовкові пута & Зв\'язки (Bondage)',
     category: 'інтимне',
-    description: 'М\'які міцні шовкові пута для фіксації рук у пристрасних іграх',
+    description: 'М\'які міцні пута з ліан для фіксації рук у пристрасних іграх',
     ingredients: [
-      { name: 'Цілюще листя', quantity: 2 },
-      { name: 'Ліана', quantity: 2 },
+      { name: 'Ліана', quantity: 1 },
     ],
     resultQuantity: 1,
   },
@@ -298,10 +339,9 @@ export const CRAFTING_RECIPES: CraftingRecipe[] = [
     id: 'pearl_clit_beads',
     name: 'Перламутрові намистини стимуляції',
     category: 'інтимне',
-    description: 'Низка гладких перламутрових намистин для пристрасних пестощів',
+    description: 'Низка гладких камінців для пристрасних пестощів',
     ingredients: [
       { name: 'Камінь', quantity: 1 },
-      { name: 'Ліана', quantity: 1 },
     ],
     resultQuantity: 1,
   },
@@ -311,11 +351,11 @@ export const CRAFTING_RECIPES: CraftingRecipe[] = [
     category: 'інтимне',
     description: 'Кристал, що м\'яко пульсує магічною вібрацією Амулета',
     ingredients: [
-      { name: 'Обсидіан', quantity: 1 },
       { name: 'Цілюще листя', quantity: 1 },
     ],
     resultQuantity: 1,
   },
+
 
   {
     id: 'cooked_meat',
