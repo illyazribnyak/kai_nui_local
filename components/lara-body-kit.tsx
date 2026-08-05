@@ -143,24 +143,21 @@ export function LaraBodyKit({
                 fill
                 className="object-cover"
                 sizes="160px"
-                unoptimized={resolvePartImage(kit, s).includes('/stock/')}
               />
               <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent px-1.5 pt-4 pb-1.5">
                 <p className="text-[9px] font-semibold text-white">{BODY_SLOT_LABELS[s]}</p>
                 <p className="text-[8px] text-white/75 truncate">{part?.label || kit[s]}</p>
               </div>
-              {part?.source && part.source !== 'ai' && (
-                <span className="absolute top-1 left-1 text-[7px] px-1 py-0.5 rounded bg-black/70 text-white/90">
-                  {part.source === 'cc0' ? 'CC0' : part.source}
-                </span>
-              )}
+              <span className="absolute top-1 left-1 text-[7px] px-1 py-0.5 rounded bg-violet-900/80 text-violet-100">
+                AI
+              </span>
             </div>
           )
         })}
       </div>
 
       <p className="text-[8px] text-muted-foreground/70 leading-snug">
-        Приклад: desire≥60 або секс → nude/сідниці CC0; берег → пляжні stock; tribal → curvy AI.
+        Лише AI-тайли (без stock). desire≥60 / секс → fuller/curvy; берег → пляжні AI.
         Файли: <code className="bg-black/30 px-0.5 rounded">public/avatars/body/</code>
       </p>
     </div>

@@ -20,13 +20,9 @@ describe('BODY_PARTS', () => {
     assert.equal(ids.length, new Set(ids).size)
   })
 
-  it('licensed stock have license urls', () => {
-    const stock = BODY_PARTS.filter((p) => p.source !== 'ai')
-    assert.ok(stock.length >= 5)
-    for (const p of stock) {
-      assert.ok(p.licenseName, p.id)
-      assert.ok(p.licenseUrl, p.id)
-    }
+  it('is AI-only (no stock sources)', () => {
+    assert.ok(BODY_PARTS.every((p) => p.source === 'ai'))
+    assert.ok(BODY_PARTS.every((p) => !p.image.includes('/stock/')))
   })
 
   it('default kit parts exist', () => {
@@ -37,28 +33,28 @@ describe('BODY_PARTS', () => {
 })
 
 describe('suggestBodyKit', () => {
-  it('picks CC0 nude parts when aroused', () => {
+  it('picks fuller AI parts when aroused', () => {
     const k = suggestBodyKit({ lookKey: 'aroused', desire: 80 })
-    assert.equal(k.bust, 'bust_cc0_nude')
-    assert.equal(k.hips, 'hips_cc0_butt')
+    assert.equal(k.bust, 'bust_full')
+    assert.equal(k.hips, 'hips_curvy')
   })
 
-  it('uses butt emphasis in sex scene', () => {
+  it('uses curvy hips in sex scene', () => {
     const k = suggestBodyKit({
       desire: 40,
       inSexScene: true,
       sexSceneType: 'coercion',
     })
-    assert.equal(k.hips, 'hips_cc0_butt')
-    assert.equal(k.bust, 'bust_cc0_nude')
+    assert.equal(k.hips, 'hips_curvy')
+    assert.equal(k.bust, 'bust_full')
   })
 
-  it('uses beach stock on shore', () => {
+  it('uses beach AI on shore', () => {
     const k = suggestBodyKit({
       location: 'Берег острова',
       desire: 10,
       clothing: 'клапті одягу',
     })
-    assert.ok(k.legs.includes('beach') || k.legs.includes('pexels') || k.hips.includes('beach'))
+    assert.equal(k.legs, 'legs_beach')
   })
 })

@@ -1,11 +1,10 @@
 /**
- * Lara body kit: AI tiles + free-licensed stock (Pexels / Unsplash / CC0).
- * Do not add porn-site / Reddit assets to this catalog or to git.
+ * Lara body kit — AI tiles only (no stock / Pexels / Unsplash / CC0 in repo).
  */
 
 export type BodySlot = 'bust' | 'waist' | 'hips' | 'legs'
 
-export type BodyPartSource = 'ai' | 'pexels' | 'unsplash' | 'cc0'
+export type BodyPartSource = 'ai'
 
 export type BodyPartOption = {
   id: string
@@ -15,8 +14,6 @@ export type BodyPartOption = {
   image: string
   tags: string[]
   source: BodyPartSource
-  licenseUrl?: string
-  licenseName?: string
 }
 
 export const BODY_PARTS: BodyPartOption[] = [
@@ -27,39 +24,17 @@ export const BODY_PARTS: BodyPartOption[] = [
     label: 'Атлетичні (AI)',
     description: 'Спортивний середній розмір, стиль гри',
     image: '/avatars/body/bust_athletic.png',
-    tags: ['default', 'athletic', 'ragged'],
+    tags: ['default', 'athletic', 'ragged', 'beach'],
     source: 'ai',
   },
   {
     id: 'bust_full',
     slot: 'bust',
     label: 'Повні (AI)',
-    description: 'Більш виражений об\'єм',
+    description: "Більш виражений об'єм",
     image: '/avatars/body/bust_full.png',
-    tags: ['full', 'seductive', 'aroused', 'curvy'],
+    tags: ['full', 'seductive', 'aroused', 'curvy', 'nude'],
     source: 'ai',
-  },
-  {
-    id: 'bust_stock_beach',
-    slot: 'bust',
-    label: 'Пляж (Pexels)',
-    description: 'Free stock crop · Pexels License',
-    image: '/avatars/body/stock/stock_bust_pexels_beach.png',
-    tags: ['beach', 'stock', 'photo'],
-    source: 'pexels',
-    licenseName: 'Pexels License',
-    licenseUrl: 'https://www.pexels.com/license/',
-  },
-  {
-    id: 'bust_cc0_nude',
-    slot: 'bust',
-    label: 'Оголені (CC0)',
-    description: 'Wikimedia Commons · CC0 Public Domain',
-    image: '/avatars/body/stock/stock_bust_cc0_nude.png',
-    tags: ['nude', 'cc0', 'stock', 'photo', 'seductive', 'aroused'],
-    source: 'cc0',
-    licenseName: 'CC0 1.0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
   },
 
   // Waist
@@ -69,41 +44,8 @@ export const BODY_PARTS: BodyPartOption[] = [
     label: 'Підтягнута (AI)',
     description: 'Тон, midriff',
     image: '/avatars/body/waist_toned.png',
-    tags: ['default', 'athletic', 'confident'],
+    tags: ['default', 'athletic', 'confident', 'toned'],
     source: 'ai',
-  },
-  {
-    id: 'waist_stock_abs',
-    slot: 'waist',
-    label: 'Фітнес (Unsplash)',
-    description: 'Free stock · Unsplash License',
-    image: '/avatars/body/stock/stock_waist_unsplash_abs.png',
-    tags: ['athletic', 'toned', 'stock', 'photo'],
-    source: 'unsplash',
-    licenseName: 'Unsplash License',
-    licenseUrl: 'https://unsplash.com/license',
-  },
-  {
-    id: 'waist_stock_fitness',
-    slot: 'waist',
-    label: 'Тренування (Unsplash)',
-    description: 'Free stock · Unsplash License',
-    image: '/avatars/body/stock/stock_waist_unsplash_fitness.png',
-    tags: ['athletic', 'stock', 'photo'],
-    source: 'unsplash',
-    licenseName: 'Unsplash License',
-    licenseUrl: 'https://unsplash.com/license',
-  },
-  {
-    id: 'waist_cc0_nude',
-    slot: 'waist',
-    label: 'Оголена талія (CC0)',
-    description: 'Wikimedia Commons · CC0',
-    image: '/avatars/body/stock/stock_waist_cc0_nude.png',
-    tags: ['nude', 'cc0', 'stock', 'photo'],
-    source: 'cc0',
-    licenseName: 'CC0 1.0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
   },
 
   // Hips
@@ -113,7 +55,7 @@ export const BODY_PARTS: BodyPartOption[] = [
     label: 'Атлетичні (AI)',
     description: 'Спортивні форми',
     image: '/avatars/body/hips_athletic.png',
-    tags: ['default', 'athletic'],
+    tags: ['default', 'athletic', 'beach'],
     source: 'ai',
   },
   {
@@ -131,41 +73,8 @@ export const BODY_PARTS: BodyPartOption[] = [
     label: 'Пишні (AI)',
     description: 'Виражені стегна / сідниці',
     image: '/avatars/body/hips_curvy.png',
-    tags: ['curvy', 'seductive', 'aroused', 'full'],
+    tags: ['curvy', 'seductive', 'aroused', 'full', 'nude'],
     source: 'ai',
-  },
-  {
-    id: 'hips_stock_beach',
-    slot: 'hips',
-    label: 'Пляж (Pexels)',
-    description: 'Free stock crop · Pexels License',
-    image: '/avatars/body/stock/stock_hips_pexels_beach.png',
-    tags: ['beach', 'stock', 'photo'],
-    source: 'pexels',
-    licenseName: 'Pexels License',
-    licenseUrl: 'https://www.pexels.com/license/',
-  },
-  {
-    id: 'hips_cc0_nude',
-    slot: 'hips',
-    label: 'Оголені стегна (CC0)',
-    description: 'Wikimedia Commons · CC0',
-    image: '/avatars/body/stock/stock_hips_cc0_nude.png',
-    tags: ['nude', 'cc0', 'stock', 'photo', 'curvy'],
-    source: 'cc0',
-    licenseName: 'CC0 1.0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-  },
-  {
-    id: 'hips_cc0_butt',
-    slot: 'hips',
-    label: 'Сідниці (CC0)',
-    description: 'Wikimedia Commons · CC0',
-    image: '/avatars/body/stock/stock_hips_cc0_butt.png',
-    tags: ['nude', 'cc0', 'stock', 'photo', 'curvy', 'seductive'],
-    source: 'cc0',
-    licenseName: 'CC0 1.0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
   },
 
   // Legs
@@ -187,50 +96,6 @@ export const BODY_PARTS: BodyPartOption[] = [
     tags: ['athletic', 'confident', 'toned'],
     source: 'ai',
   },
-  {
-    id: 'legs_stock_pexels_beach',
-    slot: 'legs',
-    label: 'Ноги · пляж (Pexels)',
-    description: 'Free commercial · Pexels',
-    image: '/avatars/body/stock/stock_legs_pexels_beach.png',
-    tags: ['beach', 'stock', 'photo', 'default'],
-    source: 'pexels',
-    licenseName: 'Pexels License',
-    licenseUrl: 'https://www.pexels.com/photo/woman-legs-on-sandy-beach-9872348/',
-  },
-  {
-    id: 'legs_stock_pexels_walk',
-    slot: 'legs',
-    label: 'Ноги · хода (Pexels)',
-    description: 'Free commercial · Pexels',
-    image: '/avatars/body/stock/stock_legs_pexels_walk.png',
-    tags: ['beach', 'stock', 'photo'],
-    source: 'pexels',
-    licenseName: 'Pexels License',
-    licenseUrl: 'https://www.pexels.com/photo/legs-of-woman-in-shorts-walking-barefoot-on-beach-5215385/',
-  },
-  {
-    id: 'legs_stock_unsplash_yoga',
-    slot: 'legs',
-    label: 'Ноги · йога (Unsplash)',
-    description: 'Free commercial · Unsplash',
-    image: '/avatars/body/stock/stock_legs_unsplash_yoga.png',
-    tags: ['athletic', 'toned', 'stock', 'photo'],
-    source: 'unsplash',
-    licenseName: 'Unsplash License',
-    licenseUrl: 'https://unsplash.com/license',
-  },
-  {
-    id: 'legs_cc0_nude',
-    slot: 'legs',
-    label: 'Оголені ноги (CC0)',
-    description: 'Wikimedia Commons · CC0',
-    image: '/avatars/body/stock/stock_legs_cc0_nude.png',
-    tags: ['nude', 'cc0', 'stock', 'photo'],
-    source: 'cc0',
-    licenseName: 'CC0 1.0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-  },
 ]
 
 export type BodyKitSelection = Record<BodySlot, string>
@@ -239,7 +104,7 @@ export const DEFAULT_BODY_KIT: BodyKitSelection = {
   bust: 'bust_athletic',
   waist: 'waist_toned',
   hips: 'hips_athletic',
-  legs: 'legs_stock_pexels_beach',
+  legs: 'legs_beach',
 }
 
 export const BODY_SLOT_LABELS: Record<BodySlot, string> = {
@@ -274,15 +139,13 @@ export type BodyKitContext = {
   weather?: string | null
   isDarkLara?: boolean
   isPregnant?: boolean
-  /** Sex scene active or recent climax */
   inSexScene?: boolean
   sexAtmosphere?: string | null
   sexSceneType?: string | null
 }
 
 /**
- * Auto-pick body parts from game events / state.
- * Player does not choose tiles — kit follows narrative context.
+ * Auto-pick body parts from game events / state (AI tiles only).
  */
 export function suggestBodyKit(opts: BodyKitContext = {}): BodyKitSelection {
   const look = (opts.lookKey || '').toLowerCase()
@@ -296,22 +159,19 @@ export function suggestBodyKit(opts: BodyKitContext = {}): BodyKitSelection {
   const atmo = (opts.sexAtmosphere || '').toLowerCase()
   const sceneType = (opts.sexSceneType || '').toLowerCase()
   const kit = { ...DEFAULT_BODY_KIT }
-  const reasons: string[] = []
 
   // Base: beach / ragged arrival
   if (loc.includes('берег') || loc.includes('пляж') || cloth.includes('клапт')) {
-    kit.legs = 'legs_stock_pexels_beach'
-    kit.bust = 'bust_stock_beach'
-    kit.hips = 'hips_stock_beach'
-    reasons.push('берег/пляж')
+    kit.legs = 'legs_beach'
+    kit.bust = 'bust_athletic'
+    kit.hips = 'hips_athletic'
   }
 
-  // Athletic / confident exploration
+  // Athletic / confident
   if (look.includes('confident') || conf >= 70 || mood === 'confident' || mood === 'happy') {
-    kit.legs = 'legs_stock_unsplash_yoga'
-    kit.waist = 'waist_stock_abs'
+    kit.legs = 'legs_toned'
+    kit.waist = 'waist_toned'
     kit.hips = 'hips_athletic'
-    reasons.push('впевненість')
   }
 
   // Tribal / jungle clothing
@@ -319,33 +179,29 @@ export function suggestBodyKit(opts: BodyKitContext = {}): BodyKitSelection {
     kit.bust = 'bust_full'
     kit.hips = 'hips_curvy'
     kit.legs = 'legs_toned'
-    reasons.push('племʼя/одяг')
   }
 
-  // Exhausted / low stamina vibes
+  // Exhausted
   if (look.includes('exhausted') || mood === 'scared' || mood === 'exhausted') {
     kit.bust = 'bust_athletic'
     kit.hips = 'hips_slim'
     kit.legs = 'legs_beach'
     kit.waist = 'waist_toned'
-    reasons.push('втома/страх')
   }
 
-  // Night / dark Lara
+  // Night / dark
   if (opts.isDarkLara || look.includes('dark') || time === 'night') {
     kit.bust = 'bust_full'
     kit.hips = 'hips_curvy'
-    reasons.push('ніч/темна')
   }
 
-  // Rising desire → more body emphasis (butt/hips)
+  // Rising desire
   if (desire >= 35 && desire < 60) {
     kit.hips = 'hips_curvy'
     kit.bust = 'bust_full'
-    reasons.push('бажання↑')
   }
 
-  // High desire / seductive looks → nude stock emphasis
+  // High desire / seductive — fuller AI forms
   if (
     look.includes('aroused') ||
     look.includes('seductive') ||
@@ -355,33 +211,28 @@ export function suggestBodyKit(opts: BodyKitContext = {}): BodyKitSelection {
     cloth.includes('nude') ||
     cloth.includes('роздяг')
   ) {
-    kit.bust = 'bust_cc0_nude'
-    kit.hips = 'hips_cc0_butt'
-    kit.waist = 'waist_cc0_nude'
-    kit.legs = 'legs_cc0_nude'
-    reasons.push('високе бажання / оголеність')
+    kit.bust = 'bust_full'
+    kit.hips = 'hips_curvy'
+    kit.waist = 'waist_toned'
+    kit.legs = 'legs_toned'
   }
 
-  // Sex scene active — strongest override
+  // Sex scene
   if (opts.inSexScene) {
-    kit.bust = 'bust_cc0_nude'
-    kit.waist = 'waist_cc0_nude'
-    kit.legs = 'legs_cc0_nude'
-    // Coercion / rough → more exposed hips emphasis
+    kit.bust = 'bust_full'
+    kit.waist = 'waist_toned'
+    kit.legs = 'legs_toned'
     if (
       sceneType === 'coercion' ||
       sceneType === 'trap' ||
       atmo.includes('rough') ||
       atmo.includes('dark')
     ) {
-      kit.hips = 'hips_cc0_butt'
-      reasons.push('секс: примус/жорстко')
+      kit.hips = 'hips_curvy'
     } else if (atmo.includes('romantic') || atmo.includes('tender')) {
-      kit.hips = 'hips_cc0_nude'
-      reasons.push('секс: ніжно')
+      kit.hips = 'hips_curvy'
     } else {
-      kit.hips = 'hips_cc0_butt'
-      reasons.push('секс-сцена')
+      kit.hips = 'hips_curvy'
     }
   }
 
@@ -390,18 +241,15 @@ export function suggestBodyKit(opts: BodyKitContext = {}): BodyKitSelection {
     kit.bust = 'bust_full'
     kit.waist = 'waist_toned'
     kit.hips = 'hips_curvy'
-    reasons.push('вагітність')
   }
 
-  // High shame after events — slightly more covered default AI
+  // High shame — more "default" athletic cover
   if (shame >= 70 && !opts.inSexScene && desire < 50) {
     kit.bust = 'bust_athletic'
     kit.hips = 'hips_athletic'
     kit.legs = 'legs_beach'
-    reasons.push('сором')
   }
 
-  void reasons // available for UI via suggestBodyKitWithReasons
   return kit
 }
 
@@ -409,7 +257,6 @@ export function suggestBodyKitWithReasons(opts: BodyKitContext = {}): {
   kit: BodyKitSelection
   reasons: string[]
 } {
-  // Re-run logic collecting reasons (duplicate light pass)
   const kit = suggestBodyKit(opts)
   const reasons: string[] = []
   const desire = Number(opts.desire ?? 0)
@@ -425,7 +272,6 @@ export function suggestBodyKitWithReasons(opts: BodyKitContext = {}): {
   return { kit, reasons }
 }
 
-/** True if two kits differ */
 export function bodyKitChanged(a: BodyKitSelection, b: BodyKitSelection): boolean {
   return (['bust', 'waist', 'hips', 'legs'] as BodySlot[]).some((s) => a[s] !== b[s])
 }

@@ -34,8 +34,7 @@ public/downloads/*.zip
 public/gui-*.png
 public/gui-*.jpg
 
-# Full-res stock downloads only (cropped free-license tiles ARE committed)
-public/avatars/body/stock/raw/
-# Optional private dumps you keep only on disk (never commit)
+# Stock / private body assets — never commit
+public/avatars/body/stock/
 public/avatars/body/private/
 tmp-screens/
