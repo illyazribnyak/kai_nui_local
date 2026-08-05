@@ -118,11 +118,67 @@ export const CRAFTING_RECIPES: CraftingRecipe[] = [
     resultQuantity: 1,
   },
   {
+    id: 'lace_panties',
+    name: 'Мереживні еротичні трусики',
+    category: 'одяг',
+    description: 'Тонкі напівпрозорі мереживні трусики з рослинних волокон',
+    ingredients: [
+      { name: 'Цілюще листя', quantity: 1 },
+      { name: 'Ліана', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'silk_string_set',
+    name: 'Шовковий бікіні-сет (Стрінги)',
+    category: 'одяг',
+    description: 'Червоний шовковий комплект з тонкими зав\'язками',
+    ingredients: [
+      { name: 'Цілюще листя', quantity: 2 },
+      { name: 'Ліана', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'transparent_vines',
+    name: 'Прозоре плетіння з ліан',
+    category: 'одяг',
+    description: 'Островитянське плетіння з квітів та ліан, яке майже нічого не приховує',
+    ingredients: [
+      { name: 'Цілюще листя', quantity: 2 },
+      { name: 'Ліана', quantity: 2 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'leather_corset',
+    name: 'Звабливий шкіряний корсет',
+    category: 'одяг',
+    description: 'Підтягнутий шкіряний корсет зі шнурівкою',
+    ingredients: [
+      { name: 'Шкіра', quantity: 2 },
+      { name: 'Ліана', quantity: 2 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'sports_bra_shorts',
+    name: 'Спортивний топ та шортики',
+    category: 'одяг',
+    description: 'Практична еластична білизна для швидкого бігу та акробатики',
+    ingredients: [
+      { name: 'Шкіра', quantity: 1 },
+      { name: 'Ліана', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
     id: 'reinforced_leather',
     name: 'Загартований панцир',
     category: 'одяг',
     description: 'Посилені шкіряні обладунки з кістяними пластинами (+2 Захист)',
     ingredients: [
+
       { name: 'Шкіра', quantity: 3 },
       { name: 'Ліана', quantity: 2 },
     ],

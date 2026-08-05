@@ -38,7 +38,26 @@ export function computeWardrobeEffects(state: Partial<GameState> | null | undefi
   const acc = (state.accessories || '').toLowerCase()
 
   // --- Clothing Effects ---
-  if (cloth.includes('плем') || cloth.includes('tribal') || cloth.includes('тотем')) {
+  if (cloth.includes('мережив') || cloth.includes('panties') || cloth.includes('трусик')) {
+    effects.desireBonus += 20
+    effects.charismaBonus += 3
+    effects.summary.push('Мереживні трусики: +20 Бажання, +3 Харизма у звабленні')
+  } else if (cloth.includes('шовк') || cloth.includes('стрінг') || cloth.includes('бікіні')) {
+    effects.desireBonus += 25
+    effects.charismaBonus += 4
+    effects.summary.push('Шовковий бікіні-сет зі стрінгами: +25 Бажання, +4 Спокуса')
+  } else if (cloth.includes('прозор') || cloth.includes('плетін')) {
+    effects.desireBonus += 30
+    effects.summary.push('Прозоре плетіння: +30 Бажання, повне зняття сорому')
+  } else if (cloth.includes('корсет')) {
+    effects.strengthBonus += 2
+    effects.charismaBonus += 2
+    effects.summary.push('Шкіряний корсет: +2 Сила, +2 Домінування')
+  } else if (cloth.includes('спорт') || cloth.includes('шортик')) {
+    effects.agilityBonus += 2
+    effects.enduranceBonus += 1
+    effects.summary.push('Спортивний сет: +2 Спритність, +1 Витривалість')
+  } else if (cloth.includes('плем') || cloth.includes('tribal') || cloth.includes('тотем')) {
     effects.charismaBonus += 2
     effects.tribeReputationBonus += 15
     effects.summary.push('Племінне вбрання: +2 Харизма з тубільцями, +15 Репутація Кай-Тору')
