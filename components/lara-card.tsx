@@ -10,18 +10,24 @@ import {
   LARA_LOOKS,
   type LaraLookKey,
 } from '@/lib/game/lara-appearance'
+import { computeWardrobeEffects } from '@/lib/game/wardrobe-effects'
 import { getDesireLabel, getMoodEmoji, getMoodLabel } from '@/lib/game/ui-labels'
 
 type Props = {
   gameState: GameState | null | undefined
   skills?: SkillData[] | null
   compact?: boolean
+  onOpenWardrobe?: () => void
 }
 
-export function LaraCard({ gameState, skills, compact }: Props) {
+export function LaraCard({ gameState, skills, compact, onOpenWardrobe }: Props) {
   const appearance = useMemo(
     () => buildLaraAppearance(gameState, skills),
     [gameState, skills]
+  )
+  const wardrobeEffects = useMemo(
+    () => computeWardrobeEffects(gameState),
+    [gameState]
   )
   const [previewKey, setPreviewKey] = useState<LaraLookKey | null>(null)
   const activeLook = previewKey ? LARA_LOOKS[previewKey] : appearance.look
@@ -147,6 +153,30 @@ export function LaraCard({ gameState, skills, compact }: Props) {
           </div>
         </div>
       </div>
+
+      {onOpenWardrobe && (
+        <button
+          type="button"
+          onClick={onOpenWardrobe}
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-bold text-xs shadow-md transition transform hover:scale-[1.01] active:scale-[0.99]"
+        >
+          <span>🪞</span>
+          <span>Гардероб та Дзеркало</span>
+        </button>
+      )}
+
+      {wardrobeEffects.summary.length > 0 && (
+        <div className="bg-emerald-950/40 rounded-xl border border-emerald-500/30 p-2.5 text-[10px] space-y-1">
+          <span className="font-bold text-emerald-400 flex items-center gap-1">
+            ✨ Бонуси активного стилю:
+          </span>
+          {wardrobeEffects.summary.map((eff, i) => (
+            <div key={i} className="text-emerald-200/90 leading-tight">
+              • {eff}
+            </div>
+          ))}
+        </div>
+      )}
 
       {appearance.tags.length > 0 && (
         <div className="flex flex-wrap gap-1">

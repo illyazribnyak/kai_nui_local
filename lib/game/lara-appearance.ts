@@ -9,6 +9,7 @@ import {
   type OrificeCapacity,
 } from '@/lib/game/body-capacity'
 import type { SkillLike } from '@/lib/game/body-capacity'
+import { computeWardrobeEffects } from '@/lib/game/wardrobe-effects'
 
 export type LaraLookKey =
   | 'classic'
@@ -308,18 +309,34 @@ export function formatLaraAppearanceForPrompt(
   skills?: SkillLike[] | null
 ): string {
   const a = buildLaraAppearance(state, skills)
+  const wardrobeFx = computeWardrobeEffects(state)
+
+  const fxLines = wardrobeFx.summary.length
+    ? wardrobeFx.summary.map((s) => `  ⚡ Bonus: ${s}`)
+    : ['  (Немає особливих бонусів стилю)']
+
   return [
-    '=== ЗОВНІШНІСТЬ І ТІЛО ЛАРИ ===',
-    `Портрет/стан: ${a.look.label} — ${a.look.description}` +
+    '=== ЗОВНІШНІСТЬ, СТИЛЬ ТА ТІЛО ЛАРИ ===',
+    `Візуальний портрет: ${a.look.label} — ${a.look.description}` +
       (a.look.erotic ? ' (еротичний look)' : ''),
     `Одяг: ${a.clothingLabel}`,
-    a.bodyPaintLabel ? `Розпис: ${a.bodyPaintLabel}` : null,
-    a.accessoriesLabel ? `Прикраси: ${a.accessoriesLabel}` : null,
+    a.bodyPaintLabel ? `Боді-арт / Розпис: ${a.bodyPaintLabel}` : 'Боді-арт: відсутній',
+    a.accessoriesLabel ? `Прикраси / Амулети: ${a.accessoriesLabel}` : 'Прикраси: відсутні',
+    'Ефекти активного стилю:',
+    ...fxLines,
     ...a.bodySummary.map((s) => `• ${s}`),
-    a.tags.length ? `Теги: ${a.tags.join(' · ')}` : null,
-    'Описуй зовнішність узгоджено з одягом/станом/desire. Зміни одягу → STAT clothing.',
-    'При desire≥55 — чуттєвіший опис тіла/погляду; після сексу — afterglow (розпатлане волосся, рум\'янець).',
+    a.tags.length ? `Теги стану: ${a.tags.join(' · ')}` : null,
+    'ПРАВИЛА ДЛЯ AI-НАРАТОРА:',
+    '1. NPC РЕАГУЮТЬ НА СТИЛЬ: NPC (тубільці Кай-Тору, Тане, Макаї, Найя, хижаки) повинні помічати одяг та розпис Лари в діалогах та діях:',
+    '   - При племінному вбранні / розписі Сонця Кай-Тору: тубільці ставляться до Лари з повагою, як до шанованого воїна або прийнятої в плем\'я.',
+    '   - При ритуальній мантії жриці: шамани й вожді схиляються перед нею, помічають священну ауру та сяйво амулета.',
+    '   - При шкіряному комплекті мисливиці: NPC підкреслюють її підтягнуту форму, мужність та бойову готовність.',
+    '   - При оголеності / інтимній накидці: NPC реагують на чуттєві вигини тіла, фліртують, проявляють звабу або збудження.',
+    '   - При маскувальному бруді: NPC важче її помічають у джунглях.',
+    '2. ЗМІНА ОДЯГУ У НАРРАТИВІ: Якщо одяг розривається у бою, знімається під час сексу або наноситься новий розпис — ОБОВ\'ЯЗКОВО повертай теги `STAT clothing="..."`, `STAT bodyPaint="..."`, `STAT accessories="..."`.',
+    '3. Атмосфера: при desire≥55 — описуй палкі погляди та чуттєві відчуття шкіри; після сексу — afterglow (розпатлане волосся, рум\'янець, краплі поту).',
   ]
     .filter(Boolean)
     .join('\n')
 }
+

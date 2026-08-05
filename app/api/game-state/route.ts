@@ -149,3 +149,27 @@ export async function GET() {
     return NextResponse.json({ error: error?.message ?? 'Помилка' }, { status: 500 })
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const validFields = ['clothing', 'bodyPaint', 'accessories', 'desire', 'shame', 'confidence', 'mood']
+    const updateData: any = {}
+    for (const key of validFields) {
+      if (body[key] !== undefined) {
+        updateData[key] = typeof body[key] === 'string' || body[key] === null ? body[key] : String(body[key])
+      }
+    }
+
+    const gameState = await prisma.gameState.update({
+      where: { id: 'singleton' },
+      data: updateData,
+    })
+
+    return NextResponse.json({ ok: true, gameState })
+  } catch (error: any) {
+    console.error('Game state PATCH error:', error)
+    return NextResponse.json({ error: error?.message ?? 'Помилка оновлення' }, { status: 500 })
+  }
+}
+

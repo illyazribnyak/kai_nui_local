@@ -68,6 +68,7 @@ import { computeActiveSynergies } from '@/lib/game/sex-synergies'
 import { OnboardingOverlay } from './onboarding'
 import { CombatOverlay } from './combat-overlay'
 import { CraftingModal } from './crafting-modal'
+import { WardrobeModal } from './wardrobe-modal'
 import { TimelineModal } from './timeline-modal'
 import { LocationBanner } from './location-banner'
 import { AchievementsGallery } from './achievements-gallery'
@@ -132,6 +133,7 @@ export default function GameClient() {
   const [orgasmChain, setOrgasmChain] = useState(0)
   const [sexHudMoves, setSexHudMoves] = useState<HudMove[]>([])
   const [showCraftingModal, setShowCraftingModal] = useState(false)
+  const [showWardrobeModal, setShowWardrobeModal] = useState(false)
   const [showTimelineModal, setShowTimelineModal] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState<LlmProviderChoice>('auto')
   const [promptModeLabel, setPromptModeLabel] = useState<string | null>(null)
@@ -1858,10 +1860,11 @@ export default function GameClient() {
                   className="px-3 sm:px-4 py-2"
                 >
                   <CombatOverlay
-                    laraHp={Math.max(10, 100 - (gameState?.hunger ?? 0) * 0.4)}
+                    messages={messages}
+                    inventory={inventory}
+                    gameState={gameState}
+                    laraHp={Math.max(10, Math.round(100 - (gameState?.hunger ?? 0) * 0.4))}
                     laraMaxHp={100}
-                    laraEndurance={gameState?.endurance ?? 7}
-                    amuletEnergy={gameState?.amuletEnergy ?? 0}
                     onCombatAction={(action) => sendMessage(action)}
                   />
                 </motion.div>
@@ -2137,7 +2140,11 @@ export default function GameClient() {
             {sidebarTab === 'stats' && (
               <div className="space-y-5">
                 {/* Lara character card — portrait / looks (capacity is own tab) */}
-                <LaraCard gameState={gameState} skills={skills} />
+                <LaraCard
+                  gameState={gameState}
+                  skills={skills}
+                  onOpenWardrobe={() => setShowWardrobeModal(true)}
+                />
                 <div className="text-[10px] text-muted-foreground px-0.5">
                   📍 {gameState?.location || 'Невідомо'} · День {gameState?.dayNumber || 1} ·{' '}
                   {gameState?.timeOfDay === 'morning'
@@ -3068,6 +3075,12 @@ export default function GameClient() {
         onConsumeItem={async (itemName) => {
           await runServerConsume(itemName)
         }}
+      />
+      <WardrobeModal
+        isOpen={showWardrobeModal}
+        onClose={() => setShowWardrobeModal(false)}
+        gameState={gameState}
+        onStateUpdate={(updated) => setGameState(updated)}
       />
       <TimelineModal
         isOpen={showTimelineModal}

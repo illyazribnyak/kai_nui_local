@@ -84,7 +84,63 @@ export const CRAFTING_RECIPES: CraftingRecipe[] = [
     ],
     resultQuantity: 1,
   },
+  {
+    id: 'tribal_clothes',
+    name: 'Племінний тотем Кай-Тору',
+    category: 'одяг',
+    description: 'Традиційне вбрання з обробленої шкіри, ліан та кісток',
+    ingredients: [
+      { name: 'Шкіра', quantity: 2 },
+      { name: 'Ліана', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'ritual_robe',
+    name: 'Ритуальна мантія жриці',
+    category: 'одяг',
+    description: 'Священні сонячні шати з традиційною ритуальною вишивкою',
+    ingredients: [
+      { name: 'Цілюще листя', quantity: 2 },
+      { name: 'Ліана', quantity: 2 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'leather_hunter',
+    name: 'Шкіряний комплект мисливиці',
+    category: 'одяг',
+    description: 'Підтягнутий зручний топ та міцні шкіряні ремені',
+    ingredients: [
+      { name: 'Шкіра', quantity: 2 },
+      { name: 'Камінь', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'sun_paint',
+    name: 'Сонце Кай-Тору (Розпис)',
+    category: 'боді-арт',
+    description: 'Оранжево-вогняна ритуальна фарба з листя та попелу',
+    ingredients: [
+      { name: 'Цілюще листя', quantity: 1 },
+      { name: 'Дрова', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'fang_necklace',
+    name: 'Намисто з іклів саблезуба',
+    category: 'прикраси',
+    description: 'Міцне намисто з іклів диких звірів',
+    ingredients: [
+      { name: 'Камінь', quantity: 1 },
+      { name: 'Ліана', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
 ]
+
 
 export type InventoryLike = { name: string; quantity: number }
 
