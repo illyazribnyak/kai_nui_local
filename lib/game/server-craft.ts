@@ -110,6 +110,8 @@ export async function consumeInventoryItem(itemName: string): Promise<ConsumeRes
   const gameState = await prisma.gameState.findUnique({ where: { id: 'singleton' } })
   const hunger = clamp((gameState?.hunger ?? 0) + effect.hungerDelta, 0, 100)
   const thirst = clamp((gameState?.thirst ?? 0) + effect.thirstDelta, 0, 100)
+  const amuletEnergyDelta = item.name.toLowerCase().includes('амулет') || item.name.toLowerCase().includes('резонанс') ? 15 : 0
+  const amuletEnergy = Math.max(0, (gameState?.amuletEnergy ?? 0) + amuletEnergyDelta)
 
   await prisma.$transaction(async (tx) => {
     if (item.quantity <= 1) {
@@ -122,9 +124,10 @@ export async function consumeInventoryItem(itemName: string): Promise<ConsumeRes
     }
     await tx.gameState.update({
       where: { id: 'singleton' },
-      data: { hunger, thirst },
+      data: { hunger, thirst, amuletEnergy },
     })
   })
+
 
   return {
     ok: true,

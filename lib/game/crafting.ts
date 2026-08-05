@@ -118,6 +118,39 @@ export const CRAFTING_RECIPES: CraftingRecipe[] = [
     resultQuantity: 1,
   },
   {
+    id: 'reinforced_leather',
+    name: 'Загартований панцир',
+    category: 'одяг',
+    description: 'Посилені шкіряні обладунки з кістяними пластинами (+2 Захист)',
+    ingredients: [
+      { name: 'Шкіра', quantity: 3 },
+      { name: 'Ліана', quantity: 2 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'bone_dagger',
+    name: 'Кістяний кинджал',
+    category: 'зброя',
+    description: 'Компактний гострий кинджал для прихованих атак',
+    ingredients: [
+      { name: 'Камінь', quantity: 1 },
+      { name: 'Ліана', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'heavy_club',
+    name: 'Важка кістяна булава',
+    category: 'зброя',
+    description: 'Важка масивна булава із зооморфної кістки (+3 Сила)',
+    ingredients: [
+      { name: 'Дрова', quantity: 1 },
+      { name: 'Камінь', quantity: 2 },
+    ],
+    resultQuantity: 1,
+  },
+  {
     id: 'sun_paint',
     name: 'Сонце Кай-Тору (Розпис)',
     category: 'боді-арт',
@@ -125,6 +158,28 @@ export const CRAFTING_RECIPES: CraftingRecipe[] = [
     ingredients: [
       { name: 'Цілюще листя', quantity: 1 },
       { name: 'Дрова', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'warrior_paint',
+    name: 'Бойові смуги (Розпис)',
+    category: 'боді-арт',
+    description: 'Чорно-червоні смуги воїна з вугілля та соку рослин',
+    ingredients: [
+      { name: 'Дрова', quantity: 1 },
+      { name: 'Камінь', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'glowing_paint',
+    name: 'Світні руни Духа (Розпис)',
+    category: 'боді-арт',
+    description: 'Біомагічна фарба, що м\'яко сяє в темряві',
+    ingredients: [
+      { name: 'Цілюще листя', quantity: 1 },
+      { name: 'Обсидіан', quantity: 1 },
     ],
     resultQuantity: 1,
   },
@@ -139,7 +194,74 @@ export const CRAFTING_RECIPES: CraftingRecipe[] = [
     ],
     resultQuantity: 1,
   },
+  {
+    id: 'flower_wreath',
+    name: 'Вінок з орхідей',
+    category: 'прикраси',
+    description: 'Свіжий пахучий вінок з тропічних квітів',
+    ingredients: [
+      { name: 'Цілюще листя', quantity: 2 },
+      { name: 'Ліана', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'cooked_meat',
+    name: 'Смажене м\'ясо дичини',
+    category: 'їжа',
+    description: 'Соковите смажене м\'ясо, втамовує голод на 45 пунктів',
+    ingredients: [
+      { name: 'Дрова', quantity: 1 },
+      { name: 'Шкіра', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'purified_water',
+    name: 'Очищена джерельна вода',
+    category: 'напій',
+    description: 'Чиста прохолодна вода у кокосі, втамовує спрагу на 40 пунктів',
+    ingredients: [
+      { name: 'Дрова', quantity: 1 },
+      { name: 'Ліана', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'stamina_tonic',
+    name: 'Тонік витривалості',
+    category: 'зілля',
+    description: 'Тропічний відвар для швидкого відновлення сил',
+    ingredients: [
+      { name: 'Цілюще листя', quantity: 2 },
+      { name: 'Дрова', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'amulet_potion',
+    name: 'Зілля резонансу Амулета',
+    category: 'магія',
+    description: 'Містичний концентрат, що дає +15 Енергії Амулета',
+    ingredients: [
+      { name: 'Цілюще листя', quantity: 2 },
+      { name: 'Обсидіан', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'snare_trap',
+    name: 'Пастка-зашморг на дичину',
+    category: 'інструмент',
+    description: 'Гнучка пастка для ловлі дрібних звірів у джунглях',
+    ingredients: [
+      { name: 'Гнучка гілка', quantity: 1 },
+      { name: 'Ліана', quantity: 2 },
+    ],
+    resultQuantity: 1,
+  },
 ]
+
 
 
 export type InventoryLike = { name: string; quantity: number }
@@ -223,6 +345,9 @@ export function getConsumeEffect(
   const cat = (category || '').toLowerCase()
 
   // Explicit crafted / common items
+  if (n.includes('смажене м\'яс') || n.includes('смажене м’яс') || n.includes('стейк')) {
+    return { hungerDelta: -45, thirstDelta: 0, label: 'Голод −45' }
+  }
   if (n.includes('жарена риба') || n.includes('смажена риба')) {
     return { hungerDelta: -35, thirstDelta: -5, label: 'Голод −35, спрага −5' }
   }
@@ -232,14 +357,20 @@ export function getConsumeEffect(
   if (n.includes('фрукт') || n.includes('банан') || n.includes('кокос') || n.includes('ягода')) {
     return { hungerDelta: -20, thirstDelta: -10, label: 'Голод −20, спрага −10' }
   }
-  if (n.includes('м\'яс') || n.includes('м’яс') || n.includes('стейк')) {
-    return { hungerDelta: -40, thirstDelta: 0, label: 'Голод −40' }
+  if (n.includes('очищена') || n.includes('джерельна')) {
+    return { hungerDelta: 0, thirstDelta: -40, label: 'Спрага −40' }
   }
   if (n.includes('вод') || n.includes('water')) {
     return { hungerDelta: 0, thirstDelta: -30, label: 'Спрага −30' }
   }
+  if (n.includes('тонік') || n.includes('витривалості')) {
+    return { hungerDelta: -10, thirstDelta: -10, label: 'Голод −10, спрага −10, витривалість' }
+  }
+  if (n.includes('амулет') || n.includes('резонанс')) {
+    return { hungerDelta: 0, thirstDelta: 0, label: 'Енергія Амулета +15' }
+  }
   if (n.includes('цілющ') || n.includes('пов\'яз') || n.includes('пов’яз')) {
-    return { hungerDelta: 0, thirstDelta: 0, label: 'Використано (без їжі)' }
+    return { hungerDelta: 0, thirstDelta: 0, label: 'Використано (лікування)' }
   }
 
   if (cat === 'їжа' || cat === 'food') {
