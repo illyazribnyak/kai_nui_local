@@ -14,6 +14,19 @@ export async function GET() {
     try {
       const { parseActiveSexJson } = await import('@/lib/game/active-sex')
       activeSex = parseActiveSexJson((gameState as any).activeSexJson)
+      // Drop stale sex if partner was never met (e.g. leftover after partial reset)
+      if (activeSex?.sexScene?.partner) {
+        const partnerName = String(activeSex.sexScene.partner)
+        const partner = await prisma.relationship.findFirst({
+          where: { name: partnerName },
+        })
+        if (!partner?.met) {
+          activeSex = null
+          await prisma.gameState
+            .update({ where: { id: 'singleton' }, data: { activeSexJson: '' } })
+            .catch(() => {})
+        }
+      }
     } catch {
       activeSex = null
     }

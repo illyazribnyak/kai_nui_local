@@ -62,10 +62,14 @@ export async function POST() {
         chapterLabel: 'Прибуття',
         endingPath: null,
         turnCount: 0,
+        totalTokensUsed: 0,
+        // Must clear sex HUD persistence or new game keeps old scene
+        activeSexJson: '',
       },
       create: {
         id: 'singleton',
         gameStarted: true,
+        activeSexJson: '',
       },
     })
 

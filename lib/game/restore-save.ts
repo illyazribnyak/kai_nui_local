@@ -42,14 +42,22 @@ export async function restorePlaythrough(saved: any) {
       'amuletEnergy', 'dayNumber', 'isDarkLara', 'gameStarted', 'weather',
       'season', 'companionName', 'companionBonus', 'clothing', 'bodyPaint',
       'accessories', 'chapter', 'chapterLabel', 'endingPath', 'turnCount',
+      'totalTokensUsed', 'activeSexJson',
     ]
     const data: any = {}
     for (const k of allowed) {
       if (stateData[k] !== undefined) data[k] = stateData[k]
     }
+    // Default: no lingering sex scene unless save explicitly has one
+    if (data.activeSexJson === undefined) data.activeSexJson = ''
     if (Object.keys(data).length > 0) {
       await prisma.gameState.update({ where: { id: 'singleton' }, data })
     }
+  } else {
+    await prisma.gameState.update({
+      where: { id: 'singleton' },
+      data: { activeSexJson: '' },
+    }).catch(() => {})
   }
 
   if (saved.relationships?.length > 0) {
