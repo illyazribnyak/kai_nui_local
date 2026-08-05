@@ -1,0 +1,430 @@
+================================================================================
+  ЛАРА КРАФТ — ПРОМПТИ ДЛЯ ГЕНЕРАЦІЇ КАРТИНОК (SD / offline / Imagine)
+  Острів Кай-Нуї · 18+ · для public/avatars/ і lara-gallery/
+================================================================================
+
+ЯК КОРИСТУВАТИСЬ
+----------------
+1. Копіюй блок PROMPT (англійською — моделі краще розуміють).
+2. Додавай NEGATIVE у поле negative prompt.
+3. Зберігай файл з РЕКОМЕНДОВАНИМ ІМЕНЕМ — гра читає теги з filename.
+4. Куди кидати:
+   - портрети / сцени → public/avatars/lara-gallery/
+   - частини тіла (кроп) → public/avatars/body/
+   - повні looks → public/avatars/lara_*.png
+
+Імена файлів галереї (теги в назві):
+  sexy, nude, naked, beach, night, dark, wet, tribal, ritual, boudoir,
+  intimate, afterglow, pregnant, creampie, oral, anal, cowgirl, doggy,
+  missionary, standing, outdoor, temple, jungle, sex, couple, closeup
+
+================================================================================
+A) БАЗА ПЕРСОНАЖА (додавай майже завжди на початок)
+================================================================================
+
+BASE_LARA =
+same woman, Lara Craft, 25 years old explorer, long wavy brown hair with
+sun-bleached tips, hazel-green eyes, freckles on nose and shoulders,
+athletic curvy body, medium-full breasts, narrow waist, full hips,
+tanned island skin, determined soft face, photorealistic game portrait,
+cinematic lighting, sharp details, 8k
+
+BASE_STYLE =
+fantasy tropical island setting, high quality, consistent face, detailed skin,
+natural anatomy, erotic art, adult content
+
+================================================================================
+B) NEGATIVE (загальний)
+================================================================================
+
+NEGATIVE =
+blurry, lowres, bad anatomy, bad hands, extra fingers, missing fingers,
+deformed, mutated, ugly, watermark, text, logo, child, loli, underage,
+cartoon, anime, 3d plastic, oversaturated, duplicate face, wrong face,
+censored, mosaic, bar censor, extra limbs, fused limbs, long neck
+
+================================================================================
+C) ОГОЛЕНІ ПОРТРЕТИ / СТОЯЧИ / РІЗНІ РАКУРСИ
+================================================================================
+
+--- C01 full nude beach front ---
+FILE: lara_nude_beach_front.jpg
+PROMPT:
+{BASE_LARA}, full body front view, completely nude, bare breasts nipples visible,
+shaved or neat pubic hair, standing on white sand beach, ocean behind,
+sunlight, confident pose, hands relaxed, {BASE_STYLE}
+
+--- C02 full nude beach back ---
+FILE: lara_nude_beach_back.jpg
+PROMPT:
+{BASE_LARA}, full body back view, completely nude, bare back, round buttocks,
+looking over shoulder, wet hair, tropical beach, sunset rim light, {BASE_STYLE}
+
+--- C03 nude three-quarter ---
+FILE: lara_nude_closeup_sensual.jpg
+PROMPT:
+{BASE_LARA}, three-quarter portrait nude from waist up, bare breasts,
+soft shadows, intimate eye contact, bedroom eyes, freckles, {BASE_STYLE}
+
+--- C04 nude on rock jungle ---
+FILE: lara_nude_jungle_outdoor.jpg
+PROMPT:
+{BASE_LARA}, full nude sitting on mossy rock in jungle, dappled light,
+vines, waterfalls distant, natural pose covering nothing, erotic exploration,
+{BASE_STYLE}
+
+--- C05 wet nude waterfall ---
+FILE: lara_nude_wet_waterfall.jpg
+PROMPT:
+{BASE_LARA}, completely nude under waterfall, wet glistening skin, wet hair
+sticking to body, water streams over breasts and hips, steam, {BASE_STYLE}
+
+--- C06 night nude firelight ---
+FILE: lara_nude_night_fire.jpg
+PROMPT:
+{BASE_LARA}, nude by campfire at night, orange firelight on skin, dark jungle,
+vulnerable and sensual, stars above, {BASE_STYLE}
+
+--- C07 dark Lara nude ---
+FILE: lara_dark_nude_seductive.jpg
+PROMPT:
+{BASE_LARA}, dark seductive aura, completely nude, purple mystical glow from
+amulet, dangerous smile, night temple ruins, {BASE_STYLE}
+
+--- C08 pregnant nude ---
+FILE: lara_pregnant_nude_intimate.jpg
+PROMPT:
+{BASE_LARA}, visibly pregnant belly, nude, soft maternal erotic mood, hands on
+belly and breast, warm light, {BASE_STYLE}
+
+--- C09 afterglow nude bed ---
+FILE: lara_afterglow_nude_intimate.jpg
+PROMPT:
+{BASE_LARA}, post-sex afterglow, completely nude lying on furs, messy hair,
+flushed cheeks, sweat sheen, satisfied expression, {BASE_STYLE}
+
+--- C10 boudoir nude side ---
+FILE: lara_boudoir_nude_side.jpg
+PROMPT:
+{BASE_LARA}, nude side profile on woven mat, breast and hip curve silhouette,
+soft window light, intimate boudoir, {BASE_STYLE}
+
+================================================================================
+D) BODY KIT — КРОПИ (квадрат 1:1, крупний план частини)
+================================================================================
+Клади в public/avatars/body/ з id як у каталозі (або нові id + додай в код).
+
+--- D01 bust nude close ---
+FILE: bust_nude_soft.png
+PROMPT:
+close-up of {BASE_LARA} bare breasts only torso crop, soft natural light,
+detailed skin freckles, nipples, square composition, no face or face cropped,
+{BASE_STYLE}
+
+--- D02 bust full heavy ---
+FILE: bust_full_nude.png
+PROMPT:
+close-up large full bare breasts of same woman Lara Craft, heavy soft volume,
+erotic torso crop, square, detailed skin, {BASE_STYLE}
+
+--- D03 waist midriff nude ---
+FILE: waist_nude_toned.png
+PROMPT:
+close-up toned female midriff navel bare skin, Lara Craft body, square crop,
+soft light, no face, {BASE_STYLE}
+
+--- D04 hips curvy front ---
+FILE: hips_curvy_front.png
+PROMPT:
+close-up female hips and pelvis front view nude, soft mound, Lara Craft,
+square crop, erotic tasteful, {BASE_STYLE}
+
+--- D05 hips butt rear ---
+FILE: hips_curvy_butt.png
+PROMPT:
+close-up round female buttocks from behind nude, Lara Craft hips, square crop,
+soft shadows, detailed skin, {BASE_STYLE}
+
+--- D06 hips side ---
+FILE: hips_side_curve.png
+PROMPT:
+close-up hip curve side view nude Lara Craft, waist to thigh, square, {BASE_STYLE}
+
+--- D07 legs long nude ---
+FILE: legs_nude_long.png
+PROMPT:
+close-up long tanned female legs nude, thighs and calves, Lara Craft,
+square crop, beach sand, {BASE_STYLE}
+
+--- D08 legs toned standing ---
+FILE: legs_toned_strong.png
+PROMPT:
+close-up athletic female legs nude standing, defined thighs, Lara Craft,
+square crop, {BASE_STYLE}
+
+================================================================================
+E) СЕКС-СЦЕНИ — ПОЗИ (з партнером; обличчя Лари consistent)
+================================================================================
+Партнери (підставляй PARTNER_DESC):
+
+PARTNER_TANE =
+young Kai-Toru warrior man, bronze tan, short dark hair, tribal tattoos on arms,
+athletic build, human, handsome
+
+PARTNER_JACK =
+rugged explorer man Jack, stubble, scar, mid-30s, outsider human
+
+PARTNER_MAKAI =
+older tribal chief man, strong jaw, authoritative, larger build, Kai-Toru
+
+PARTNER_CENTAUR =
+male centaur, horse lower body, muscular human torso, long hair, noble
+
+PARTNER_MINOTAUR =
+male minotaur, bull head, huge muscular body, horns, dark fur, intimidating
+
+PARTNER_HYENA =
+male hyenoid beastman, spotted fur, snout, lean muscular, knot implied carefully
+
+PARTNER_BOAR =
+male boarman, tusks, heavy bulk, crude, swamp vibe
+
+--- E01 missionary face to face ---
+FILE: lara_sex_missionary_intimate.jpg
+PROMPT:
+{BASE_LARA} having sex missionary position with {PARTNER_TANE}, she on her back
+legs wrapped around him, penetration visible tastefully, intimate eye contact,
+moaning expression, furs and sand, erotic cinematic, {BASE_STYLE}
+
+--- E02 cowgirl on top ---
+FILE: lara_sex_cowgirl_sexy.jpg
+PROMPT:
+{BASE_LARA} riding {PARTNER_TANE} cowgirl, she on top straddling, nude, bouncing,
+hands on his chest, breasts motion, pleasure face, jungle hut, {BASE_STYLE}
+
+--- E03 doggy from behind ---
+FILE: lara_sex_doggy_passionate.jpg
+PROMPT:
+{BASE_LARA} doggystyle sex with {PARTNER_TANE}, on all fours, he grips hips,
+back arch, hair falling forward, deep penetration pose, outdoor night, {BASE_STYLE}
+
+--- E04 standing sex against tree ---
+FILE: lara_sex_standing_jungle.jpg
+PROMPT:
+{BASE_LARA} standing sex against tree with {PARTNER_TANE}, one leg lifted,
+nude bodies pressed, jungle vines, urgency, {BASE_STYLE}
+
+--- E05 side spooning sex ---
+FILE: lara_sex_side_intimate.jpg
+PROMPT:
+{BASE_LARA} lying on side spooned by {PARTNER_TANE}, slow intimate penetration,
+soft light, after rain, {BASE_STYLE}
+
+--- E06 oral her giving ---
+FILE: lara_sex_oral_blowjob.jpg
+PROMPT:
+{BASE_LARA} on knees performing oral sex on {PARTNER_TANE}, lips near tip,
+looking up, hands on thighs, detailed face consistent, erotic, {BASE_STYLE}
+
+--- E07 oral her receiving ---
+FILE: lara_sex_cunnilingus_intimate.jpg
+PROMPT:
+{BASE_LARA} lying back receiving oral from {PARTNER_TANE}, legs open, hands in
+his hair, arched back, pleasure, {BASE_STYLE}
+
+--- E08 deepthroat ---
+FILE: lara_sex_deepthroat_closeup.jpg
+PROMPT:
+close-up {BASE_LARA} deepthroat oral with {PARTNER_TANE}, tears of effort,
+focused, erotic intensity, careful anatomy, {BASE_STYLE}
+
+--- E09 anal doggy ---
+FILE: lara_sex_anal_doggy.jpg
+PROMPT:
+{BASE_LARA} anal sex doggystyle with {PARTNER_TANE}, careful stretch expression,
+biting lip, detailed, passionate not violent unless specified, {BASE_STYLE}
+
+--- E10 creampie after ---
+FILE: lara_sex_creampie_afterglow.jpg
+PROMPT:
+{BASE_LARA} after creampie, semen dripping from vagina, legs open, flushed,
+partner nearby, messy erotic afterglow, {BASE_STYLE}
+
+--- E11 facial cum ---
+FILE: lara_sex_cumplay_face.jpg
+PROMPT:
+{BASE_LARA} face and breasts with semen, after oral, eyes half-closed, messy,
+erotic, not degrading unless kink scene, {BASE_STYLE}
+
+--- E12 double sensation handjob ---
+FILE: lara_sex_handjob_close.jpg
+PROMPT:
+{BASE_LARA} handjob close-up, hands around partner penis, focused eyes,
+{PARTNER_TANE}, detailed, {BASE_STYLE}
+
+================================================================================
+F) СЕКС З НЕЛЮДЬМИ / ПЛЕМЕНА (обережно з анатомією)
+================================================================================
+
+--- F01 centaur size ---
+FILE: lara_sex_centaur_size_stretch.jpg
+PROMPT:
+{BASE_LARA} with male centaur partner, size difference, she small against him,
+careful erotic composition, partial penetration implied or shallow, awe and
+strain on her face, plains sunset, fantasy, {BASE_STYLE}, {PARTNER_CENTAUR}
+
+--- F02 minotaur domination ---
+FILE: lara_sex_minotaur_rough.jpg
+PROMPT:
+{BASE_LARA} with {PARTNER_MINOTAUR}, he large dominant, she held against wall,
+rough passionate sex, labyrinth stone, fear-mixed arousal expression, {BASE_STYLE}
+
+--- F03 hyenoid knot lock ---
+FILE: lara_sex_hyenoid_knot.jpg
+PROMPT:
+{BASE_LARA} with {PARTNER_HYENA}, canine knot lock pose, stuck together after
+climax, she panting, intimate locked, night camp, fantasy beastman, {BASE_STYLE}
+
+--- F04 boar swamp ---
+FILE: lara_sex_boar_swamp.jpg
+PROMPT:
+{BASE_LARA} with {PARTNER_BOAR} in swamp, dirty raw atmosphere, coercive vibe
+optional, mud, heavy partner, dark erotic, {BASE_STYLE}
+
+--- F05 ritual public ---
+FILE: lara_sex_ritual_public.jpg
+PROMPT:
+{BASE_LARA} ritual sex on stone altar with {PARTNER_MAKAI}, tribal audience
+silhouettes soft background, body paint, amulet glowing, ceremonial erotic,
+{BASE_STYLE}
+
+--- F06 jack tender ---
+FILE: lara_sex_jack_missionary.jpg
+PROMPT:
+{BASE_LARA} missionary with {PARTNER_JACK}, tender outsider romance, ruined
+city camp, soft light, {BASE_STYLE}
+
+--- F07 zek grateful ---
+FILE: lara_sex_zek_service.jpg
+PROMPT:
+{BASE_LARA} with male hyenoid exile Zek, he submissive grateful, she guiding,
+intimate jungle hideout, {BASE_STYLE}, spotted fur beastman slim build nervous
+
+================================================================================
+G) ПРИМУС / TRAP (темні сцени — для coercion mode UI)
+================================================================================
+(Генеруй свідомо; у грі type=coercion|trap)
+
+--- G01 coercion hold ---
+FILE: lara_sex_coercion_held.jpg
+PROMPT:
+{BASE_LARA} held down during sex, wrists pinned, mixed fear and unwanted
+arousal expression, dark cave, large partner silhouette, dramatic lighting,
+not gore, erotic dark fantasy, {BASE_STYLE}
+
+--- G02 trap vines ---
+FILE: lara_sex_trap_vines.jpg
+PROMPT:
+{BASE_LARA} bound by living vines nude, exposed, partner approaching, helpless
+pose, magical jungle trap, erotic peril, {BASE_STYLE}
+
+--- G03 after coercion shame ---
+FILE: lara_sex_coercion_after_shame.jpg
+PROMPT:
+{BASE_LARA} after forced scene, sitting nude curled, covering body partially,
+tears, shame and confusion, dim light, emotional, {BASE_STYLE}
+
+================================================================================
+H) ПРЕЛЮДІЯ / НІЖНІСТЬ / БЕЗ ПОВНОГО ПРОНИКНЕННЯ
+================================================================================
+
+--- H01 kiss wet ---
+FILE: lara_intimate_kiss_wet.jpg
+PROMPT:
+{BASE_LARA} passionate deep kiss with {PARTNER_TANE}, nude torsos pressed,
+tongues, rain, {BASE_STYLE}
+
+--- H02 grind clothed tear ---
+FILE: lara_sexy_grind_torn_clothes.jpg
+PROMPT:
+{BASE_LARA} grinding on partner, torn clothes half off, one breast exposed,
+urgency, beach, {BASE_STYLE}
+
+--- H03 fingers pleasure ---
+FILE: lara_sex_fingering_close.jpg
+PROMPT:
+{BASE_LARA} receiving fingering, partner hand between legs, her head back,
+mouth open, intimate close-up, {BASE_STYLE}
+
+--- H04 69 ---
+FILE: lara_sex_69_oral.jpg
+PROMPT:
+{BASE_LARA} and {PARTNER_TANE} in 69 position, mutual oral, artistic composition,
+{BASE_STYLE}
+
+================================================================================
+I) ГАЛЕРЕЯ — «М’ЯКИЙ» ЕРО (якщо модерація ріже full nude)
+================================================================================
+
+--- I01 wet white shirt ---
+FILE: lara_sexy_wet_shirt.jpg
+PROMPT:
+{BASE_LARA} in soaked white shirt clinging transparent to breasts, hard nipples
+visible through fabric, no pants, beach, {BASE_STYLE}
+
+--- I02 tribal micro ---
+FILE: lara_tribal_sexy_minimal.jpg
+PROMPT:
+{BASE_LARA} tribal micro outfit leaves almost nothing, body paint, necklace,
+seductive stand, village fire, {BASE_STYLE}
+
+--- I03 amulet only ---
+FILE: lara_nude_amulet_only.jpg
+PROMPT:
+{BASE_LARA} wearing only glowing ancient amulet necklace, otherwise nude,
+temple steps, sacred erotic, {BASE_STYLE}
+
+================================================================================
+J) LOOKS ДЛЯ public/avatars/lara_*.png (портрети 1:1)
+================================================================================
+
+lara_nude.png — waist-up nude confident
+lara_sex_ready.png — aroused nude close-up flushed
+lara_ridden.png — mid-sex cowgirl face close-up pleasure
+lara_submit.png — submissive look from below during sex
+lara_dom.png — dominant on top smirk nude
+
+PROMPT template for looks:
+portrait of {BASE_LARA}, [expression], [clothing or nude], head and shoulders
+or upper body, clean background soft bokeh, game UI avatar, {BASE_STYLE}
+
+================================================================================
+K) ПАРАМЕТРИ ГЕНЕРАЦІЇ (рекомендації SD)
+================================================================================
+
+Resolution gallery: 768x1024 or 832x1216 (portrait)
+Resolution body crops: 768x768 square
+Steps: 28–40
+CFG: 5–7.5
+Sampler: DPM++ 2M Karras / Euler a
+Face lock: IP-Adapter / InstantID / same seed + face reference of Lara
+Ref image: public/avatars/lara.png or best consistent face
+
+Consistency tip:
+  Always prepend: "same character as reference, identical face freckles hair"
+  Use face reference strength 0.6–0.85
+
+================================================================================
+L) ЧЕКЛИСТ ПІСЛЯ ГЕНЕРАЦІЇ
+================================================================================
+
+[ ] Обличчя схоже на Лару (волосся, веснянки)
+[ ] Немає дитячих рис
+[ ] Ім’я файлу з тегами (sexy nude beach night sex doggy…)
+[ ] Галерея: кинути в public/avatars/lara-gallery/
+[ ] Body: квадрат, без зайвого фону
+[ ] git: не коміть сирі raw/ якщо не треба — лише готові для гри
+
+================================================================================
+КІНЕЦЬ ФАЙЛУ
+================================================================================
