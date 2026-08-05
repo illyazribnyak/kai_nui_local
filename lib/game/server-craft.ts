@@ -113,6 +113,10 @@ export async function consumeInventoryItem(itemName: string): Promise<ConsumeRes
   const amuletEnergyDelta = item.name.toLowerCase().includes('амулет') || item.name.toLowerCase().includes('резонанс') ? 15 : 0
   const amuletEnergy = Math.max(0, (gameState?.amuletEnergy ?? 0) + amuletEnergyDelta)
 
+  const isIntimateToy = item.category === 'інтимне' || item.name.toLowerCase().includes('фалоімітатор') || item.name.toLowerCase().includes('plug') || item.name.toLowerCase().includes('пута') || item.name.toLowerCase().includes('намистин') || item.name.toLowerCase().includes('вібрируючий')
+  const desireDelta = isIntimateToy ? 20 : 0
+  const desire = clamp((gameState?.desire ?? 0) + desireDelta, 0, 100)
+
   await prisma.$transaction(async (tx) => {
     if (item.quantity <= 1) {
       await tx.inventoryItem.delete({ where: { id: item.id } })
@@ -124,9 +128,10 @@ export async function consumeInventoryItem(itemName: string): Promise<ConsumeRes
     }
     await tx.gameState.update({
       where: { id: 'singleton' },
-      data: { hunger, thirst, amuletEnergy },
+      data: { hunger, thirst, amuletEnergy, desire },
     })
   })
+
 
 
   return {

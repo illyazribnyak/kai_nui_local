@@ -262,6 +262,62 @@ export const CRAFTING_RECIPES: CraftingRecipe[] = [
     resultQuantity: 1,
   },
   {
+    id: 'tribal_dildo',
+    name: 'Полірований кістяний фалоімітатор',
+    category: 'інтимне',
+    description: 'Гладкий ритуальний фалоімітатор з кістки з рельєфним візерунком',
+    ingredients: [
+      { name: 'Камінь', quantity: 1 },
+      { name: 'Ліана', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'obsidian_butt_plug',
+    name: 'Обсидіановий анальний конус (Plug)',
+    category: 'інтимне',
+    description: 'Гладкий дзеркальний обсидіановий затор із містичним сяйвом',
+    ingredients: [
+      { name: 'Обсидіан', quantity: 1 },
+      { name: 'Ліана', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'silk_restraints',
+    name: 'Шовкові пута & Зв\'язки (Bondage)',
+    category: 'інтимне',
+    description: 'М\'які міцні шовкові пута для фіксації рук у пристрасних іграх',
+    ingredients: [
+      { name: 'Цілюще листя', quantity: 2 },
+      { name: 'Ліана', quantity: 2 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'pearl_clit_beads',
+    name: 'Перламутрові намистини стимуляції',
+    category: 'інтимне',
+    description: 'Низка гладких перламутрових намистин для пристрасних пестощів',
+    ingredients: [
+      { name: 'Камінь', quantity: 1 },
+      { name: 'Ліана', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+  {
+    id: 'vibrating_crystal',
+    name: 'Вібрируючий кристальний стрижень',
+    category: 'інтимне',
+    description: 'Кристал, що м\'яко пульсує магічною вібрацією Амулета',
+    ingredients: [
+      { name: 'Обсидіан', quantity: 1 },
+      { name: 'Цілюще листя', quantity: 1 },
+    ],
+    resultQuantity: 1,
+  },
+
+  {
     id: 'cooked_meat',
     name: 'Смажене м\'ясо дичини',
     category: 'їжа',
@@ -425,9 +481,13 @@ export function getConsumeEffect(
   if (n.includes('амулет') || n.includes('резонанс')) {
     return { hungerDelta: 0, thirstDelta: 0, label: 'Енергія Амулета +15' }
   }
+  if (cat === 'інтимне' || n.includes('фалоімітатор') || n.includes('plug') || n.includes('пута') || n.includes('намистин') || n.includes('вібрируючий')) {
+    return { hungerDelta: 0, thirstDelta: 0, label: 'Використано інтимну іграшку (+Бажання / Збудження)' }
+  }
   if (n.includes('цілющ') || n.includes('пов\'яз') || n.includes('пов’яз')) {
     return { hungerDelta: 0, thirstDelta: 0, label: 'Використано (лікування)' }
   }
+
 
   if (cat === 'їжа' || cat === 'food') {
     return { hungerDelta: -20, thirstDelta: -5, label: 'Голод −20, спрага −5' }
