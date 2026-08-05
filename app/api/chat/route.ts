@@ -1279,6 +1279,34 @@ export async function POST(request: NextRequest) {
             })
           }
 
+          // 6c. Persist active sex scene so HUD survives reload
+          let activeSexPayload: any = null
+          try {
+            const {
+              parseActiveSexJson,
+              serializeActiveSex,
+              mergeActiveSexState,
+            } = await import('@/lib/game/active-sex')
+            const prev = parseActiveSexJson((gameState as any)?.activeSexJson)
+            const next = mergeActiveSexState(prev, {
+              sexScene: merged.sexScene,
+              pleasure: merged.pleasure,
+              phase: merged.phase,
+              stamina: merged.stamina,
+              domination: merged.domination,
+              penisStats: merged.penisStats,
+              sexChoices: merged.sexChoices,
+              sceneSummary: merged.sceneSummary,
+            })
+            activeSexPayload = next
+            await prisma.gameState.update({
+              where: { id: 'singleton' },
+              data: { activeSexJson: serializeActiveSex(next) },
+            })
+          } catch (e) {
+            console.warn('active sex persist error', e)
+          }
+
           // 7. Fetch updated state and send to client
           const updatedState = await prisma.gameState.findUnique({ where: { id: 'singleton' } })
           const updatedRels = await prisma.relationship.findMany({
@@ -1407,16 +1435,20 @@ export async function POST(request: NextRequest) {
             },
             choices: finalChoices,
             diceRolls: merged.diceRolls,
-            sexScene: merged.sexScene,
-            phase: merged.phase,
-            pleasure: merged.pleasure,
-            stamina: merged.stamina,
+            sexScene: merged.sexScene || activeSexPayload?.sexScene || null,
+            phase: merged.phase || activeSexPayload?.phase || null,
+            pleasure: merged.pleasure || activeSexPayload?.pleasure || null,
+            stamina: merged.stamina || activeSexPayload?.stamina || null,
             combo: merged.combo,
-            domination: merged.domination,
+            domination:
+              merged.domination !== null && merged.domination !== undefined
+                ? merged.domination
+                : activeSexPayload?.domination ?? null,
             reactions: merged.reactions,
             erogenousZones: merged.erogenousZones,
-            sexChoices: merged.sexChoices,
+            sexChoices: merged.sexChoices || activeSexPayload?.sexChoices || [],
             sceneSummary: merged.sceneSummary,
+            activeSex: activeSexPayload,
             sceneMood: merged.sceneMood,
             laraDialogue: merged.laraDialogue,
             multiOrgasm: merged.multiOrgasm,

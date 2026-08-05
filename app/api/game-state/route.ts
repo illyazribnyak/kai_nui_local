@@ -10,6 +10,13 @@ export async function GET() {
       gameState = await prisma.gameState.create({ data: { id: 'singleton' } })
     }
     const messages = await prisma.message.findMany({ orderBy: { createdAt: 'asc' } })
+    let activeSex: any = null
+    try {
+      const { parseActiveSexJson } = await import('@/lib/game/active-sex')
+      activeSex = parseActiveSexJson((gameState as any).activeSexJson)
+    } catch {
+      activeSex = null
+    }
     const inventory = await prisma.inventoryItem.findMany({ orderBy: { name: 'asc' } })
     try {
       const { normalizeQuestLadderStatuses } = await import('@/lib/game/quest-ladder')
@@ -99,6 +106,7 @@ export async function GET() {
 
     return NextResponse.json({
       gameState,
+      activeSex,
       relationships,
       inventory,
       quests,

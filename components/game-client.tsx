@@ -265,6 +265,28 @@ export default function GameClient() {
       } else {
         setMessages(msgs)
       }
+      // Restore sex HUD after reload if scene still active on server
+      const ax = data?.activeSex
+      if (ax?.sexScene) {
+        applySexSceneStart(ax.sexScene)
+        if (ax.pleasure) {
+          setPleasure({
+            lara: Number(ax.pleasure.lara ?? 0),
+            partner: Number(ax.pleasure.partner ?? 0),
+          })
+        }
+        if (ax.phase) setPhase(ax.phase)
+        if (ax.stamina) setStamina(ax.stamina)
+        if (ax.domination != null) setDomination(Number(ax.domination))
+        if (ax.penisStats) {
+          setPenisStats(sanitizePenisStats(ax.penisStats) ?? ax.penisStats)
+        }
+        if (Array.isArray(ax.sexChoices) && ax.sexChoices.length) {
+          setSexChoices(ax.sexChoices)
+          setChoices([])
+        }
+        setActionsCollapsed(false)
+      }
       setInitialized(true)
     } catch (error: any) {
       console.error('Load error:', error)
@@ -371,8 +393,9 @@ export default function GameClient() {
         })
       } else if (tag.type === 'dice_roll' && data?.skill) {
         setDiceRoll(data)
-      } else if (tag.type === 'sex_scene_start' && data?.type) {
-        applySexSceneStart(data as any)
+      } else if (tag.type === 'sex_scene_start' && (data?.type || data?.partner)) {
+        applySexSceneStart({ type: data.type || 'voluntary', ...data } as any)
+        setActionsCollapsed(false)
       } else if (tag.type === 'phase' && data?.phase) {
         setPhase(data)
       } else if (tag.type === 'pleasure') {
@@ -574,12 +597,22 @@ export default function GameClient() {
               }
               if (parsed?.sexScene) {
                 applySexSceneStart(parsed.sexScene)
+                setActionsCollapsed(false)
                 if (isCoercionScene(parsed.sexScene.type)) {
                   toast.message(
                     `⛓️ ${sceneTypeLabel(parsed.sexScene.type)} — опір або здача`,
                     { duration: 3500 }
                   )
+                } else {
+                  toast.message(
+                    `🔥 Секс-сцена: ${parsed.sexScene.partner || 'партнер'}`,
+                    { duration: 2800 }
+                  )
                 }
+              } else if (parsed?.activeSex?.sexScene && !sexScene) {
+                // mid-scene turn without new START tag — keep HUD alive
+                applySexSceneStart(parsed.activeSex.sexScene)
+                setActionsCollapsed(false)
               }
               if (parsed?.phase) setPhase(parsed.phase)
               if (parsed?.pleasure) setPleasure({ lara: Number(parsed.pleasure.lara ?? 0), partner: Number(parsed.pleasure.partner ?? 0) })
@@ -589,7 +622,12 @@ export default function GameClient() {
               if (parsed?.reactions?.length > 0) setReactions(prev => [...prev, ...parsed.reactions])
               if (parsed?.erogenousZones?.length > 0) setErogenousZone(parsed.erogenousZones[parsed.erogenousZones.length - 1])
               if (parsed?.sexChoices?.length > 0) { setSexChoices(parsed.sexChoices); setChoices([]) }
-              if (parsed?.sceneSummary) { setSceneSummary(parsed.sceneSummary) }
+              if (parsed?.sceneSummary) {
+                setSceneSummary(parsed.sceneSummary)
+                // End active sex HUD (server also clears activeSexJson)
+                setSexScene(null)
+                setSexChoices([])
+              }
               if (parsed?.sceneMood) setSceneMood(parsed.sceneMood)
               if (parsed?.laraDialogue?.length > 0) setLaraDialogue(parsed.laraDialogue)
               if (parsed?.multiOrgasm) setMultiOrgasm(parsed.multiOrgasm)
@@ -1591,6 +1629,33 @@ export default function GameClient() {
 
           {/* Action chrome — collapsible so chat stays visible */}
           <div className="flex-shrink-0 border-t border-border/60 bg-card/30">
+            {/* Always-visible sex scene strip when active */}
+            {sexScene && (
+              <div className="px-3 py-1.5 border-b border-pink-500/35 bg-gradient-to-r from-pink-950/50 to-rose-950/30">
+                <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-sm">🔥</span>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-pink-100 truncate">
+                        Секс-сцена · {sexScene.partner || 'партнер'}
+                      </p>
+                      <p className="text-[9px] text-pink-200/70 truncate">
+                        {sceneTypeLabel(String(sexScene.type || 'voluntary'))}
+                        {phase?.label || phase?.phase ? ` · ${phase?.label || phase?.phase}` : ''}
+                        {` · 💜${pleasure.lara} / 🧡${pleasure.partner}`}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActionsCollapsed(false)}
+                    className="text-[10px] px-2 py-1 rounded-lg border border-pink-400/40 bg-pink-900/40 text-pink-100 hover:bg-pink-800/50 font-medium"
+                  >
+                    {actionsCollapsed ? 'Показати HUD ▴' : 'HUD активний'}
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between px-3 py-1 max-w-3xl mx-auto">
               <span className="text-[10px] text-muted-foreground">
                 {sexScene ? 'Секс / дії' : 'Варіанти дій'}
@@ -1604,7 +1669,9 @@ export default function GameClient() {
               </button>
             </div>
           {!actionsCollapsed && (
-          <div className="min-h-0 max-h-[min(28vh,16rem)] overflow-y-scroll overflow-x-hidden panel-scroll overscroll-contain">
+          <div className={`min-h-0 overflow-y-scroll overflow-x-hidden panel-scroll overscroll-contain ${
+            sexScene ? 'max-h-[min(38vh,22rem)]' : 'max-h-[min(28vh,16rem)]'
+          }`}>
             {/* Sex scene HUD */}
             <AnimatePresence>
               {sexScene && (

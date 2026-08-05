@@ -46,6 +46,8 @@ model GameState {
   turnCount     Int      @default(0)
   /// Total cumulative LLM tokens used in playthrough
   totalTokensUsed Int    @default(0)
+  /// Active sex scene UI state (JSON). Empty = not in sex. Survives reload.
+  activeSexJson String   @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
