@@ -1,8 +1,40 @@
 'use client'
 
-import { useState } from 'react'
-import { soundEngine } from '@/lib/audio'
+import { useEffect, useState } from 'react'
+import { soundEngine, type AmbientType } from '@/lib/audio'
 import { Volume2, VolumeX, Radio, Sparkles, Waves, Trees, Flame } from 'lucide-react'
+
+const PRESETS: Array<{
+  id: Exclude<AmbientType, 'none'>
+  label: string
+  desc: string
+  icon: typeof Waves
+}> = [
+  {
+    id: 'ocean',
+    label: 'Шум Тихого Океану',
+    desc: 'Реальний прибій і чайки на березі',
+    icon: Waves,
+  },
+  {
+    id: 'jungle',
+    label: 'Дикі Джунглі',
+    desc: 'Запис тропічних птахів і лісу',
+    icon: Trees,
+  },
+  {
+    id: 'tribal',
+    label: 'Барабани Кай-Тору',
+    desc: 'Ритм племінних барабанів (loop)',
+    icon: Flame,
+  },
+  {
+    id: 'amulet',
+    label: 'Сяйво Амулета',
+    desc: 'Магічний ambient-резонанс',
+    icon: Sparkles,
+  },
+]
 
 export function SoundscapePanel() {
   const [activeType, setActiveType] = useState<string | null>(
@@ -11,11 +43,22 @@ export function SoundscapePanel() {
   const [isMuted, setIsMuted] = useState(soundEngine.getMuted())
   const [volume, setVolume] = useState(soundEngine.getVolume())
 
-  const handleToggleAmbient = (type: 'ocean' | 'jungle' | 'tribal' | 'amulet') => {
+  // After mount (user opened the tab) — resume preferred ambient if any
+  useEffect(() => {
+    soundEngine.resumePreferredAmbient()
+    setActiveType(soundEngine.getActiveAmbientType())
+  }, [])
+
+  const handleToggleAmbient = (type: Exclude<AmbientType, 'none'>) => {
     if (activeType === type) {
       soundEngine.stopAmbient()
       setActiveType(null)
     } else {
+      // Unmute when starting ambience so user hears it
+      if (isMuted) {
+        soundEngine.setMuted(false)
+        setIsMuted(false)
+      }
       soundEngine.playAmbient(type)
       setActiveType(type)
     }
@@ -24,12 +67,18 @@ export function SoundscapePanel() {
   const handleVolumeChange = (v: number) => {
     setVolume(v)
     soundEngine.setVolume(v)
+    if (v > 0 && isMuted) {
+      soundEngine.setMuted(false)
+      setIsMuted(false)
+    }
   }
 
   const handleMuteToggle = () => {
     const next = !isMuted
     setIsMuted(next)
     soundEngine.setMuted(next)
+    // After unmute, refresh active indicator from engine
+    setActiveType(soundEngine.getActiveAmbientType())
   }
 
   return (
@@ -42,15 +91,24 @@ export function SoundscapePanel() {
           type="button"
           onClick={handleMuteToggle}
           className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 transition border border-slate-700"
+          title={isMuted ? 'Увімкнути звук' : 'Вимкнути звук'}
         >
-          {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+          {isMuted ? (
+            <VolumeX className="w-4 h-4 text-rose-400" />
+          ) : (
+            <Volume2 className="w-4 h-4 text-emerald-400" />
+          )}
         </button>
       </div>
 
-      {/* Volume Slider */}
+      <p className="text-[10px] text-muted-foreground leading-relaxed">
+        Справжні семпли (Mixkit, loop): океан, джунглі, барабани, магія. SFX кліків/кубика/крафту
+        теж з файлів у <code className="text-emerald-400/90">public/sounds/</code>.
+      </p>
+
       <div className="bg-slate-900/60 p-3 rounded-xl border border-border/40 space-y-1.5">
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Гучність фону:</span>
+          <span>Гучність:</span>
           <span className="font-mono font-bold text-white">{Math.round(volume * 100)}%</span>
         </div>
         <input
@@ -61,53 +119,24 @@ export function SoundscapePanel() {
           value={volume}
           onChange={(e) => handleVolumeChange(Number(e.target.value))}
           className="w-full accent-primary cursor-pointer"
+          aria-label="Гучність аудіо"
         />
       </div>
 
-      {/* Presets Grid */}
       <div className="space-y-2">
         <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-          Виберіть ембієнт-потік:
+          Ембієнт-потоки (натисни ще раз щоб зупинити):
         </span>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {[
-            {
-              id: 'ocean',
-              label: 'Шум Тихого Океану',
-              desc: 'Глибокий прибій та морська піна на березі',
-              icon: Waves,
-              color: 'emerald',
-            },
-            {
-              id: 'jungle',
-              label: 'Дикі Джунглі',
-              desc: 'Шорох вологих ліан та співи тропічних птахів',
-              icon: Trees,
-              color: 'green',
-            },
-            {
-              id: 'tribal',
-              label: 'Барабани Кай-Тору',
-              desc: 'Ритмічний племінний пульс дикунів',
-              icon: Flame,
-              color: 'amber',
-            },
-            {
-              id: 'amulet',
-              label: 'Сяйво Амулета',
-              desc: 'Містичний високий резонанс магії 432 Hz',
-              icon: Sparkles,
-              color: 'purple',
-            },
-          ].map((preset) => {
+          {PRESETS.map((preset) => {
             const Icon = preset.icon
             const active = activeType === preset.id
             return (
               <button
                 key={preset.id}
                 type="button"
-                onClick={() => handleToggleAmbient(preset.id as any)}
+                onClick={() => handleToggleAmbient(preset.id)}
                 className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 ${
                   active
                     ? 'bg-primary/20 border-primary text-primary shadow-lg ring-1 ring-primary/40'
@@ -118,11 +147,15 @@ export function SoundscapePanel() {
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-bold truncate flex items-center justify-between">
+                  <div className="text-xs font-bold truncate flex items-center justify-between gap-1">
                     <span>{preset.label}</span>
-                    {active && <span className="text-[9px] bg-primary text-slate-950 px-1.5 py-0.5 rounded font-bold">АКТИВНИЙ</span>}
+                    {active && (
+                      <span className="text-[9px] bg-primary text-slate-950 px-1.5 py-0.5 rounded font-bold shrink-0">
+                        ▶ PLAY
+                      </span>
+                    )}
                   </div>
-                  <div className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+                  <div className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">
                     {preset.desc}
                   </div>
                 </div>
