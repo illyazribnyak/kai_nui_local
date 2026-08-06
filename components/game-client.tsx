@@ -68,6 +68,7 @@ import { computeSkillModifiers } from '@/lib/game/skill-effects'
 import { computeActiveSynergies } from '@/lib/game/sex-synergies'
 import { OnboardingOverlay } from './onboarding'
 import { CombatOverlay } from './combat-overlay'
+import { QuestsPanel } from './quests-panel'
 import { CraftingModal } from './crafting-modal'
 import { WardrobeModal } from './wardrobe-modal'
 import { SoundscapePanel } from './soundscape-panel'
@@ -1175,10 +1176,6 @@ export default function GameClient() {
     }
   }
 
-  const activeQuests = quests.filter(q => q.status === 'active')
-  const lockedQuests = quests.filter(q => q.status === 'locked' || q.status === 'pending')
-  const completedQuests = quests.filter(q => q.status === 'completed')
-  const failedQuests = quests.filter(q => q.status === 'failed')
 
   if (!initialized) {
     return (
@@ -2475,112 +2472,7 @@ export default function GameClient() {
             )}
 
             {/* QUESTS TAB */}
-            {sidebarTab === 'quests' && (
-              <div className="space-y-4">
-                {/* Active quests */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-amber-400" />
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Активні</h3>
-                    {activeQuests.length > 0 && (
-                      <span className="text-[10px] font-mono bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full">{activeQuests.length}</span>
-                    )}
-                  </div>
-                  {activeQuests.length === 0 ? (
-                    <div className="text-center py-6">
-                      <BookOpen className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground">Немає активних квестів</p>
-                    </div>
-                  ) : (
-                    activeQuests.map((q: QuestData) => (
-                      <motion.div
-                        key={q.id}
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3"
-                      >
-                        <div className="flex items-start gap-2">
-                          <span className="text-base flex-shrink-0 mt-0.5">\u23f3</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium">{q.title}</p>
-                            {q.description && (
-                              <p className="text-xs text-muted-foreground mt-0.5">{q.description}</p>
-                            )}
-                            {q.givenBy && (
-                              <p className="text-[10px] text-muted-foreground/60 mt-1">Від: {q.givenBy}</p>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))
-                  )}
-                </div>
-
-                {/* Locked quests */}
-                {lockedQuests.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-muted-foreground/50" />
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Заблоковані</h3>
-                      <span className="text-[10px] font-mono bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">{lockedQuests.length}</span>
-                    </div>
-                    {lockedQuests.map((q: QuestData) => (
-                      <div key={q.id} className="bg-muted/20 border border-border/40 rounded-lg p-2.5 opacity-60">
-                        <div className="flex items-start gap-2">
-                          <span className="text-sm flex-shrink-0">🔒</span>
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-muted-foreground">{q.title}</p>
-                            {q.description && (
-                              <p className="text-[10px] text-muted-foreground/60 mt-0.5">{q.description}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Completed quests */}
-                {completedQuests.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Завершені</h3>
-                      <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full">{completedQuests.length}</span>
-                    </div>
-                    {completedQuests.map((q: QuestData) => (
-                      <div key={q.id} className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2.5 opacity-80">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">\u2705</span>
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium line-through text-muted-foreground">{q.title}</p>
-                            {q.givenBy && <p className="text-[10px] text-muted-foreground/50">Від: {q.givenBy}</p>}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Failed quests */}
-                {failedQuests.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <XCircle className="w-3.5 h-3.5 text-red-400" />
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Провалені</h3>
-                    </div>
-                    {failedQuests.map((q: QuestData) => (
-                      <div key={q.id} className="bg-red-500/5 border border-red-500/20 rounded-lg p-2.5 opacity-60">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">\u274c</span>
-                          <p className="text-xs font-medium line-through text-muted-foreground">{q.title}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            {sidebarTab === 'quests' && <QuestsPanel quests={quests} />}
 
             {/* DIARY TAB */}
             {sidebarTab === 'diary' && (
