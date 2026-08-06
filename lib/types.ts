@@ -5,6 +5,16 @@ export interface GameState {
   endurance: number
   charisma: number
   willpower: number
+  /** 1–10 body attractiveness */
+  attractiveness?: number
+  /** 1–10 intellect */
+  intellect?: number
+  /** 1–10 base sexual drive (separate from desire 0–100) */
+  libido?: number
+  /** 1–10 permanent body sensitivity */
+  bodySensitivity?: number
+  /** JSON LaraBodyProfile qualitative overrides */
+  bodyProfileJson?: string
   desire: number
   shame: number
   confidence: number
@@ -33,6 +43,7 @@ export interface GameState {
   turnCount: number
   /** Cumulative LLM tokens for this playthrough (server-tracked). */
   totalTokensUsed?: number
+  activeSexJson?: string
 }
 
 export interface WorldFactData {
@@ -97,6 +108,11 @@ export interface StatUpdate {
   endurance?: number
   charisma?: number
   willpower?: number
+  attractiveness?: number
+  intellect?: number
+  libido?: number
+  bodySensitivity?: number
+  bodyProfileJson?: string
   desire?: number
   shame?: number
   confidence?: number

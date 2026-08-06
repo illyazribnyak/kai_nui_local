@@ -33,6 +33,10 @@ import {
   sanitizePenisStats,
 } from '@/lib/game/race-sex-stats'
 import { formatLaraAppearanceForPrompt } from '@/lib/game/lara-appearance'
+import {
+  formatLaraBodyProfileForPrompt,
+  formatRaceBodyModsForPrompt,
+} from '@/lib/game/lara-body-profile'
 import { applyNewDaySurvival, applyServerTimeTick } from '@/lib/game/time-tick'
 import { saveTurnSnapshot } from '@/lib/game/turn-snapshot'
 import {
@@ -83,9 +87,10 @@ function buildSystemPrompt(
 День: ${gameState?.dayNumber ?? 1}
 Глава: ${gameState?.chapterLabel ?? 'Прибуття'} (${gameState?.chapter ?? 'arrival'})
 ${gameState?.endingPath ? `Шлях кінцівки: ${ENDING_PATHS[gameState.endingPath] || gameState.endingPath}\n` : ''}Локація: ${gameState?.location ?? 'Берег острова'}
-Сила: ${gameState?.strength ?? 6} | Спритність: ${gameState?.agility ?? 8} | Витривалість: ${gameState?.endurance ?? 7}
-Харизма: ${gameState?.charisma ?? 7} | Воля: ${gameState?.willpower ?? 8}
-Бажання: ${gameState?.desire ?? 0}/100
+Сила: ${gameState?.strength ?? 4} | Спритність: ${gameState?.agility ?? 6} | Витривалість: ${gameState?.endurance ?? 5}
+Харизма: ${gameState?.charisma ?? 7} | Привабливість: ${gameState?.attractiveness ?? 7} | Розум: ${gameState?.intellect ?? 5}
+Воля: ${gameState?.willpower ?? 5} | Лібідо: ${gameState?.libido ?? 6}/10 | Чутливість тіла: ${gameState?.bodySensitivity ?? 7}/10
+Бажання (збудження): ${gameState?.desire ?? 0}/100
 Сором: ${gameState?.shame ?? 0}/100 | Впевненість: ${gameState?.confidence ?? 50}/100
 Голод: ${gameState?.hunger ?? 20}/100 | Спрага: ${gameState?.thirst ?? 20}/100
 Настрій: ${gameState?.mood ?? 'neutral'}
@@ -161,6 +166,8 @@ ${formatZekArcForPrompt()}
 ${formatTaneLeyaArcForPrompt()}
 ${formatRaceSexStatsForPrompt()}
 ${formatLaraAppearanceForPrompt(gameState, skills)}
+${formatLaraBodyProfileForPrompt(skills, gameState)}
+${formatRaceBodyModsForPrompt()}
 ${formatRandomEventCatalogHint()}
 ${formatRolledEventForPrompt(rolledEvent)}
 

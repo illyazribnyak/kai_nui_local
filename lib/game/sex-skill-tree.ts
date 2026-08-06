@@ -24,6 +24,8 @@ export type SexSkillCategory =
   | 'public'
   | 'creampie'
   | 'aftercare'
+  | 'combat'
+  | 'social'
 
 export interface SexSkillNode {
   id: string
@@ -64,6 +66,8 @@ export const SEX_SKILL_CATEGORIES: {
   { id: 'public', label: 'Публічність', icon: '👀', color: 'sky', activeClass: 'bg-sky-600 text-white shadow-sky-600/30' },
   { id: 'creampie', label: 'Насіння', icon: '💦', color: 'stone', activeClass: 'bg-stone-500 text-white shadow-stone-500/30' },
   { id: 'aftercare', label: 'Aftercare', icon: '🤍', color: 'teal', activeClass: 'bg-teal-600 text-white shadow-teal-600/30' },
+  { id: 'combat', label: 'Бій', icon: '⚔️', color: 'red', activeClass: 'bg-red-700 text-white shadow-red-700/30' },
+  { id: 'social', label: 'Соціум', icon: '🗣️', color: 'sky', activeClass: 'bg-sky-700 text-white shadow-sky-700/30' },
 ]
 
 /** Linear trees per category — order = progression within branch. */
@@ -892,6 +896,170 @@ export const SEX_SKILL_TREE: SexSkillNode[] = [
     effectByLevel: 'Heal light (narrative). Amulet +Lv/2. Body_magic synergy. Clears mild disease chance.',
     levelMeanings: ['спокій', 'відновлення', 'довіра', 'зцілення', 'повне оновлення'],
     diceKeywords: ['зцілення близькості', 'відновл', 'heal after'],
+  },
+
+  // ═══════════════════════════════════════════
+  // БІЙ / ФІЗИЧНІ (design pack)
+  // ═══════════════════════════════════════════
+  {
+    id: 'cmb_1',
+    name: 'Бій без зброї',
+    category: 'combat',
+    icon: '👊',
+    description: 'Кулаки, ноги, боротьба, утримання',
+    effectByLevel: 'd20 бій/сила +рівень. Утримання в грубому сексі: +Lv.',
+    levelMeanings: ['удар', 'блок', 'боротьба', 'кидок', 'повний контроль тіла'],
+    diceKeywords: ['бій', 'кулак', 'боротьб', 'сила', 'unarmed', 'fight'],
+  },
+  {
+    id: 'cmb_2',
+    name: 'Зброя',
+    category: 'combat',
+    parentName: 'Бій без зброї',
+    icon: '🗡️',
+    description: 'Кинджал, батіг, ласо, спис',
+    effectByLevel: 'd20 зброя +рівень. Батіг/ласо: бонус у домінуванні.',
+    levelMeanings: ['кинджал', 'спис', 'батіг', 'ласо', 'майстер зброї'],
+    diceKeywords: ['зброя', 'кинджал', 'батіг', 'ласо', 'спис', 'weapon'],
+  },
+  {
+    id: 'cmb_3',
+    name: 'Ухилення',
+    category: 'combat',
+    parentName: 'Зброя',
+    icon: '💨',
+    description: 'Уникнення ударів і захоплень',
+    effectByLevel: 'd20 спритність/ухилення +рівень. Втеча з захоплення.',
+    levelMeanings: ['крок убік', 'перекат', 'контрухилення', 'акробатика', 'тінь'],
+    diceKeywords: ['ухил', 'спритн', 'dodge', 'втеча', 'перекат'],
+  },
+  {
+    id: 'cmb_4',
+    name: 'Витривалість у бою',
+    category: 'combat',
+    parentName: 'Ухилення',
+    icon: '🛡️',
+    description: 'Триматись у сутичці, не падати',
+    effectByLevel: 'Stamina бою +Lv. Опір нокауту. d20 витривалість +рівень.',
+    levelMeanings: ['дихання', 'стійка', 'друга хвиля', 'залізні ноги', 'незламна'],
+    diceKeywords: ['витривалість у бою', 'стійк', 'нокаут', 'endurance fight'],
+  },
+  {
+    id: 'cmb_5',
+    name: 'Верхова їзда',
+    category: 'combat',
+    parentName: 'Витривалість у бою',
+    icon: '🐴',
+    description: 'Їзда верхи — критично з кентаврами',
+    effectByLevel: 'd20 верхова +рівень. Бонус до bond/поваги кентаврів. Баланс на спині.',
+    levelMeanings: ['триматись', 'ритм', 'галоп', 'без сідла', 'єдина з конем/кентавром'],
+    diceKeywords: ['верхов', 'їзд', 'кентавр', 'скак', 'ride horse'],
+  },
+
+  // ═══════════════════════════════════════════
+  // СОЦІУМ
+  // ═══════════════════════════════════════════
+  {
+    id: 'soc_1',
+    name: 'Знання рас',
+    category: 'social',
+    icon: '📜',
+    description: 'Звичаї народів острова',
+    effectByLevel: 'd20 знання/соціум +рівень з расами. Менше DC етикету.',
+    levelMeanings: ['чутки', 'звичаї', 'табу', 'ритуали', 'експерт острова'],
+    diceKeywords: ['знання рас', 'звичаї', 'раса', ' ethno', 'плем'],
+  },
+  {
+    id: 'soc_2',
+    name: 'Обман',
+    category: 'social',
+    parentName: 'Знання рас',
+    icon: '🎭',
+    description: 'Брехня, блеф, приховування',
+    effectByLevel: 'd20 обман +рівень. vs Воля NPC.',
+    levelMeanings: ['натяк', 'напівправда', 'блеф', 'маска', 'майстер брехні'],
+    diceKeywords: ['обман', 'брехн', 'блеф', 'lie', 'deceive'],
+  },
+  {
+    id: 'soc_3',
+    name: 'Залякування',
+    category: 'social',
+    parentName: 'Обман',
+    icon: '😠',
+    description: 'Тиск силою або голосом',
+    effectByLevel: 'd20 залякування +рівень. Fear↑ у слабких NPC.',
+    levelMeanings: ['погляд', 'тон', 'погроза', 'домінація', 'жах'],
+    diceKeywords: ['заляк', 'погроза', 'intimidate', 'страх'],
+  },
+  {
+    id: 'soc_4',
+    name: 'Торгівля',
+    category: 'social',
+    parentName: 'Залякування',
+    icon: '💰',
+    description: 'Торг і обмін',
+    effectByLevel: 'd20 торг +рівень. Кращі ціни/угоди.',
+    levelMeanings: ['торг', 'обмін', 'оцінка', 'хитрий контракт', 'купець'],
+    diceKeywords: ['торг', 'торгівля', 'ціна', 'обмін', 'bargain'],
+  },
+  {
+    id: 'soc_5',
+    name: 'Етикет',
+    category: 'social',
+    parentName: 'Торгівля',
+    icon: '👑',
+    description: 'Протокол ієрархій і вождів',
+    effectByLevel: 'd20 етикет +рівень. Respect+ у аудієнціях (Макаї, Кіра…).',
+    levelMeanings: ['уклін', 'звертання', 'ритуал двору', 'вождь', 'посланниця'],
+    diceKeywords: ['етикет', 'протокол', 'вождь', 'аудієнц', 'повага'],
+  },
+
+  // ═══════════════════════════════════════════
+  // EXTRA EROTIC (design pack)
+  // ═══════════════════════════════════════════
+  {
+    id: 'ex_phero',
+    name: 'Феромони',
+    category: 'body_magic',
+    parentName: 'Екстаз сили',
+    icon: '🌫️',
+    description: 'Читати й використовувати запах/феромони',
+    effectByLevel: 'd20 воля vs феромони +рівень. Desire gain контроль. Гієноїди/свинолюди.',
+    levelMeanings: ['чути', 'терпіти', 'читати настрій', 'відповідати', 'маніпулювати запахом'],
+    diceKeywords: ['феромон', 'запах', 'мускус', 'нюх'],
+  },
+  {
+    id: 'ex_size',
+    name: 'Гра з розміром',
+    category: 'vaginal',
+    parentName: 'Вагінальний оргазм',
+    icon: '📐',
+    description: 'Великі партнери — мінотавр, кентавр',
+    effectByLevel: 'Знижує pain DC size-fit на Lv. Pleasure при stretch +2%/Lv. d20 size +рівень.',
+    levelMeanings: ['терпить', 'приймає', 'розтягує', 'size queen', 'повний прийом'],
+    diceKeywords: ['розмір', 'size', 'великий член', 'товстий', 'мінотавр', 'кентавр'],
+  },
+  {
+    id: 'ex_multi',
+    name: 'Множинні партнери',
+    category: 'endurance',
+    parentName: 'Невтомність',
+    icon: '👥',
+    description: 'Груповий секс, увага кільком',
+    effectByLevel: 'Stamina group −Lv. d20 group +рівень. Bond multi-NPC.',
+    levelMeanings: ['два', 'черга', 'одночасно', 'оргія', 'центр уваги'],
+    diceKeywords: ['груповий', 'троє', 'оргія', 'multi partner', 'кілька'],
+  },
+  {
+    id: 'ex_milk',
+    name: 'Доїння',
+    category: 'technique',
+    parentName: 'Майстерність рук',
+    icon: '🍼',
+    description: 'Стимуляція грудей / молочність',
+    effectByLevel: 'Breast play pleasure +3%/Lv. Гієноїди/свинолюди bond+. d20 груди +рівень.',
+    levelMeanings: ['дотик', 'смоктання', 'ритм', 'молоко', 'повне доїння'],
+    diceKeywords: ['доїння', 'груди', 'соски', 'молоко', 'breast', 'milk'],
   },
 ]
 

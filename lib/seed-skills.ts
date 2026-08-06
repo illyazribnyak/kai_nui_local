@@ -95,6 +95,26 @@ export const INITIAL_SKILLS = [
   { name: 'Aftercare', category: 'aftercare', description: 'Турбота, вода, тепло, спокій' },
   { name: 'Слова підтримки', category: 'aftercare', description: 'М\'які слова після жорсткої сцени' },
   { name: 'Зцілення близькості', category: 'aftercare', description: 'Відновлення довіри й тіла' },
+
+  // Бойові / фізичні
+  { name: 'Бій без зброї', category: 'combat', description: 'Кулаки, ноги, боротьба, утримання' },
+  { name: 'Зброя', category: 'combat', description: 'Кинджал, батіг, ласо, спис' },
+  { name: 'Ухилення', category: 'combat', description: 'Уникнення ударів і захоплень' },
+  { name: 'Витривалість у бою', category: 'combat', description: 'Триматись у сутичці, не падати' },
+  { name: 'Верхова їзда', category: 'combat', description: 'Їзда верхи — критично з кентаврами' },
+
+  // Соціальні / маніпулятивні
+  { name: 'Обман', category: 'social', description: 'Брехня, блеф, приховування мотивів' },
+  { name: 'Залякування', category: 'social', description: 'Тиск силою або голосом' },
+  { name: 'Знання рас', category: 'social', description: 'Звичаї мінотаврів, кентаврів, гієноїдів, свинолюдів, Кай-Тору' },
+  { name: 'Торгівля', category: 'social', description: 'Торг, обмін, оцінка вартості' },
+  { name: 'Етикет', category: 'social', description: 'Протокол ієрархій племен і вождів' },
+
+  // Додаткові еротичні (design pack)
+  { name: 'Феромони', category: 'body_magic', description: 'Читати/використовувати запах і феромони рас' },
+  { name: 'Гра з розміром', category: 'vaginal', description: 'Працювати з дуже великими партнерами (мінотавр, кентавр)' },
+  { name: 'Множинні партнери', category: 'endurance', description: 'Груповий секс, увага кільком партнерам' },
+  { name: 'Доїння', category: 'technique', description: 'Стимуляція грудей / молочність — гієноїди, свинолюди' },
 ] as const
 
 export async function seedSkills() {

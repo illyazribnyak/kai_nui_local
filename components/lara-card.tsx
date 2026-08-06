@@ -197,13 +197,17 @@ export function LaraCard({ gameState, skills, compact, onOpenWardrobe }: Props) 
       </p>
 
       {/* Quick combat/ stat strip */}
-      <div className="grid grid-cols-5 gap-1 text-center">
+      <div className="grid grid-cols-3 gap-1 text-center sm:grid-cols-5">
         {[
-          { l: 'СИЛ', v: gameState?.strength ?? 6 },
-          { l: 'СПР', v: gameState?.agility ?? 8 },
-          { l: 'ВИТ', v: gameState?.endurance ?? 7 },
+          { l: 'СИЛ', v: gameState?.strength ?? 4 },
+          { l: 'СПР', v: gameState?.agility ?? 6 },
+          { l: 'ВИТ', v: gameState?.endurance ?? 5 },
           { l: 'ХАР', v: gameState?.charisma ?? 7 },
-          { l: 'ВОЛ', v: gameState?.willpower ?? 8 },
+          { l: 'ПРИВ', v: gameState?.attractiveness ?? 7 },
+          { l: 'РОЗ', v: gameState?.intellect ?? 5 },
+          { l: 'ВОЛ', v: gameState?.willpower ?? 5 },
+          { l: 'ЛІБ', v: gameState?.libido ?? 6 },
+          { l: 'ЧУТ', v: gameState?.bodySensitivity ?? 7 },
         ].map((s) => (
           <div key={s.l} className="bg-muted/40 rounded-lg py-1">
             <div className="text-[8px] text-muted-foreground">{s.l}</div>

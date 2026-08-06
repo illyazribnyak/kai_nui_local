@@ -8,6 +8,7 @@ import { useMemo } from 'react'
 import type { GameState, SkillData } from '@/lib/types'
 import { computeLaraBodyStats, type BodyMeter } from '@/lib/game/lara-body-stats'
 import type { OrificeCapacity } from '@/lib/game/body-capacity'
+import { computeLaraBodyProfile, type BodyFieldRow } from '@/lib/game/lara-body-profile'
 
 type Props = {
   gameState?: GameState | null
@@ -131,9 +132,45 @@ function MeterRow({ m }: { m: BodyMeter }) {
   )
 }
 
+const GROUP_LABEL: Record<BodyFieldRow['group'], string> = {
+  breasts: 'Груди',
+  vagina: 'Вагіна',
+  anus: 'Задній прохід',
+  mouth: 'Рот і горло',
+  general: 'Загальне',
+}
+
+function ProfileGroup({
+  group,
+  rows,
+}: {
+  group: BodyFieldRow['group']
+  rows: BodyFieldRow[]
+}) {
+  const items = rows.filter((r) => r.group === group)
+  if (!items.length) return null
+  return (
+    <div className="space-y-1 rounded-lg border border-border/40 bg-muted/10 p-2">
+      <h5 className="text-[10px] font-semibold text-foreground/85">{GROUP_LABEL[group]}</h5>
+      <div className="space-y-0.5">
+        {items.map((r) => (
+          <div key={r.key} className="flex justify-between gap-2 text-[10px]">
+            <span className="text-muted-foreground shrink-0">{r.label}</span>
+            <span className="text-right text-foreground/90 font-medium leading-snug">{r.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function LaraCapacityPanel({ gameState, skills }: Props) {
   const stats = useMemo(
     () => computeLaraBodyStats(skills, gameState),
+    [skills, gameState]
+  )
+  const profile = useMemo(
+    () => computeLaraBodyProfile(skills, gameState),
     [skills, gameState]
   )
 
@@ -141,15 +178,29 @@ export function LaraCapacityPanel({ gameState, skills }: Props) {
     <div className="space-y-3">
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          📐 Місткість і розтяг
+          📐 Місткість, тіло і показники
         </h3>
         <p className="text-[10px] text-muted-foreground leading-snug">
-          Окремий модуль тіла. Світла смуга = комфорт, тьмяна = максимум. Росте зі скілами
-          вагіни / аналу / горла. Нижче — додаткові статы тіла.
+          Повний тілесний профіль (груди, вагіна, анус, рот) + числова місткість зі скілів.
+          {profile.summaryLine ? ` ${profile.summaryLine}.` : ''}
         </p>
       </div>
 
       <div className="space-y-2">
+        <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Фізичні показники
+        </h4>
+        {(
+          ['breasts', 'vagina', 'anus', 'mouth', 'general'] as BodyFieldRow['group'][]
+        ).map((g) => (
+          <ProfileGroup key={g} group={g} rows={profile.rows} />
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Місткість / розтяг (см)
+        </h4>
         <OrificeBlock
           title="Вагіна"
           icon="💗"

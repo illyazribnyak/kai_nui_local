@@ -20,8 +20,11 @@ describe('sex skill tree integrity', () => {
     }
   })
 
-  it('has 68 nodes (6 core + 11 act branches × 4)', () => {
-    assert.equal(SEX_SKILL_TREE.length, 68)
+  it('has expanded tree (sex + combat + social design pack)', () => {
+    assert.ok(SEX_SKILL_TREE.length >= 80, `got ${SEX_SKILL_TREE.length}`)
+    assert.ok(SEX_SKILL_TREE.some((n) => n.name === 'Гра з розміром'))
+    assert.ok(SEX_SKILL_TREE.some((n) => n.name === 'Знання рас'))
+    assert.ok(SEX_SKILL_TREE.some((n) => n.name === 'Бій без зброї'))
   })
 
   it('has separate intimacy branches including vaginal/public/creampie/aftercare', () => {
@@ -30,7 +33,6 @@ describe('sex skill tree integrity', () => {
       'handjob',
       'blowjob',
       'deepthroat',
-      'vaginal',
       'anal',
       'riding',
       'edging',
@@ -41,6 +43,10 @@ describe('sex skill tree integrity', () => {
       const nodes = SEX_SKILL_TREE.filter((n) => n.category === cat)
       assert.equal(nodes.length, 4, cat)
     }
+    // vaginal has base 4 + «Гра з розміром»
+    assert.equal(SEX_SKILL_TREE.filter((n) => n.category === 'vaginal').length, 5)
+    assert.equal(SEX_SKILL_TREE.filter((n) => n.category === 'combat').length, 5)
+    assert.equal(SEX_SKILL_TREE.filter((n) => n.category === 'social').length, 5)
     assert.ok(SEX_SKILL_TREE.some((n) => n.name === 'Глибоке горло' && n.levelMeanings?.length === 5))
   })
 })

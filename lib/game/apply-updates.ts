@@ -15,6 +15,7 @@ export async function applyStatUpdates(statUpdate: any) {
   if (!statUpdate || Object.keys(statUpdate).length === 0) return
   const validFields = [
     'strength', 'agility', 'endurance', 'charisma', 'willpower',
+    'attractiveness', 'intellect', 'libido', 'bodySensitivity', 'bodyProfileJson',
     'desire', 'shame', 'confidence', 'location', 'isPregnant',
     'pregnancyWeek', 'pregnancyFather', 'amuletEnergy', 'dayNumber',
     'isDarkLara', 'hunger', 'thirst', 'timeOfDay', 'mood', 'weather',
@@ -26,8 +27,29 @@ export async function applyStatUpdates(statUpdate: any) {
     if (statUpdate[key] === undefined) continue
     if (['desire', 'shame', 'confidence', 'hunger', 'thirst'].includes(key)) {
       updateData[key] = clamp(Number(statUpdate[key]) || 0, 0, 100)
-    } else if (['strength', 'agility', 'endurance', 'charisma', 'willpower'].includes(key)) {
+    } else if (
+      [
+        'strength',
+        'agility',
+        'endurance',
+        'charisma',
+        'willpower',
+        'attractiveness',
+        'intellect',
+        'libido',
+        'bodySensitivity',
+      ].includes(key)
+    ) {
       updateData[key] = clamp(Number(statUpdate[key]) || 1, 1, 20)
+    } else if (key === 'bodyProfileJson') {
+      const raw = statUpdate[key]
+      if (raw === null || raw === '') {
+        updateData[key] = ''
+      } else if (typeof raw === 'object') {
+        updateData[key] = JSON.stringify(raw).slice(0, 8000)
+      } else {
+        updateData[key] = String(raw).slice(0, 8000)
+      }
     } else if (key === 'amuletEnergy') {
       updateData[key] = Math.max(0, Number(statUpdate[key]) || 0)
     } else if (key === 'dayNumber' || key === 'pregnancyWeek' || key === 'turnCount') {

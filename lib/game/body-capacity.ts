@@ -134,19 +134,28 @@ export function computeOrificeCapacity(
     // Also ride/flexibility help a bit
     const flex = skillLevel(skills, 'Гнучкість тіла')
     const ride = skillLevel(skills, 'Глибока їзда')
+    const sizePlay = skillLevel(skills, 'Гра з розміром')
 
     const b = BASE.vaginal
     const comfortDiameterCm =
-      b.comfortDiameter + capacityLv * 0.35 + prepLv * 0.2 + flex * 0.05
+      b.comfortDiameter + capacityLv * 0.35 + prepLv * 0.2 + flex * 0.05 + sizePlay * 0.12
     const maxDiameterCm =
-      b.maxDiameter + capacityLv * 0.45 + prepLv * 0.25 + flex * 0.08 + ride * 0.1
-    const comfortDepthCm = b.comfortDepth + depthLv * 1.4 + ride * 0.4 + capacityLv * 0.3
-    const maxDepthCm = b.maxDepth + depthLv * 2.0 + ride * 0.6 + capacityLv * 0.4
+      b.maxDiameter +
+      capacityLv * 0.45 +
+      prepLv * 0.25 +
+      flex * 0.08 +
+      ride * 0.1 +
+      sizePlay * 0.18
+    const comfortDepthCm =
+      b.comfortDepth + depthLv * 1.4 + ride * 0.4 + capacityLv * 0.3 + sizePlay * 0.35
+    const maxDepthCm =
+      b.maxDepth + depthLv * 2.0 + ride * 0.6 + capacityLv * 0.4 + sizePlay * 0.5
 
     const notes: string[] = []
     if (prepLv <= 0) notes.push('Без «М\'який вхід» — більше болю при великому ⌀')
     if (capacityLv >= 3) notes.push('Місткість: комфортно приймає вище середнього')
     if (depthLv >= 4) notes.push('Глибина: майже до шийки при великих партнерах')
+    if (sizePlay >= 2) notes.push(`Гра з розміром Lv${sizePlay}: легше з мінотаврами/кентаврами`)
     if (capacityLv >= 5 && depthLv >= 4) notes.push('«Size queen» потенціал (вагіна)')
 
     return {

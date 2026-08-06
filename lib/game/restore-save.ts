@@ -37,6 +37,7 @@ export async function restorePlaythrough(saved: any) {
     // Only pass known-safe fields (ignore unknown from older/newer versions)
     const allowed = [
       'strength', 'agility', 'endurance', 'charisma', 'willpower',
+      'attractiveness', 'intellect', 'libido', 'bodySensitivity', 'bodyProfileJson',
       'desire', 'shame', 'confidence', 'hunger', 'thirst', 'location',
       'timeOfDay', 'mood', 'isPregnant', 'pregnancyWeek', 'pregnancyFather',
       'amuletEnergy', 'dayNumber', 'isDarkLara', 'gameStarted', 'weather',

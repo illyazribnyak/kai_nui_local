@@ -2212,11 +2212,15 @@ export default function GameClient() {
                 {/* Stats */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Характеристики</h3>
-                  <StatBar label="Сила" value={gameState?.strength ?? 6} max={10} icon={<Swords className="w-4 h-4" />} color="bg-red-500" glowing={recentlyChanged.has('strength')} />
-                  <StatBar label="Спритність" value={gameState?.agility ?? 8} max={10} icon={<Zap className="w-4 h-4" />} color="bg-emerald-500" glowing={recentlyChanged.has('agility')} />
-                  <StatBar label="Витривалість" value={gameState?.endurance ?? 7} max={10} icon={<Shield className="w-4 h-4" />} color="bg-amber-500" glowing={recentlyChanged.has('endurance')} />
+                  <StatBar label="Сила" value={gameState?.strength ?? 4} max={10} icon={<Swords className="w-4 h-4" />} color="bg-red-500" glowing={recentlyChanged.has('strength')} />
+                  <StatBar label="Спритність" value={gameState?.agility ?? 6} max={10} icon={<Zap className="w-4 h-4" />} color="bg-emerald-500" glowing={recentlyChanged.has('agility')} />
+                  <StatBar label="Витривалість" value={gameState?.endurance ?? 5} max={10} icon={<Shield className="w-4 h-4" />} color="bg-amber-500" glowing={recentlyChanged.has('endurance')} />
                   <StatBar label="Харизма" value={gameState?.charisma ?? 7} max={10} icon={<Heart className="w-4 h-4" />} color="bg-pink-500" glowing={recentlyChanged.has('charisma')} />
-                  <StatBar label="Воля" value={gameState?.willpower ?? 8} max={10} icon={<Brain className="w-4 h-4" />} color="bg-violet-500" glowing={recentlyChanged.has('willpower')} />
+                  <StatBar label="Привабливість" value={gameState?.attractiveness ?? 7} max={10} icon={<Heart className="w-4 h-4" />} color="bg-rose-500" glowing={recentlyChanged.has('attractiveness')} />
+                  <StatBar label="Розум" value={gameState?.intellect ?? 5} max={10} icon={<Brain className="w-4 h-4" />} color="bg-sky-500" glowing={recentlyChanged.has('intellect')} />
+                  <StatBar label="Воля" value={gameState?.willpower ?? 5} max={10} icon={<Brain className="w-4 h-4" />} color="bg-violet-500" glowing={recentlyChanged.has('willpower')} />
+                  <StatBar label="Лібідо" value={gameState?.libido ?? 6} max={10} icon={<Flame className="w-4 h-4" />} color="bg-orange-500" glowing={recentlyChanged.has('libido')} />
+                  <StatBar label="Чутливість" value={gameState?.bodySensitivity ?? 7} max={10} icon={<Sparkles className="w-4 h-4" />} color="bg-fuchsia-500" glowing={recentlyChanged.has('bodySensitivity')} />
                 </div>
 
                 {/* Extra stats */}

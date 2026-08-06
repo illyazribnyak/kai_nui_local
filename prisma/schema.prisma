@@ -11,14 +11,24 @@ datasource db {
 
 model GameState {
   id            String   @id @default("singleton")
-  strength      Int      @default(6)
-  agility       Int      @default(8)
-  endurance     Int      @default(7)
+  strength      Int      @default(4)
+  agility       Int      @default(6)
+  endurance     Int      @default(5)
   charisma      Int      @default(7)
-  willpower     Int      @default(8)
+  willpower     Int      @default(5)
+  /// Зовнішня привабливість / харизма тіла (1–10)
+  attractiveness Int     @default(7)
+  /// Інтелект + кмітливість (1–10)
+  intellect     Int      @default(5)
+  /// Базовий сексуальний драйв (1–10), окремо від desire 0–100
+  libido        Int      @default(6)
+  /// Постійна чутливість тіла (1–10)
+  bodySensitivity Int    @default(7)
   desire        Int      @default(0)
   shame         Int      @default(0)
   confidence    Int      @default(50)
+  /// Якісні тілесні показники (груди, губи, запах…) — JSON LaraBodyProfile
+  bodyProfileJson String @default("")
   hunger        Int      @default(20)
   thirst        Int      @default(20)
   location      String   @default("Берег острова")
