@@ -2,6 +2,7 @@ export type SidebarTab =
   | 'stats'
   | 'inventory'
   | 'quests'
+  | 'canon'
   | 'diary'
   | 'skills'
   | 'kinks'

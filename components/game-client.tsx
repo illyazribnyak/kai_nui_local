@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2, MoreVertical, Target, Volume2, VolumeX, Users, Hammer, History, Images } from 'lucide-react'
+import { Send, RotateCcw, Compass, Heart, Shield, Zap, Eye, Brain, Flame, MapPin, Swords, Baby, Gem, ChevronRight, Menu, X, Scroll, Package, BookOpen, Feather, CheckCircle, XCircle, Clock, Save, Download, Square, AlertTriangle, Upload, Undo2, MoreVertical, Target, Volume2, VolumeX, Users, Hammer, History, Images, Sparkles } from 'lucide-react'
 import { soundEngine } from '@/lib/audio'
 import type { GameState, MessageData, RelationshipData, InventoryItemData, QuestData, DiaryEntryData, SkillData, LocationData, TribeReputationData, AchievementData, DiseaseData, WorldFactData, KinkData } from '@/lib/types'
 import { KinksPanel } from './kinks-panel'
+import { CanonEventsPanel } from './canon-events-panel'
 import type { ClientTokenUsage, TagLogData } from '@/lib/game/sex-types'
 import { chapterProgressPercent, ENDING_PATHS } from '@/lib/game/chapters'
 import { QUEST_LADDER_TITLES } from '@/lib/game/quest-ladder-data'
@@ -820,6 +821,7 @@ export default function GameClient() {
   ]
 
   const MORE_TABS: { id: SidebarTab; icon: React.ReactNode; label: string }[] = [
+    { id: 'canon', icon: <Sparkles className="w-3.5 h-3.5 text-amber-400" />, label: 'Канон' },
     { id: 'inventory', icon: <Package className="w-3.5 h-3.5" />, label: 'Інвентар' },
     { id: 'lore', icon: <Scroll className="w-3.5 h-3.5" />, label: 'Лор' },
     { id: 'skills', icon: <Flame className="w-3.5 h-3.5" />, label: 'Навички' },
@@ -2577,6 +2579,11 @@ export default function GameClient() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* CANON TAB */}
+            {sidebarTab === 'canon' && (
+              <CanonEventsPanel worldFacts={worldFacts} currentChapter={gameState?.chapter} />
             )}
 
             {/* SKILLS TAB */}
