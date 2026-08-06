@@ -103,12 +103,16 @@ export function formatActiveStoryBrief(
 
   const deprioritize = new Set([
     'shipwrecked',
+    'treasure_lead',
+    'expedition_hired_jack',
+    'jack_fate_unknown',
     'goal_atlantis_treasure',
     'canon_cast',
     'jack_mission_hook',
     'tribes_react_differently',
     'zek_renegade_hook',
     'tane_family_hook',
+    'centaur_arc_hook',
   ])
 
   const scored = [...worldFacts].map((f) => {

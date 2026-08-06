@@ -17,7 +17,54 @@ export type CanonEvent = {
 
 /** Ordered story beats — main path + key character moments. */
 export const CANON_EVENTS: CanonEvent[] = [
-  // --- arrival ---
+  // --- prologue / arrival ---
+  {
+    key: 'treasure_lead',
+    category: 'plot',
+    chapter: 'arrival',
+    content:
+      'Лара знайшла наводку на Скарб Атлантів на острові, оточеному вічним штормом (до експедиції).',
+    trigger: 'Стартовий канон / спогад / щоденник',
+  },
+  {
+    key: 'expedition_hired_jack',
+    category: 'plot',
+    chapter: 'arrival',
+    content:
+      'Лара найняла Джека Вейна провідником експедиції до острова (до аварії).',
+    trigger: 'Стартовий канон / спогад / діалог із Джеком',
+  },
+  {
+    key: 'shipwrecked',
+    category: 'plot',
+    chapter: 'arrival',
+    content:
+      'Судно розбилось у штормі; Лару винесло на берег без спорядження, лише з амулетом.',
+    trigger: 'Старт гри / пробудження на березі',
+  },
+  {
+    key: 'jack_fate_unknown',
+    category: 'plot',
+    chapter: 'arrival',
+    content: 'Доля Джека після аварії ще не підтверджена.',
+    trigger: 'До jack_ashore_with_lara / jack_near_wreck / met_jack',
+  },
+  {
+    key: 'jack_ashore_with_lara',
+    category: 'npc',
+    chapter: 'arrival',
+    content:
+      'Джек Вейн опинився на тому ж відрізку берега, що й Лара (вцілів і зійшов поруч).',
+    trigger: 'Перші хвилини на березі: Джек поруч / окликає / лежить неподалік',
+  },
+  {
+    key: 'jack_near_wreck',
+    category: 'npc',
+    chapter: 'arrival',
+    content:
+      'Джек лишився біля уламків човна / далі по узбережжю — не поруч із місцем пробудження Лари.',
+    trigger: 'Сліди/крик/багаття біля уламків, не на тому ж піску',
+  },
   {
     key: 'found_fresh_water',
     category: 'plot',
@@ -67,7 +114,7 @@ export const CANON_EVENTS: CanonEvent[] = [
     category: 'plot',
     chapter: 'jungle',
     content: 'Лара знайшла сліди аварії / речі Джека (рюкзак, ніж, слід багаття).',
-    trigger: 'Пошук уламків, сліди на березі/в джунглях до зустрічі з Джеком',
+    trigger: 'Пошук уламків, сліди на березі/в джунглях — особливо якщо Джек не поруч',
   },
 
   // --- tribe / cast ---
@@ -91,15 +138,16 @@ export const CANON_EVENTS: CanonEvent[] = [
     key: 'met_jack',
     category: 'npc',
     chapter: 'tribe',
-    content: 'Лара знайшла (або знову зустріла) Джека Вейна — провідника зі зовнішнього світу.',
-    trigger: 'Перша поява Джека після аварії',
+    content:
+      'Лара зустріла Джека Вейна після аварії — свого найнятого провідника (не випадкового туриста).',
+    trigger: 'Перший живий контакт із Джеком на острові (берег / уламки / джунглі)',
   },
   {
     key: 'jack_found_alive',
     category: 'npc',
     chapter: 'tribe',
     content: 'Підтверджено: Джек Вейн живий після шторму і лишається на острові.',
-    trigger: 'Разом із met_jack або після діалогу «ти вижив»',
+    trigger: 'Разом із met_jack / jack_ashore_with_lara / jack_near_wreck',
   },
   {
     key: 'jack_offers_guide',
@@ -1273,27 +1321,32 @@ export const SIDE_QUESTS: SideQuestDef[] = [
   {
     title: 'Знайти провідника',
     description:
-      'Знайти Джека Вейна після аварії — він може знати дороги, руїни й небезпеки острова.',
+      'З\'ясувати долю Джека Вейна — найнятого провідника експедиції: поруч на березі, біля уламків, або за слідами. Він знає острів краще за Лару.',
     givenBy: 'Система',
-    chapter: 'jungle',
-    completeFactKeys: ['met_jack', 'jack_found_alive'],
-    unlockHint: 'Після виживання на березі / сліди аварії / чутки',
+    chapter: 'arrival',
+    completeFactKeys: [
+      'met_jack',
+      'jack_found_alive',
+      'jack_ashore_with_lara',
+      'jack_near_wreck',
+    ],
+    unlockHint: 'З пробудження на березі / перші ходи',
     chain: 'jack',
   },
   {
     title: 'Сліди Джека',
     description:
-      'Знайти уламки, багаття або речі Джека, щоб зрозуміти, куди він пішов (часто — до руїн).',
+      'Якщо Джека немає поруч: уламки, багаття, речі, слід до джунглів — знайти, куди він пішов.',
     givenBy: 'Система',
     chapter: 'jungle',
     completeFactKeys: ['jack_wreck_clue'],
-    unlockHint: 'До met_jack, якщо шукаєш провідника',
+    unlockHint: 'Якщо jack_fate_unknown / jack_near_wreck, до met_jack',
     chain: 'jack',
   },
   {
     title: 'Угода з Джеком',
     description:
-      'Джек не веде безкоштовно: їжа, перлини, секс за згодою, частка скарбу або «старий борг».',
+      'Джек — найманець: після аварії умови змінюються. Їжа, захист, секс за згодою, частка скарбу або «старий борг».',
     givenBy: 'Джек Вейн',
     chapter: 'tribe',
     completeFactKeys: ['jack_offers_guide'],

@@ -115,7 +115,7 @@ export const QUICK_ACTIONS = [
 
 export const DEFAULT_TURN_CHOICES = [
   'Оглянутися навколо',
-  'Йти далі',
+  'Шукати Джека / сліди експедиції',
   'Пошукати їжу та воду',
   'Перевірити амулет',
 ] as const

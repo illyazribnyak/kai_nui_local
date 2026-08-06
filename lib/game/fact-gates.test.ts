@@ -39,6 +39,13 @@ describe('planFactGateBatch', () => {
     assert.ok(!plan.toAdd.includes('met_zek') || plan.toAdd.filter((k) => k === 'met_zek').length <= 1)
     assert.ok(plan.toAdd.includes('zek_sheltered'))
   })
+
+  it('jack_ashore_with_lara implies met_jack and clears fate_unknown via mutex', () => {
+    const plan = planFactGateBatch(['jack_ashore_with_lara'], ['shipwrecked', 'jack_fate_unknown'])
+    assert.ok(plan.toAdd.includes('met_jack'))
+    assert.ok(plan.toAdd.includes('jack_found_alive'))
+    assert.ok(plan.toRemove.includes('jack_fate_unknown'))
+  })
 })
 
 describe('FACT_PREREQUISITES catalog', () => {

@@ -41,7 +41,10 @@ export const FACT_PREREQUISITES: Record<string, readonly string[]> = {
   tane_leya_father_journal: ['tane_leya_father_clue'],
   family_hearth_accepted: ['met_tane'],
 
-  // Jack
+  // Jack (hired guide — not a stranger)
+  jack_ashore_with_lara: ['shipwrecked'],
+  jack_near_wreck: ['shipwrecked'],
+  met_jack: ['expedition_hired_jack'],
   jack_found_alive: ['met_jack'],
   jack_offers_guide: ['met_jack'],
   jack_map_shared: ['met_jack'],
@@ -51,6 +54,7 @@ export const FACT_PREREQUISITES: Record<string, readonly string[]> = {
   jack_loyalty_ally: ['met_jack'],
   jack_loyalty_rival: ['met_jack'],
   jack_secret: ['met_jack'],
+  jack_wreck_clue: ['shipwrecked'],
 
   // Zek renegade
   zek_begs_protection: ['met_zek'],
@@ -103,6 +107,15 @@ export const FACT_PREREQUISITES: Record<string, readonly string[]> = {
 }
 
 /**
+ * When key is added, also add these (soft implies — e.g. Jack on beach = met him).
+ */
+export const FACT_IMPLIES: Record<string, readonly string[]> = {
+  jack_ashore_with_lara: ['met_jack', 'jack_found_alive', 'expedition_hired_jack'],
+  jack_near_wreck: ['jack_wreck_clue', 'expedition_hired_jack'],
+  met_jack: ['jack_found_alive', 'expedition_hired_jack'],
+}
+
+/**
  * At most one key from each group should be active.
  * Adding one removes the others (last write wins).
  */
@@ -110,6 +123,8 @@ export const FACT_MUTEX_GROUPS: readonly (readonly string[])[] = [
   ['zek_free_exile', 'zek_companion', 'zek_returned', 'zek_dead'],
   ['makai_blesses_lara', 'makai_rejects_lara'],
   ['jack_loyalty_ally', 'jack_loyalty_rival'],
+  // Opening fork: where Jack is right after wreck
+  ['jack_ashore_with_lara', 'jack_near_wreck', 'jack_fate_unknown'],
   ['blood_custom_broken', 'blood_custom_continued'],
   ['zek_protected', 'zek_betrayed'],
   ['centaur_herd_ally', 'centaur_exile_path'],
@@ -166,6 +181,22 @@ export function planFactGateBatch(
     }
   }
 
+  const ensureImplies = (key: string, depth = 0) => {
+    if (depth > 8) return
+    const imp = FACT_IMPLIES[key]
+    if (!imp?.length) return
+    for (const t of imp) {
+      const tk = norm(t)
+      if (!tk) continue
+      ensurePrereqs(tk, depth + 1)
+      if (!have.has(tk) && !toAdd.includes(tk)) {
+        toAdd.push(tk)
+        notes.push(`auto-imply: ${tk} ← ${key}`)
+      }
+      ensureImplies(tk, depth + 1)
+    }
+  }
+
   for (const key of queue) {
     ensurePrereqs(key)
     if (!toAdd.includes(key) && !have.has(key)) {
@@ -174,6 +205,7 @@ export function planFactGateBatch(
       // re-assert / update content allowed — include for upsert
       toAdd.push(key)
     }
+    ensureImplies(key)
 
     // Mutex: this key wins, drop siblings
     for (const group of FACT_MUTEX_GROUPS) {

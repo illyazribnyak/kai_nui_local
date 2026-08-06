@@ -9,12 +9,19 @@ export const QUEST_LADDER = [
   {
     title: 'Вижити на березі',
     description:
-      'Знайти прісну воду й щось їстівне. Не померти в перший день після аварії.',
+      'Після аварії експедиції: знайти прісну воду й їжу. З\'ясувати, де Джек (поруч / уламки). Не померти в перший день.',
     chapter: 'arrival',
     givenBy: 'Система',
     completeWhen: {
       locations: ['водоспад', 'лагуна'],
-      factKeys: ['found_fresh_water', 'found_food', 'first_night_survived'],
+      factKeys: [
+        'found_fresh_water',
+        'found_food',
+        'first_night_survived',
+        'jack_ashore_with_lara',
+        'jack_near_wreck',
+        'met_jack',
+      ],
       inventoryCategories: ['їжа'],
       inventoryNameHints: ['вод', 'фрукт', 'ягід', 'кокос', 'риб', "м'яс", 'мяс'],
     },
