@@ -6,6 +6,7 @@ import {
   TRIBE_ENTRIES,
   formatCanonEventsForPrompt,
   formatSideQuestsForPrompt,
+  formatTaneLeyaArcForPrompt,
   formatTribeEntriesForPrompt,
   formatZekArcForPrompt,
   getCanonEvent,
@@ -82,6 +83,43 @@ describe('CANON_EVENTS', () => {
     }
   })
 
+  it('includes Tane–Leya–Makai family arc facts', () => {
+    for (const k of [
+      'tane_guides_lara',
+      'tane_first_hunt',
+      'tane_first_intimacy',
+      'tane_sacred_waterfall',
+      'tane_presents_lara_to_father',
+      'tane_leya_siblings',
+      'tane_leya_secret_lovers',
+      'caught_tane_leya_intimate',
+      'leya_past_with_jack',
+      'tane_leya_confrontation',
+      'leya_threatens_lara',
+      'tane_torn_choice',
+      'tane_leya_reconciliation',
+      'leya_accepts_lara',
+      'leya_lara_first_intimacy',
+      'tane_leya_triad_ritual',
+      'tane_leya_father_clue',
+      'makai_blood_custom_hint',
+      'tane_leya_father_journal',
+      'makai_claims_lara',
+      'makai_sex_with_lara',
+      'tane_witnesses_makai_lara',
+      'tane_defies_makai',
+      'makai_blesses_lara',
+      'makai_rejects_lara',
+      'family_hearth_accepted',
+      'tane_chooses_lara_public',
+      'blood_custom_broken',
+      'blood_custom_continued',
+      'soul_bound_tane',
+    ]) {
+      assert.ok(getCanonEvent(k), `missing tane_family fact ${k}`)
+    }
+  })
+
   it('ladder factKeys are known canon events (or intentional extras)', () => {
     const known = new Set(CANON_EVENTS.map((e) => e.key))
     for (const step of QUEST_LADDER) {
@@ -146,6 +184,24 @@ describe('SIDE_QUESTS', () => {
     assert.ok(zek.some((q) => q.title === 'Зняти мітку смерті'))
     assert.ok(zek.some((q) => q.title === 'Доля відступника'))
   })
+
+  it('has full Tane family chain', () => {
+    const fam = SIDE_QUESTS.filter((q) => q.chain === 'tane_family')
+    assert.ok(fam.length >= 12)
+    assert.ok(fam.some((q) => q.title === 'Піти з Тане до селища'))
+    assert.ok(fam.some((q) => q.title === 'Перед батьком'))
+    assert.ok(fam.some((q) => q.title === 'Право батька'))
+    assert.ok(fam.some((q) => q.title === 'Таємниця брата й сестри'))
+    assert.ok(fam.some((q) => q.title === 'Спадок крові'))
+    assert.ok(fam.some((q) => q.title === 'Син проти батька'))
+    assert.ok(fam.some((q) => q.title === 'Вогнище роду'))
+    const known = new Set(CANON_EVENTS.map((e) => e.key))
+    for (const q of fam) {
+      for (const k of q.completeFactKeys ?? []) {
+        assert.ok(known.has(k), `tane_family quest «${q.title}» unknown fact ${k}`)
+      }
+    }
+  })
 })
 
 describe('prompt formatters', () => {
@@ -183,5 +239,24 @@ describe('prompt formatters', () => {
     const block = formatSideQuestsForPrompt()
     assert.match(block, /Арка Зека/)
     assert.match(block, /Зняти мітку смерті/)
+  })
+
+  it('describes Tane–Leya–Makai family arc', () => {
+    const block = formatTaneLeyaArcForPrompt()
+    assert.match(block, /брат і сестра|БРАТ І СЕСТРА/i)
+    assert.match(block, /Макаї/)
+    assert.match(block, /звичай крові|ложе крові/i)
+    assert.match(block, /makai_claims_lara/)
+    assert.match(block, /tane_leya_secret_lovers/)
+    assert.match(block, /family_hearth_accepted/)
+    assert.match(block, /Перед батьком/)
+    assert.match(block, /Вогнище роду/)
+  })
+
+  it('lists Tane family section in side quests', () => {
+    const block = formatSideQuestsForPrompt()
+    assert.match(block, /Арка роду/)
+    assert.match(block, /Таємниця брата й сестри/)
+    assert.match(block, /Право батька/)
   })
 })

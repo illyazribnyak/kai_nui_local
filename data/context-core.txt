@@ -31,6 +31,15 @@ FACT: met_jack | jack_found_alive | jack_wreck_clue | jack_offers_guide | jack_m
 Квести: Сліди відступника → Зустріч із відступником → Звільни Зека / Притулок → Таємниця втечі → Мисливці стаї → Зняти мітку смерті → Провідник-відступник → Суд Кіри → Доля відступника
 FACT: zek_escape_clue | met_zek | zek_escape_story | zek_death_scent | zek_sheltered | zek_hunters | zek_mark_cleansed | zek_guide | zek_protected | zek_betrayed | zek_kira_confront | zek_free_exile | zek_companion | zek_returned | zek_dead
 
+## Арка роду: Тане · Лея · Макаї · Лара (послідовно)
+Канон: Тане+Лея = рідний брат/сестра + активний інцест; Макаї = батько; «звичай крові» / право чужинки.
+1) Тане: guides → hunt → intimacy/waterfall → presents to father
+2) Батько: claims → (sex?) → witnesses → defies → blesses|rejects
+3) Лея: siblings → secret_lovers/caught → rivalry/confrontation → torn_choice → Jack past
+4) Спадок: father_clue → blood_custom_hint → journal → reconciliation/accepts → triad|soul_bound|hearth → blood broken|continued
+Квести tane_family: Піти з Тане → Полювання → Водоспад → Перед батьком → Право батька → Таємниця брата й сестри → Ревнощі сестри → Минуле Леї/Джека → Спадок крові → Син проти батька → Благословення|вигнання → Сестра по вогню → Вогнище роду → soul-bound → Татуювання Сонця
+FACT: tane_guides_lara | tane_first_hunt | tane_first_intimacy | tane_sacred_waterfall | tane_presents_lara_to_father | tane_leya_siblings | tane_leya_secret_lovers | caught_tane_leya_intimate | tane_leya_confrontation | tane_torn_choice | leya_accepts_lara | tane_leya_triad_ritual | makai_claims_lara | makai_sex_with_lara | tane_witnesses_makai_lara | tane_defies_makai | makai_blesses_lara | makai_rejects_lara | tane_leya_father_journal | family_hearth_accepted | blood_custom_broken | blood_custom_continued | soul_bound_tane
+
 ## Вхід до племен (різні реакції!)
 | Плем'я | Реакція | FACT входу | Квест входу |
 |---|---|---|---|
@@ -43,7 +52,7 @@ FACT: zek_escape_clue | met_zek | zek_escape_story | zek_death_scent | zek_shelt
 ## Канонічні FACT keys (використовуй саме їх)
 **Прибуття:** found_fresh_water | found_food | first_night_survived
 **Джунглі:** entered_jungle | found_weapon | predator_encounter | jack_wreck_clue
-**Плем'я:** met_tane | met_leya | met_jack | met_kai_toru | entered_village | met_makai | met_naya | guest_of_tribe | tribe_accepted | tane_confessed | leya_rivalry | jack_secret | jack_*
+**Плем'я:** met_tane | met_leya | met_jack | met_kai_toru | entered_village | met_makai | met_naya | guest_of_tribe | tribe_accepted | tane_confessed | leya_rivalry | jack_secret | jack_* | tane_* | leya_* | makai_* | caught_tane_leya_intimate | family_hearth_accepted | blood_custom_* | soul_bound_tane
 **Інші народи:** entered_centaur_lands | met_xeron | met_hippolyta | centaur_trial_won | entered_minotaur_labyrinth | met_gor_ak | met_mira | minotaur_labyrinth | entered_hyena_territory | met_kira | met_zek | hyena_pact | entered_boar_swamps | met_gruh | boar_trophy_escape | other_tribe_contact
 **Глибини:** amulet_awakened | learned_amulet_secret | spoke_with_naya | found_ruins | entered_caves | climbed_mountain | met_arahu
 **Храм/фінал:** found_temple | temple_opened | ritual_started | treasure_found | dark_lara_awake
