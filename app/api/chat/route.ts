@@ -15,13 +15,11 @@ import { applySurvivalDefaults, parseNarrativeStats, tickDiseases } from '@/lib/
 import { resolveDiceRolls } from '@/lib/game/dice'
 import { CHAPTERS, ENDING_PATHS } from '@/lib/game/chapters'
 import { syncQuestLadder } from '@/lib/game/quest-ladder'
+import { syncSideQuestsFromFacts } from '@/lib/game/side-quest-sync'
 import {
-  formatCanonEventsForPrompt,
-  formatSideQuestsForPrompt,
-  formatTribeEntriesForPrompt,
-  formatZekArcForPrompt,
-  formatTaneLeyaArcForPrompt,
-} from '@/lib/game/canon-events'
+  formatActiveStoryBrief,
+  formatDynamicLoreBlocks,
+} from '@/lib/game/prompt-dynamic'
 import {
   formatRandomEventCatalogHint,
   formatRolledEventForPrompt,
@@ -104,15 +102,24 @@ ${gameState?.endingPath ? `Шлях кінцівки: ${ENDING_PATHS[gameState.e
 ---
 `
 
-  const factsBlock = worldFacts?.length > 0
-    ? `\n--- КАНОНІЧНІ ФАКТИ СВІТУ (НЕ СУПЕРЕЧ!) ---\n${worldFacts.slice(0, MAX_WORLD_FACTS_IN_PROMPT).map((f: any) => `• [${f.category}] ${f.key}: ${f.content}`).join('\n')}\n---\n`
-    : ''
+  const factKeys = (worldFacts || []).map((f: any) => String(f.key || ''))
+  const metNpc = (relationships || [])
+    .filter((r: any) => r?.met)
+    .map((r: any) => String(r.name || ''))
+
+  // Prioritized active story (not full dump) + slim full list cap
+  const activeStoryBlock = formatActiveStoryBrief(worldFacts || [], 18)
+  const factsBlock =
+    worldFacts?.length > 0
+      ? `\n--- УСІ WORLDFACT (довідник, не супереч) ---\n${worldFacts
+          .slice(0, MAX_WORLD_FACTS_IN_PROMPT)
+          .map((f: any) => `• [${f.category}] ${f.key}: ${f.content}`)
+          .join('\n')}\n---\n`
+      : ''
 
   const relBlock = relationships?.length > 0
     ? `\n--- СТОСУНКИ / NPC (їхні статы + кінки) ---\n${relationships?.map?.((r: any) => formatNpcProfileForPrompt(r)).join?.('\n') ?? ''}\n---\n`
     : ''
-
-  // factsBlock already defined above
 
   const diseaseBlock = diseases?.length > 0
     ? `\n--- ХВОРОБИ ЛАРИ ---\n${diseases.map((d: any) => `• ${d.name} [${d.severity}]: ${d.effects || d.description}${d.curedBy ? ` (лікується: ${d.curedBy})` : ''}`).join('\n')}\n---\n`
@@ -122,8 +129,17 @@ ${gameState?.endingPath ? `Шлях кінцівки: ${ENDING_PATHS[gameState.e
     ? inventory.map((i: any) => `• ${i.name}${i.quantity > 1 ? ` (x${i.quantity})` : ''} [${i.category}]${i.description ? ` — ${i.description}` : ''}`).join('\n')
     : 'Порожній'}\n---\n`
 
-  const questBlock = quests?.length > 0
-    ? `\n--- КВЕСТИ ---\n${quests.map((q: any) => `• [${q.status === 'active' ? '⏳' : q.status === 'completed' ? '✅' : '❌'}] ${q.title}${q.givenBy ? ` (від: ${q.givenBy})` : ''}${q.description ? ` — ${q.description}` : ''}`).join('\n')}\n---\n`
+  // Quests: active first, then recent completed (less noise)
+  const sortedQuests = [...(quests || [])].sort((a: any, b: any) => {
+    const rank = (s: string) => (s === 'active' ? 0 : s === 'locked' ? 1 : 2)
+    return rank(a.status) - rank(b.status)
+  })
+  const questBlock = sortedQuests.length > 0
+    ? `\n--- КВЕСТИ ---\n${sortedQuests
+        .filter((q: any) => q.status === 'active' || q.status === 'locked' || q.status === 'completed')
+        .slice(0, 24)
+        .map((q: any) => `• [${q.status === 'active' ? '⏳' : q.status === 'completed' ? '✅' : q.status === 'locked' ? '🔒' : '❌'}] ${q.title}${q.givenBy ? ` (від: ${q.givenBy})` : ''}${q.description && q.status === 'active' ? ` — ${q.description}` : ''}`)
+        .join('\n')}\nСервер автозакриває квести за FACT (completeFactKeys) — не дублюй complete без потреби.\n---\n`
     : ''
 
   const activeSkills = skills?.filter((s: any) => s.level > 0 || s.xp > 0) ?? []
@@ -131,15 +147,21 @@ ${gameState?.endingPath ? `Шлях кінцівки: ${ENDING_PATHS[gameState.e
     ? activeSkills.map((s: any) => `• ${s.name} [${s.category}]: Рівень ${s.level}/5 (XP: ${s.xp}/${s.maxXp})`).join('\n')
     : 'Всі на рівні 0 — чекають першого досвіду'}\n${formatActiveSkillEffectsForPrompt(skills)}\n---\n`
 
-  // Репутація племен
   const tribeBlock = tribeReps?.length > 0
     ? `\n--- РЕПУТАЦІЯ ПЛЕМЕН ---\n${tribeReps.map((t: any) => `• ${t.tribeName}: ${t.reputation} (${t.status})`).join('\n')}\n---\n`
     : ''
 
-  // Стиснені спогади
   const summaryBlock = summaries?.length > 0
     ? `\n--- СТИСНЕНІ СПОГАДИ (попередні події) ---\n${summaries.map((s: any) => `[${s.dayRange || '?'}]: ${s.content}`).join('\n\n')}\n---\n`
     : ''
+
+  const dynamicLore = formatDynamicLoreBlocks({
+    factKeys,
+    location: gameState?.location,
+    companionName: gameState?.companionName,
+    metNpc,
+    chapter: gameState?.chapter,
+  })
 
   return `Ти — Майстер Гри (Game Master) для еротичної текстової рольової гри "Острів Загубленого Скарбу". Мова гри — українська. Гра для дорослих (18+).
 
@@ -147,6 +169,7 @@ ${gameContext}
 
 ${statsBlock}
 ${relBlock}
+${activeStoryBlock}
 ${factsBlock}
 ${diseaseBlock}
 ${invBlock}
@@ -159,11 +182,7 @@ ${summaryBlock}
 Порядок: ${CHAPTERS.map((c) => `${c.order}.${c.label}(${c.id})`).join(' → ')}
 Кінцівки (FACT keys): ending_freedom | ending_priestess | ending_goddess | ending_destroyer | ending_dark_queen
 Підштовхуй сюжет до храму і Скарбу Атлантів, не крутись вічно на березі.
-${formatCanonEventsForPrompt()}
-${formatTribeEntriesForPrompt()}
-${formatSideQuestsForPrompt()}
-${formatZekArcForPrompt()}
-${formatTaneLeyaArcForPrompt()}
+${dynamicLore}
 ${formatRaceSexStatsForPrompt()}
 ${formatLaraAppearanceForPrompt(gameState, skills)}
 ${formatLaraBodyProfileForPrompt(skills, gameState)}
@@ -183,7 +202,7 @@ ${formatRolledEventForPrompt(rolledEvent)}
 8. Магія острова робить усі види сумісними для зачаття. Відслідковуй ризик вагітності.
 9. Амулет має власну волю — може допомогти, відмовити, збудити Лару або "ревнувати".
 10. Секс — інструмент виживання та ключ до скарбу. Амулет заряджається від сексуальної енергії.
-11. КАНОНІЧНІ ПОДІЇ ТА ФАКТИ — ОБОВ'ЯЗКОВІ: Коли у розповіді відбувається будь-яка з канонічних подій (знайшла воду/їжу, вхід у нове племя, зустріч з Джеком/Тане/Макаї/Зеком, перша зброя, пробудження амулета, відкриття храму, кінцівка) — ти ОБОВ'ЯЗКОВО повертаєш тег \[FACT_ADD: key\]. Це фіксує канонічний сюжет гри!
+11. КАНОНІЧНІ ПОДІЇ ТА ФАКТИ — ОБОВ'ЯЗКОВІ: Коли у розповіді відбувається будь-яка з канонічних подій (знайшла воду/їжу, вхід у нове племя, зустріч з Джеком/Тане/Макаї/Зеком, перша зброя, пробудження амулета, відкриття храму, кінцівка) — ти ОБОВ'ЯЗКОВО повертаєш тег \[FACT_ADD: key\]. Сервер додасть soft-prereq (напр. met_zek перед zek_sheltered) і зніме взаємовиключні фінали (zek_dead vs zek_companion). Не став суперечливі фінали в одному ході.
 
 # === ПОВЕДІНКА ПЕРСОНАЖІВ ===
 
@@ -1208,10 +1227,13 @@ export async function POST(request: NextRequest) {
           const resolvedDice = resolveDiceRolls(merged.diceRolls || [], gameState, skills)
           merged.diceRolls = resolvedDice
 
-          // 6. Apply all updates
+          // 6. Apply all updates (FACT gates: soft prereqs + mutex endings)
           await applyAllUpdates(merged, gameState?.dayNumber ?? 1)
           await tickDiseases()
-          const completedQuests = await syncQuestLadder()
+          // Ladder + side quests auto-complete from WorldFact keys
+          const completedLadder = await syncQuestLadder()
+          const completedSide = await syncSideQuestsFromFacts()
+          const completedQuests = [...completedLadder, ...completedSide]
 
           // 6b. Kinks — apply XP from tags / fetish / narrative
           let kinkProgress: Awaited<ReturnType<typeof applyKinkTriggers>> = []

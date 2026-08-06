@@ -1,5 +1,10 @@
 import { prisma } from '@/lib/db'
 import { endingFromFactKeys, inferChapter } from '@/lib/game/chapters'
+import {
+  categoryForFactKey,
+  contentForFactKey,
+  planFactGateBatch,
+} from '@/lib/game/fact-gates'
 
 export interface FactUpdate {
   _action?: 'add' | 'remove'
@@ -18,27 +23,84 @@ function normalizeKey(raw: string): string {
     .slice(0, 80)
 }
 
-export async function applyFactUpdates(factUpdates: FactUpdate[], dayNumber: number) {
-  for (const f of factUpdates ?? []) {
+export type ApplyFactResult = {
+  added: string[]
+  removed: string[]
+  notes: string[]
+}
+
+/**
+ * Apply FACT_ADD / FACT_REMOVE with soft prereqs + mutex groups.
+ */
+export async function applyFactUpdates(
+  factUpdates: FactUpdate[],
+  dayNumber: number
+): Promise<ApplyFactResult> {
+  const result: ApplyFactResult = { added: [], removed: [], notes: [] }
+  if (!factUpdates?.length) return result
+
+  const existingRows = await prisma.worldFact.findMany({ select: { key: true } })
+  const existingKeys = existingRows.map((r) => r.key)
+
+  const removes = factUpdates.filter((f) => f._action === 'remove')
+  const adds = factUpdates.filter((f) => f._action !== 'remove')
+
+  for (const f of removes) {
     const rawKey = f.key || f.name
     if (!rawKey) continue
     const key = normalizeKey(rawKey)
     if (!key) continue
+    await prisma.worldFact.deleteMany({ where: { key } }).catch(() => {})
+    result.removed.push(key)
+  }
 
-    if (f._action === 'remove') {
-      await prisma.worldFact.deleteMany({ where: { key } }).catch(() => {})
-      continue
-    }
+  // Content/category map from AI payloads
+  const meta = new Map<string, { content?: string; category?: string }>()
+  const incomingKeys: string[] = []
+  for (const f of adds) {
+    const rawKey = f.key || f.name
+    if (!rawKey) continue
+    const key = normalizeKey(rawKey)
+    if (!key) continue
+    incomingKeys.push(key)
+    meta.set(key, {
+      content: f.content ? String(f.content).slice(0, 1000) : undefined,
+      category: f.category ? String(f.category).slice(0, 40) : undefined,
+    })
+  }
 
-    const content = (f.content || rawKey).toString().slice(0, 1000)
-    const category = (f.category || 'plot').toString().slice(0, 40)
+  if (!incomingKeys.length) return result
+
+  // After explicit removes, recompute existing set
+  const existingAfterRemove = new Set(existingKeys)
+  for (const k of result.removed) existingAfterRemove.delete(k)
+
+  const plan = planFactGateBatch(incomingKeys, existingAfterRemove)
+  result.notes.push(...plan.notes)
+
+  for (const key of plan.toRemove) {
+    await prisma.worldFact.deleteMany({ where: { key } }).catch(() => {})
+    result.removed.push(key)
+  }
+
+  for (const key of plan.toAdd) {
+    const m = meta.get(key)
+    const content = (m?.content || contentForFactKey(key)).toString().slice(0, 1000)
+    const category = (m?.category || categoryForFactKey(key)).toString().slice(0, 40)
 
     await prisma.worldFact.upsert({
       where: { key },
       update: { content, category, dayNumber },
       create: { key, content, category, dayNumber },
     })
+    result.added.push(key)
   }
+
+  if (result.notes.length) {
+    console.info('[fact-gates]', result.notes.join(' | '))
+  }
+
+  return result
 }
 
 /** Recompute chapter / ending from location + facts and persist. */
@@ -61,7 +123,6 @@ export async function refreshChapterProgress(
   let chapterLabel = inferred.label
 
   if (explicitChapter) {
-    // Allow AI to set chapter via STAT_UPDATE.chapter if known
     const { CHAPTERS } = await import('@/lib/game/chapters')
     const found = CHAPTERS.find((c) => c.id === explicitChapter)
     if (found) {

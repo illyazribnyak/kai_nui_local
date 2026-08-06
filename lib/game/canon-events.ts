@@ -1789,32 +1789,63 @@ export function formatTribeEntriesForPrompt(): string {
   )
 }
 
+export type SideQuestPromptOpts = {
+  /** If set, only these chains (plus always tribe_entry). Empty/omit = all. */
+  chains?: Array<NonNullable<SideQuestDef['chain']>>
+  /** Include romance/temple/other unchained quests */
+  includeOther?: boolean
+}
+
 /** Side-quest hooks for the GM (not auto-seeded as active). */
-export function formatSideQuestsForPrompt(): string {
-  const byChain = (chain: SideQuestDef['chain']) =>
-    SIDE_QUESTS.filter((q) => q.chain === chain)
-
-  const fmt = (q: SideQuestDef) =>
-    `• «${q.title}» (${q.chapter}, ${q.givenBy}) — ${q.unlockHint}`
-
+export function formatSideQuestsForPrompt(opts: SideQuestPromptOpts = {}): string {
   const knownChains: NonNullable<SideQuestDef['chain']>[] = [
     'jack',
     'zek',
     'tane_family',
     'tribe_entry',
   ]
+  const want = opts.chains?.length
+    ? new Set<string>([...opts.chains, 'tribe_entry'])
+    : new Set<string>(knownChains)
+  const includeOther = opts.includeOther !== false && !opts.chains?.length
 
-  return (
-    `\n--- ПОБІЧНІ КВЕСТИ (QUEST_UPDATE add за моментом) ---\n` +
-    `## Ланцюг Джека\n${byChain('jack').map(fmt).join('\n')}\n` +
-    `## Арка роду: Тане · Лея · Макаї · Лара\n${byChain('tane_family').map(fmt).join('\n')}\n` +
-    `## Арка Зека (гієноїд-відступник)\n${byChain('zek').map(fmt).join('\n')}\n` +
-    `## Вхід у території\n${byChain('tribe_entry').map(fmt).join('\n')}\n` +
-    `## Інше\n${SIDE_QUESTS.filter((q) => !q.chain || !knownChains.includes(q.chain)).map(fmt).join('\n')}\n` +
+  const byChain = (chain: SideQuestDef['chain']) =>
+    SIDE_QUESTS.filter((q) => q.chain === chain)
+
+  const fmt = (q: SideQuestDef) =>
+    `• «${q.title}» (${q.chapter}, ${q.givenBy}) — ${q.unlockHint}`
+
+  const sections: string[] = ['\n--- ПОБІЧНІ КВЕСТИ (QUEST_UPDATE add за моментом) ---']
+  if (want.has('jack')) {
+    sections.push(`## Ланцюг Джека\n${byChain('jack').map(fmt).join('\n')}`)
+  }
+  if (want.has('tane_family')) {
+    sections.push(
+      `## Арка роду: Тане · Лея · Макаї · Лара\n${byChain('tane_family').map(fmt).join('\n')}`
+    )
+  }
+  if (want.has('zek')) {
+    sections.push(`## Арка Зека (гієноїд-відступник)\n${byChain('zek').map(fmt).join('\n')}`)
+  }
+  if (want.has('tribe_entry')) {
+    sections.push(`## Вхід у території\n${byChain('tribe_entry').map(fmt).join('\n')}`)
+  }
+  if (includeOther) {
+    sections.push(
+      `## Інше\n${SIDE_QUESTS.filter((q) => !q.chain || !knownChains.includes(q.chain)).map(fmt).join('\n')}`
+    )
+  }
+  sections.push(
     `Не відкривай усі одразу. При вході в нову територію племені — ЗАВЖДИ квест «Вхід: …».\n` +
-    `Арка Зека: він УЖЕ вийшов зі стаї (не «просто заблукав») — death-scent, мисливці, таємниця втечі, фінал.\n` +
-    `Арка роду: послідовно (Тане→батько→Лея→звичай крові→розв'язок); не відкривай «Вогнище роду» до викриття інцесту.\n---\n`
+      (want.has('zek')
+        ? `Арка Зека: він УЖЕ вийшов зі стаї (не «просто заблукав») — death-scent, мисливці, таємниця втечі, фінал.\n`
+        : '') +
+      (want.has('tane_family')
+        ? `Арка роду: послідовно (Тане→батько→Лея→звичай крові→розв'язок); не відкривай «Вогнище роду» до викриття інцесту.\n`
+        : '') +
+      `---`
   )
+  return sections.join('\n') + '\n'
 }
 
 /**
