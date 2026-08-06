@@ -65,19 +65,32 @@ describe('CANON_EVENTS', () => {
     for (const k of [
       'met_zek',
       'zek_escape_clue',
+      'zek_begs_protection',
       'zek_escape_story',
       'zek_death_scent',
       'zek_sheltered',
+      'zek_kai_toru_hostility',
+      'zek_first_intimacy',
+      'zek_knot_bond',
+      'zek_saves_lara',
       'zek_hunters',
+      'zek_scent_masked',
+      'zek_naya_aid',
       'zek_mark_cleansed',
       'zek_guide',
+      'zek_pack_secret',
       'zek_protected',
       'zek_betrayed',
+      'kira_demands_zek',
+      'kira_trade_for_zek',
       'zek_kira_confront',
+      'zek_loyal_oath',
+      'zek_jealousy',
       'zek_free_exile',
       'zek_companion',
       'zek_returned',
       'zek_dead',
+      'hyena_raid_kai_toru',
     ]) {
       assert.ok(getCanonEvent(k), `missing zek fact ${k}`)
     }
@@ -178,11 +191,21 @@ describe('SIDE_QUESTS', () => {
 
   it('has full Zek renegade chain', () => {
     const zek = SIDE_QUESTS.filter((q) => q.chain === 'zek')
-    assert.ok(zek.length >= 8)
+    assert.ok(zek.length >= 12)
     assert.ok(zek.some((q) => q.title === 'Сліди відступника'))
+    assert.ok(zek.some((q) => q.title === 'Ціна тіла'))
     assert.ok(zek.some((q) => q.title === 'Таємниця втечі'))
+    assert.ok(zek.some((q) => q.title === 'Маска запаху'))
     assert.ok(zek.some((q) => q.title === 'Зняти мітку смерті'))
+    assert.ok(zek.some((q) => q.title === 'Ультиматум Кіри'))
+    assert.ok(zek.some((q) => q.title === 'Клятва вигнанця'))
     assert.ok(zek.some((q) => q.title === 'Доля відступника'))
+    const known = new Set(CANON_EVENTS.map((e) => e.key))
+    for (const q of zek) {
+      for (const k of q.completeFactKeys ?? []) {
+        assert.ok(known.has(k), `zek quest «${q.title}» unknown fact ${k}`)
+      }
+    }
   })
 
   it('has full Tane family chain', () => {
@@ -231,8 +254,12 @@ describe('prompt formatters', () => {
   it('describes Zek renegade arc', () => {
     const block = formatZekArcForPrompt()
     assert.match(block, /death-scent|запах смерті/i)
-    assert.match(block, /відступник/i)
+    assert.match(block, /відступник|втікач/i)
     assert.match(block, /zek_escape_story/)
+    assert.match(block, /zek_first_intimacy/)
+    assert.match(block, /kira_demands_zek/)
+    assert.match(block, /Ультиматум Кіри/)
+    assert.match(block, /zek_companion/)
   })
 
   it('lists Zek section in side quests', () => {

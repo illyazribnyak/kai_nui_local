@@ -28,6 +28,8 @@ describe('RANDOM_EVENTS catalog', () => {
     assert.ok(getRandomEventById('zek_escape_traces'))
     assert.ok(getRandomEventById('zek_hunters_ambush'))
     assert.ok(getRandomEventById('zek_offers_body'))
+    assert.ok(getRandomEventById('kira_ultimatum_zek'))
+    assert.ok(getRandomEventById('zek_saves_in_ambush'))
   })
 
   it('is a large pool', () => {

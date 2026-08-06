@@ -301,12 +301,21 @@ export const CANON_EVENTS: CanonEvent[] = [
     content: 'Лара зустріла Кіру — матріарха гієноїдів.',
     trigger: 'Перша поява Кіри',
   },
+  // =====================================================================
+  // АРКА: ЗЕК — ГІЄНОЇД-ВТІКАЧ / ВІДСТУПНИК  (послідовний канон)
+  // =====================================================================
+  // 1. СЛІДИ І ЗУСТРІЧ
+  // 2. ПРИТУЛОК, ІНТИМ, ДОВІРА
+  // 3. DEATH-SCENT, МИСЛИВЦІ, ЗАХИСТ/ЗРАДА
+  // 4. ЗНЯТИ МІТКУ, ПРОВІДНИК, ТАЄМНИЦІ СТАЇ
+  // 5. СУД КІРИ, ТОРГ, ФІНАЛИ
+
   {
     key: 'met_zek',
     category: 'npc',
     chapter: 'depths',
     content:
-      'Лара зустріла Зека — самця-гієноїда, відступника зі стаї Кіри. Він утік із матріархату і просить захисту.',
+      'Лара зустріла Зека — самця-гієноїда, відступника зі стаї Кіри. Він УЖЕ втік із матріархату і просить захисту (не «просто заблукав»).',
     trigger: 'Перша поява Зека',
   },
   {
@@ -316,6 +325,14 @@ export const CANON_EVENTS: CanonEvent[] = [
     content:
       'Знайдено сліди відступника: порваний нашийник-мітка стаї, пазурі не по-мисливськи, запах самця поза територією.',
     trigger: 'Сліди / випадкова подія / чутки до зустрічі з Зеком',
+  },
+  {
+    key: 'zek_begs_protection',
+    category: 'npc',
+    chapter: 'depths',
+    content:
+      'Зек відкрито благав Лару про захист від стаї — тілом, секретами стежок, службою; страх перед Кірою справжній.',
+    trigger: 'Діалог після met_zek: «не віддавай Кірі»',
   },
   {
     key: 'zek_escape_story',
@@ -341,6 +358,37 @@ export const CANON_EVENTS: CanonEvent[] = [
     trigger: 'Лара ховає/годує/веде Зека з собою',
   },
   {
+    key: 'zek_kai_toru_hostility',
+    category: 'npc',
+    chapter: 'tribe',
+    content:
+      'Кай-Тору (Тане/Макаї/селяни) вороже або зневажливо відреагували на «пса»-гієноїда біля селища / біля Лари.',
+    trigger: 'Зек у/біля селища Кай-Тору; конфлікт культур',
+  },
+  {
+    key: 'zek_first_intimacy',
+    category: 'npc',
+    chapter: 'depths',
+    content:
+      'Перша інтимна близькість Лари з Зеком (часто з відчаю/вдячності з його боку; вузол/замок гієноїда).',
+    trigger: 'SEX_SCENE з партнером Зек (перший раз)',
+  },
+  {
+    key: 'zek_knot_bond',
+    category: 'npc',
+    chapter: 'depths',
+    content:
+      'Зв\'язок через вузол/замок: глибока довіра або залежність після «зчеплення» з Зеком.',
+    trigger: 'Секс-сцена з knot/lock і bond↑',
+  },
+  {
+    key: 'zek_saves_lara',
+    category: 'npc',
+    chapter: 'depths',
+    content: 'Зек ризикнув життям і врятував / прикрив Лару (бій, засідка, отрута, падіння).',
+    trigger: 'Зек захищає Лару в критичний момент',
+  },
+  {
     key: 'zek_hunters',
     category: 'plot',
     chapter: 'depths',
@@ -348,12 +396,27 @@ export const CANON_EVENTS: CanonEvent[] = [
     trigger: 'Засідка мисливців / випадкова подія zek_hunters',
   },
   {
+    key: 'zek_scent_masked',
+    category: 'ritual',
+    chapter: 'depths',
+    content:
+      'Death-scent тимчасово замасковано (багно, зілля Найї, чужий феромон, амулет) — не знято назавжди.',
+    trigger: 'Тимчасовий обман запаху до повного очищення',
+  },
+  {
     key: 'zek_mark_cleansed',
     category: 'ritual',
     chapter: 'depths',
     content:
-      'Мітку «запаху смерті» знято (ритуал Найї, амулет, кров Кіри, або обман феромонами).',
+      'Мітку «запаху смерті» знято назавжди (ритуал Найї, амулет, кров Кіри, або обман феромонами на рівні звичаю).',
     trigger: 'Ритуал очищення / квест «Зняти мітку»',
+  },
+  {
+    key: 'zek_naya_aid',
+    category: 'npc',
+    chapter: 'depths',
+    content: 'Найя втрутилась в арку Зека: розпізнала death-scent, запропонувала ритуал, ціну або відмову.',
+    trigger: 'Розмова/ритуал Найї про Зека або мітку',
   },
   {
     key: 'zek_guide',
@@ -362,6 +425,14 @@ export const CANON_EVENTS: CanonEvent[] = [
     content:
       'Зек став провідником: знає обхідні стежки стаї, слабкі місця патрулів і натяки на скарби/храм з околиць.',
     trigger: 'Companion або угода «проведи мене»',
+  },
+  {
+    key: 'zek_pack_secret',
+    category: 'secret',
+    chapter: 'depths',
+    content:
+      'Зек розкрив таємницю стаї: схованки, ритуал «жеребця», слабкість Кіри, стежка до околиць храму, або чому death-scent священний.',
+    trigger: 'Високий bond / після порятунку / після зняття мітки',
   },
   {
     key: 'zek_protected',
@@ -378,11 +449,42 @@ export const CANON_EVENTS: CanonEvent[] = [
     trigger: 'Вибір зрадити заради пакту/безпеки',
   },
   {
+    key: 'kira_demands_zek',
+    category: 'plot',
+    chapter: 'depths',
+    content:
+      'Кіра відкрито вимагає повернення Зека (гінець, ультиматум, «віддай пса — живи»).',
+    trigger: 'До або під час зустрічі з Кірою, якщо Зек ще втікач',
+  },
+  {
+    key: 'kira_trade_for_zek',
+    category: 'plot',
+    chapter: 'depths',
+    content:
+      'Кіра запропонувала торг: Лара в гарем / васалітет / секс-ритуал — в обмін на життя/свободу Зека (або навпаки).',
+    trigger: 'Переговори з Кірою про відступника',
+  },
+  {
     key: 'zek_kira_confront',
     category: 'plot',
     chapter: 'depths',
     content: 'Конфронтація з Кірою саме через Зека (суд, дуель, торг, гарем-ультиматум).',
-    trigger: 'Кіра вимагає відступника',
+    trigger: 'Кіра вимагає відступника — кульмінаційна сцена',
+  },
+  {
+    key: 'zek_loyal_oath',
+    category: 'npc',
+    chapter: 'depths',
+    content:
+      'Зек склав клятву вірності Ларі (кров, запах, слово вигнанця) — не як раб стаї, а як вільний companion.',
+    trigger: 'Високий bond + свідомий вибір «йду з тобою»',
+  },
+  {
+    key: 'zek_jealousy',
+    category: 'npc',
+    chapter: 'depths',
+    content: 'Зек виявив ревнощі до іншого партнера Лари (Тане, Джек, Кіра тощо) — страх знову бути «розплідником на вимогу».',
+    trigger: 'Трикутник / порівняння / відмова в близькості',
   },
   {
     key: 'zek_free_exile',
@@ -531,7 +633,8 @@ export const CANON_EVENTS: CanonEvent[] = [
     key: 'hyena_raid_kai_toru',
     category: 'plot',
     chapter: 'tribe',
-    content: 'Гієноїди рейдували селище Кай-Тору; Лара була свідком або учасницею оборони.',
+    content:
+      'Гієноїди рейдували селище Кай-Тору; Лара свідком/учасницею. Може бути тиск через Зека або звичайний рейд стаї Кіри.',
     trigger: 'Випадкова подія reйд / сюжетний напад гієноїдів на селище',
   },
   {
@@ -1437,7 +1540,7 @@ export const SIDE_QUESTS: SideQuestDef[] = [
     chain: 'other',
   },
 
-  // ——— Zek renegade arc ———
+  // ——— АРКА: Зек — гієноїд-втікач (послідовно) ———
   {
     title: 'Сліди відступника',
     description:
@@ -1445,43 +1548,43 @@ export const SIDE_QUESTS: SideQuestDef[] = [
     givenBy: 'Система',
     chapter: 'depths',
     completeFactKeys: ['zek_escape_clue'],
-    unlockHint: 'Джунглі / околиці гієноїдів / чутки Кай-Тору про «смішного пса»',
+    unlockHint: 'Джунглі / околиці гієноїдів / чутки Кай-Тору про «пса без стаї»',
     chain: 'zek',
   },
   {
     title: 'Зустріч із відступником',
     description:
-      'Зек — самець, що вийшов зі стаї. Полохливий, хитрий, пропонує все (включно з тілом) за захист від Кіри.',
+      'Зек — самець, що ВИЙШОВ зі стаї. Полохливий, хитрий; благає захисту (тіло, стежки, служба).',
     givenBy: 'Зек',
     chapter: 'depths',
-    completeFactKeys: ['met_zek'],
-    unlockHint: 'Після zek_escape_clue або випадкова подія «Зек тікає»',
-    chain: 'zek',
-  },
-  {
-    title: 'Звільни Зека',
-    description:
-      'Не видати Зека мисливцям/Кірі. Перший відкритий акт захисту — або зрада за пакт.',
-    givenBy: 'Зек',
-    chapter: 'depths',
-    completeFactKeys: ['zek_protected', 'zek_betrayed'],
-    unlockHint: 'met_zek + тиск стаї',
+    completeFactKeys: ['met_zek', 'zek_begs_protection'],
+    unlockHint: 'Після zek_escape_clue або подія «Зек тікає»',
     chain: 'zek',
   },
   {
     title: 'Притулок для вигнанця',
     description:
-      'Знайти місце, де death-scent не вб\'є Зека одразу: дальній табір, руїни, селище (Кай-Тору можуть не прийняти), печера з Найєю.',
+      'Сховати Зека: табір, руїни, печера, селище. Кай-Тору можуть зневажати «пса» — конфлікт культур.',
     givenBy: 'Зек',
     chapter: 'depths',
-    completeFactKeys: ['zek_sheltered'],
+    completeFactKeys: ['zek_sheltered', 'zek_kai_toru_hostility'],
     unlockHint: 'Після met_zek',
+    chain: 'zek',
+  },
+  {
+    title: 'Ціна тіла',
+    description:
+      'Перша близькість із Зеком (відчай/вдячність): вузол, замок, bond. Не обов\'язково — але типовий крок арки.',
+    givenBy: 'Зек',
+    chapter: 'depths',
+    completeFactKeys: ['zek_first_intimacy', 'zek_knot_bond'],
+    unlockHint: 'Після притулку / подія «Зек платить тілом»',
     chain: 'zek',
   },
   {
     title: 'Таємниця втечі',
     description:
-      'Дізнатися, ЯК і ЧОМУ Зек вийшов зі стаї: відмова бути розплідником, зірваний ритуал підкорення, втеча в ніч рейду. Правда про «запах смерті».',
+      'ЯК і ЧОМУ Зек вийшов зі стаї: не «розплідник», зірваний ритуал, ніч рейду. Правда про death-scent.',
     givenBy: 'Зек',
     chapter: 'depths',
     completeFactKeys: ['zek_escape_story', 'zek_death_scent'],
@@ -1491,47 +1594,93 @@ export const SIDE_QUESTS: SideQuestDef[] = [
   {
     title: 'Мисливці стаї',
     description:
-      'Гієноїдки-мисливці йдуть по сліду. Бій, переговори, обман запахом або видача Зека.',
+      'Гієноїдки-мисливці по death-scent. Бій, переговори, обман запахом — захист або видача.',
     givenBy: 'Система',
     chapter: 'depths',
-    completeFactKeys: ['zek_hunters'],
-    unlockHint: 'Після zek_sheltered або на території гієноїдів із Зеком',
+    completeFactKeys: ['zek_hunters', 'zek_protected', 'zek_betrayed', 'zek_saves_lara'],
+    unlockHint: 'Після zek_sheltered / death_scent / на території стаї',
+    chain: 'zek',
+  },
+  {
+    title: 'Звільни Зека',
+    description:
+      'Відкритий акт: не здати Зека. (Альтернатива — zek_betrayed за пакт із Кірою.)',
+    givenBy: 'Зек',
+    chapter: 'depths',
+    completeFactKeys: ['zek_protected', 'zek_betrayed'],
+    unlockHint: 'met_zek + тиск стаї / мисливці',
+    chain: 'zek',
+  },
+  {
+    title: 'Маска запаху',
+    description:
+      'Тимчасово сховати death-scent: багно, зілля, чужий феромон, амулет. Не знімає мітку назавжди.',
+    givenBy: 'Зек / Найя',
+    chapter: 'depths',
+    completeFactKeys: ['zek_scent_masked', 'zek_naya_aid'],
+    unlockHint: 'zek_death_scent відомий; до «Зняти мітку»',
     chain: 'zek',
   },
   {
     title: 'Зняти мітку смерті',
     description:
-      'Зняти death-scent: ритуал Найї, кров/феромон Кіри, сила амулета, або обман стаї. Інакше Зек завжди «світиться».',
+      'Зняти death-scent назавжди: ритуал Найї, кров/феромон Кіри, сила амулета, або звичай стаї.',
     givenBy: 'Найя',
     chapter: 'depths',
-    completeFactKeys: ['zek_mark_cleansed'],
-    unlockHint: 'zek_death_scent відомий; Найя, руїни або Кіра',
+    completeFactKeys: ['zek_mark_cleansed', 'zek_naya_aid'],
+    unlockHint: 'zek_death_scent; Найя / руїни / торг з Кірою',
     chain: 'zek',
   },
   {
     title: 'Провідник-відступник',
     description:
-      'Зек веде обхідними стежками: патрулі, слабкі місця стаї, стежка до околиць храму, яких Кіра не афішує.',
+      'Зек веде обхідними: патрулі, слабкі місця стаї, стежка до околиць храму, таємниці матріархату.',
     givenBy: 'Зек',
     chapter: 'depths',
-    completeFactKeys: ['zek_guide'],
+    completeFactKeys: ['zek_guide', 'zek_pack_secret'],
     unlockHint: 'Захист + довіра; потрібен провідник углиб',
+    chain: 'zek',
+  },
+  {
+    title: 'Ультиматум Кіри',
+    description:
+      'Кіра вимагає Зека: гінці, торг (Лара ↔ Зек), гаремний ультиматум. kira_demands_zek / kira_trade_for_zek.',
+    givenBy: 'Кіра',
+    chapter: 'depths',
+    completeFactKeys: ['kira_demands_zek', 'kira_trade_for_zek', 'met_kira'],
+    unlockHint: 'met_kira або death-scent «світить» до стаї',
     chain: 'zek',
   },
   {
     title: 'Суд Кіри за відступника',
     description:
-      'Кіра вимагає Зека: гаремний ультиматум, дуель честі, торг (Лара замість нього), або війна.',
+      'Кульмінація: суд, дуель, торг, війна. Захист Зека, зрада, або hyena_pact як ціна.',
     givenBy: 'Кіра',
     chapter: 'depths',
-    completeFactKeys: ['zek_kira_confront', 'zek_protected', 'zek_betrayed'],
-    unlockHint: 'met_kira + Зек ще живий/не повернутий',
+    completeFactKeys: [
+      'zek_kira_confront',
+      'zek_protected',
+      'zek_betrayed',
+      'hyena_pact',
+      'kira_matriarch_duel',
+    ],
+    unlockHint: 'Після ультиматуму / met_kira + Зек живий',
+    chain: 'zek',
+  },
+  {
+    title: 'Клятва вигнанця',
+    description:
+      'Зек клянеться Ларі вірністю (не як раб стаї). Можливі ревнощі до інших партнерів.',
+    givenBy: 'Зек',
+    chapter: 'depths',
+    completeFactKeys: ['zek_loyal_oath', 'zek_jealousy', 'zek_saves_lara'],
+    unlockHint: 'Bond високий / після суду або зняття мітки',
     chain: 'zek',
   },
   {
     title: 'Доля відступника',
     description:
-      'Фінал арки Зека: вільний вигнанець, компаньйон Лари, повернення в стаю, або смерть.',
+      'Фінал: вільний вигнанець, companion, повернення в стаю, або смерть.',
     givenBy: 'Система',
     chapter: 'depths',
     completeFactKeys: [
@@ -1668,21 +1817,43 @@ export function formatSideQuestsForPrompt(): string {
   )
 }
 
-/** Dedicated GM brief for the renegade hyenoid arc. */
+/**
+ * Dedicated GM brief for the full renegade hyenoid (Zek) arc.
+ */
 export function formatZekArcForPrompt(): string {
   return (
-    `\n--- АРКА: ЗЕК — ГІЄНОЇД-ВІДСТУПНИК ---\n` +
-    `Канон: Зек — самець, що ВИЙШОВ зі стаї Кіри. У матріархаті самці — підлеглі/розплідники.\n` +
-    `Втеча: відмовився від повного ритуалу підкорення, зірвав статус «улюбленого жеребця» Кіри, ` +
-    `втік у ніч, коли стая йшла в рейд. Не «вигнали лагідно» — він злочинець для стаї.\n` +
-    `Мітка: death-scent (запах смерті) — гієноїдки зобов'язані повернути або вбити. Чути здалеку.\n` +
-    `Характер: полохливий, вдячний, хитрий, сексуально досвідчений (вузол/замок), може стати вірним companion.\n` +
-    `Ланцюг квестів: Сліди відступника → Зустріч → Звільни Зека / Притулок → Таємниця втечі → ` +
-    `Мисливці стаї → Зняти мітку → Провідник → Суд Кіри → Доля відступника.\n` +
-    `FACT keys: zek_escape_clue | met_zek | zek_escape_story | zek_death_scent | zek_sheltered | ` +
-    `zek_hunters | zek_mark_cleansed | zek_guide | zek_protected | zek_betrayed | zek_kira_confront | ` +
+    `\n--- АРКА: ЗЕК — ГІЄНОЇД-ВТІКАЧ / ВІДСТУПНИК ---\n` +
+    `⚠️ КАНОН (не супереч):\n` +
+    `• Зек — самець, що САМ ВИЙШОВ зі стаї Кіри. Не «заблукав», не «лагідне вигнання» — злочинець для стаї.\n` +
+    `• Матріархат: самці = підлеглі/розплідники. Зек зірвав ритуал повного підкорення, був «улюбленим жеребцем» Кіри, ` +
+    `втік у ніч рейду.\n` +
+    `• Death-scent (запах смерті): будь-яка гієноїдка мусить повернути або вбити. Чути здалеку; амулет/Найя відчувають.\n` +
+    `• Характер: полохливий, вдячний, хитрий, жадібний до свободи; секс (вузол/замок) часто як плата/вдячність, не лише похоть.\n` +
+    `• Кіра ≠ Зек. Кіра — матріарх: розумна, жорстока, гарем як влада. Може торгувати Ларою за Зека.\n` +
+    `• Кай-Тору можуть зневажати «пса» біля селища (zek_kai_toru_hostility). Не плутай зі звичайним патрулем гієноїдів.\n` +
+    `\n## Етапи (послідовно; не стрибай у фінал)\n` +
+    `1) СЛІДИ: zek_escape_clue → met_zek → zek_begs_protection.\n` +
+    `2) ПРИТУЛОК І ЗВ'ЯЗОК: zek_sheltered → (zek_kai_toru_hostility) → zek_first_intimacy / zek_knot_bond → ` +
+    `zek_escape_story + zek_death_scent.\n` +
+    `3) ПОЛЮВАННЯ: zek_hunters → zek_protected АБО zek_betrayed → (zek_saves_lara) → ` +
+    `zek_scent_masked / zek_naya_aid → zek_mark_cleansed.\n` +
+    `4) КОРИСТЬ І ТИСК: zek_guide + zek_pack_secret → kira_demands_zek / kira_trade_for_zek → ` +
+    `zek_kira_confront (+ hyena_pact / kira_matriarch_duel за тоном).\n` +
+    `5) ФІНАЛ (взаємовиключні гілки долі): zek_loyal_oath / zek_jealousy → ` +
     `zek_free_exile | zek_companion | zek_returned | zek_dead.\n` +
-    `Не плутай з звичайним патрулем. Зек ≠ Кіра. Кай-Тору можуть зневажати «пса» біля селища.\n---\n`
+    `\n## Квести chain=zek\n` +
+    `Сліди відступника → Зустріч із відступником → Притулок для вигнанця → Ціна тіла → Таємниця втечі → ` +
+    `Мисливці стаї → Звільни Зека → Маска запаху → Зняти мітку смерті → Провідник-відступник → ` +
+    `Ультиматум Кіри → Суд Кіри за відступника → Клятва вигнанця → Доля відступника.\n` +
+    `\n## FACT keys\n` +
+    `zek_escape_clue | met_zek | zek_begs_protection | zek_sheltered | zek_kai_toru_hostility | ` +
+    `zek_first_intimacy | zek_knot_bond | zek_escape_story | zek_death_scent | zek_hunters | ` +
+    `zek_saves_lara | zek_protected | zek_betrayed | zek_scent_masked | zek_naya_aid | zek_mark_cleansed | ` +
+    `zek_guide | zek_pack_secret | kira_demands_zek | kira_trade_for_zek | zek_kira_confront | ` +
+    `zek_loyal_oath | zek_jealousy | zek_free_exile | zek_companion | zek_returned | zek_dead | ` +
+    `hyena_pact | hyena_raid_kai_toru | met_kira | kira_matriarch_duel.\n` +
+    `Правила: protect vs betray — гілки; returned/dead/companion/free_exile — фінали (не мішай без причини). ` +
+    `Не роби Зека «звичайним самцем зі стаї» — він уже зрадник для Кіри.\n---\n`
   )
 }
 

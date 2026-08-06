@@ -26,10 +26,15 @@
 Знайти провідника / Сліди Джека → Угода з Джеком → Карта Джека → Руїни з Джеком → Джек і Лея → Підказка Джека до храму → Союзник чи конкурент
 FACT: met_jack | jack_found_alive | jack_wreck_clue | jack_offers_guide | jack_map_shared | jack_ruins_explored | jack_leya_confrontation | jack_secret | jack_temple_hint | jack_loyalty_ally | jack_loyalty_rival
 
-## Арка Зека — гієноїд-відступник
-Зек САМ вийшов зі стаї (не «заблукав»): зірвав ритуал підкорення розплідника, втік у ніч рейду. Death-scent — мітка смерті від Кіри.
-Квести: Сліди відступника → Зустріч із відступником → Звільни Зека / Притулок → Таємниця втечі → Мисливці стаї → Зняти мітку смерті → Провідник-відступник → Суд Кіри → Доля відступника
-FACT: zek_escape_clue | met_zek | zek_escape_story | zek_death_scent | zek_sheltered | zek_hunters | zek_mark_cleansed | zek_guide | zek_protected | zek_betrayed | zek_kira_confront | zek_free_exile | zek_companion | zek_returned | zek_dead
+## Арка Зека — гієноїд-втікач / відступник (послідовно)
+Зек САМ вийшов зі стаї (не «заблукав»): зірвав ритуал підкорення «жеребця» Кіри, втік у ніч рейду. Death-scent — мітка смерті; стая мусить повернути або вбити.
+1) Сліди → зустріч → благає захисту
+2) Притулок (± ворожість Кай-Тору) → близькість/вузол → таємниця втечі + death-scent
+3) Мисливці → protect|betray → маска запаху / Найя → зняти мітку
+4) Провідник + таємниці стаї → ультиматум/торг Кіри → суд/дуель
+5) Клятва → фінал: free_exile | companion | returned | dead
+Квести zek: Сліди → Зустріч → Притулок → Ціна тіла → Таємниця втечі → Мисливці → Звільни Зека → Маска запаху → Зняти мітку → Провідник → Ультиматум Кіри → Суд Кіри → Клятва вигнанця → Доля відступника
+FACT: zek_escape_clue | met_zek | zek_begs_protection | zek_sheltered | zek_kai_toru_hostility | zek_first_intimacy | zek_knot_bond | zek_escape_story | zek_death_scent | zek_hunters | zek_saves_lara | zek_protected | zek_betrayed | zek_scent_masked | zek_naya_aid | zek_mark_cleansed | zek_guide | zek_pack_secret | kira_demands_zek | kira_trade_for_zek | zek_kira_confront | zek_loyal_oath | zek_jealousy | zek_free_exile | zek_companion | zek_returned | zek_dead | hyena_pact | hyena_raid_kai_toru
 
 ## Арка роду: Тане · Лея · Макаї · Лара (послідовно)
 Канон: Тане+Лея = рідний брат/сестра + активний інцест; Макаї = батько; «звичай крові» / право чужинки.
