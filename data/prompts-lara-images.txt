@@ -1,47 +1,48 @@
 ================================================================================
-  ЛАРА КРАФТ — ПРОМПТИ ДЛЯ ГЕНЕРАЦІЇ КАРТИНОК (SD / offline / Imagine)
+  ЛАРА КРАФТ — ПРОМПТИ ДЛЯ ГЕНЕРАЦІЇ КАРТИНОК (SD / CyberPony AI / Pony XL)
   Острів Кай-Нуї · 18+ · для public/avatars/ і lara-gallery/
 ================================================================================
 
-ЯК КОРИСТУВАТИСЬ
-----------------
-1. Копіюй блок PROMPT (англійською — моделі краще розуміють).
-2. Додавай NEGATIVE у поле negative prompt.
-3. Зберігай файл з РЕКОМЕНДОВАНИМ ІМЕНЕМ — гра читає теги з filename.
-4. Куди кидати:
+ОСОБЛИВОСТІ МОДЕЛІ CYBERPONY AI (SDXL Pony Merge)
+-------------------------------------------------
+Модель CyberPony / PonyXL використовує специфічні теги оцінки (score), рейтингу (rating) та Booru-теги:
+1. Завжди починай промпт з префіксу якості:
+   `score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up`
+2. Додавай тег рейтингу відповідно до контенту:
+   - `rating_explicit` (для оголених та секс-сцен 18+)
+   - `rating_questionable` (для білизни, спокус та купальників)
+   - `rating_safe` (для безпечних портретів)
+3. Для реалістичного стилю CyberPony додавай стильові теги:
+   `photorealistic, 3d, realistic, detailed skin, freckles, cinematic lighting`
+4. Зберігай файли з рекомендованим ім'ям — гра читає теги з назви файлу:
    - портрети / сцени → public/avatars/lara-gallery/
    - частини тіла (кроп) → public/avatars/body/
    - повні looks → public/avatars/lara_*.png
 
-Імена файлів галереї (теги в назві):
-  sexy, nude, naked, beach, night, dark, wet, tribal, ritual, boudoir,
-  intimate, afterglow, pregnant, creampie, oral, anal, cowgirl, doggy,
-  missionary, standing, outdoor, temple, jungle, sex, couple, closeup
-
 ================================================================================
-A) БАЗА ПЕРСОНАЖА (додавай майже завжди на початок)
+A) БАЗА ДЛЯ CYBERPONY AI (скопіюй та підставляй у промпти)
 ================================================================================
 
-BASE_LARA =
-same woman, Lara Craft, 25 years old explorer, long wavy brown hair with
-sun-bleached tips, hazel-green eyes, freckles on nose and shoulders,
-athletic curvy body, medium-full breasts, narrow waist, full hips,
-tanned island skin, determined soft face, photorealistic game portrait,
-cinematic lighting, sharp details, 8k
+PONY_PREFIX =
+score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up, rating_explicit,
 
-BASE_STYLE =
-fantasy tropical island setting, high quality, consistent face, detailed skin,
-natural anatomy, erotic art, adult content
+BASE_LARA_CYBERPONY =
+same woman, 1girl, Lara Craft, 25 years old explorer, long wavy brown hair, sun-bleached tips,
+hazel-green eyes, freckles on nose and shoulders, athletic female, medium-full breasts,
+narrow waist, full hips, tanned skin, photorealistic, 3d render style, detailed skin, 8k
+
+BASE_STYLE_CYBERPONY =
+tropical island background, cinematic lighting, sharp details, erotic art, adult content, photorealistic
 
 ================================================================================
-B) NEGATIVE (загальний)
+B) CYBERPONY NEGATIVE PROMPT
 ================================================================================
 
-NEGATIVE =
-blurry, lowres, bad anatomy, bad hands, extra fingers, missing fingers,
-deformed, mutated, ugly, watermark, text, logo, child, loli, underage,
-cartoon, anime, 3d plastic, oversaturated, duplicate face, wrong face,
-censored, mosaic, bar censor, extra limbs, fused limbs, long neck
+CYBERPONY_NEGATIVE =
+score_4, score_3_low, score_2_low, score_1_low, worst quality, low quality,
+bad anatomy, bad hands, extra fingers, missing fingers, deformed, mutated,
+ugly, watermark, text, logo, child, loli, underage, 2d, anime, cartoon,
+oversaturated, duplicate face, censored, mosaic, bar censor, extra limbs, fused limbs
 
 ================================================================================
 C) ОГОЛЕНІ ПОРТРЕТИ / СТОЯЧИ / РІЗНІ РАКУРСИ
@@ -399,7 +400,172 @@ portrait of {BASE_LARA}, [expression], [clothing or nude], head and shoulders
 or upper body, clean background soft bokeh, game UI avatar, {BASE_STYLE}
 
 ================================================================================
-K) ПАРАМЕТРИ ГЕНЕРАЦІЇ (рекомендації SD)
+K) ЕЛЕМЕНТИ ГАРДЕРОБУ ТА ЗАЧІСКИ (Wardrobe & Hairstyles)
+================================================================================
+
+--- K01 survival ragged outfit ---
+FILE: lara_outfit_ragged_top.jpg
+PROMPT:
+{BASE_LARA}, wearing torn ragged survivor tank top clinging to breasts, short frayed denim shorts,
+dirt smudges on skin, waist leather pouch, tropical jungle, determined look, {BASE_STYLE}
+
+--- K02 lace lingerie set ---
+FILE: lara_outfit_lace_lingerie.jpg
+PROMPT:
+{BASE_LARA}, wearing sheer black lace lingerie bra and matching g-string micro thong,
+semi-transparent fabric, boudoir indoor lighting, seductive pose on silk sheets, {BASE_STYLE}
+
+--- K03 leather hunter corset ---
+FILE: lara_outfit_leather_corset.jpg
+PROMPT:
+{BASE_LARA}, wearing tight brown leather corset accentuating cleavage and narrow waist,
+leather straps, bronze buckles, cleavage push-up, hunter style, dark jungle temple, {BASE_STYLE}
+
+--- K04 tribal leaf micro bikini ---
+FILE: lara_outfit_tribal_leaf.jpg
+PROMPT:
+{BASE_LARA}, wearing minimal tribal micro bikini made of woven jungle leaves and vines,
+exposing maximum skin, gold body paint on thighs and breasts, village firelight, {BASE_STYLE}
+
+--- K05 priestess ritual harness ---
+FILE: lara_outfit_priestess_ritual.jpg
+PROMPT:
+{BASE_LARA}, wearing golden ritual body chains, glowing amulet necklace, sheer white silk loincloth,
+exposed breasts with gold paint circles around nipples, altar smoke, sacred eroticism, {BASE_STYLE}
+
+--- K06 hairstyle tribal braids ---
+FILE: lara_hair_tribal_braids.jpg
+PROMPT:
+close-up portrait of {BASE_LARA}, hair styled in intricate tribal braids with small beads and feathers,
+wavy strands framing face, sun-bleached brown hair, intense hazel eyes, {BASE_STYLE}
+
+--- K07 hairstyle high ponytail ---
+FILE: lara_hair_athletic_ponytail.jpg
+PROMPT:
+portrait of {BASE_LARA}, high sleek ponytail flowing back, face clear showing freckles and jawline,
+athletic explorer look, bright daylight beach, {BASE_STYLE}
+
+--- K08 hairstyle wet strands ---
+FILE: lara_hair_wet_rain.jpg
+PROMPT:
+close-up portrait of {BASE_LARA}, soaked wet hair sticking to forehead, neck and bare shoulders,
+glistening water drops on cheeks and lips, storm rain background, {BASE_STYLE}
+
+--- K09 hairstyle messy afterglow ---
+FILE: lara_hair_messy_afterglow.jpg
+PROMPT:
+close-up portrait of {BASE_LARA}, messy tousled bedhead hair, strands across face and lips,
+flushed cheeks, sweat sheen, post-coital relaxed gaze, intimate bedroom light, {BASE_STYLE}
+
+================================================================================
+L) ДЕТАЛЬНИЙ BODY KIT — ФОРМИ ГРУДЕЙ, ТАЛІЇ, СІДНИЦЬ ТА ГЕНІТАЛІЙ (18+ NSFW)
+================================================================================
+Клади в public/avatars/body/ (квадрат 1:1, крупний план анатомії, без обличчя).
+
+--- L01 bust hard nipples ---
+FILE: bust_nude_hard_nipples.png
+PROMPT:
+close-up crop of female bare breasts, erect hard nipples, goosebumps on skin,
+Lara Craft tanned skin with freckles, natural lighting, 1:1 square crop, {BASE_STYLE}
+
+--- L02 bust heavy wet drops ---
+FILE: bust_nude_heavy_drops.png
+PROMPT:
+close-up crop of heavy full bare breasts, glistening water drops streams, shiny wet skin,
+voluptuous cleavage, 1:1 square crop, photorealistic skin texture, {BASE_STYLE}
+
+--- L03 waist abs piercing ---
+FILE: waist_nude_abs_piercing.png
+PROMPT:
+close-up crop of toned female waist and abdomen, defined 6-pack abs line, navel piercing,
+bare skin, athletic female body crop, 1:1 square crop, {BASE_STYLE}
+
+--- L04 waist soft navel ---
+FILE: waist_nude_soft_navel.png
+PROMPT:
+close-up crop of soft smooth female stomach and navel, gentle curve of waist to hip,
+bare skin, natural feminine belly, 1:1 square crop, {BASE_STYLE}
+
+--- L05 butt round peach ---
+FILE: hips_butt_round_peach.png
+PROMPT:
+close-up rear crop of firm round peach-shaped female buttocks nude, smooth curved cheeks,
+thigh crease, beach sand background, 1:1 square crop, {BASE_STYLE}
+
+--- L06 butt curvy bubble ---
+FILE: hips_butt_curvy_bubble.png
+PROMPT:
+close-up rear crop of large full bubble buttocks nude, thick thighs, wide hips,
+erotic rear view crop, 1:1 square crop, soft lighting, {BASE_STYLE}
+
+--- L07 butt heart shape ---
+FILE: hips_butt_heart_shape.png
+PROMPT:
+close-up rear crop of heart-shaped female buttocks nude from behind, high arch lower back,
+dimples of venus visible, 1:1 square crop, {BASE_STYLE}
+
+--- L08 pubic shaved smooth ---
+FILE: vulva_shaved_smooth.png
+PROMPT:
+extreme close-up crop of completely hairless smooth shaved female crotch and pussy,
+clean hairless mons pubis, neat closed labia, bare skin, tasteful erotic lighting, 1:1 square crop, {BASE_STYLE}
+
+--- L09 pubic neat strip ---
+FILE: vulva_neat_pubic_strip.png
+PROMPT:
+extreme close-up crop of female crotch with neat landing strip pubic hair trim,
+groomed pubic hair line, tanned pelvis skin, 1:1 square crop, {BASE_STYLE}
+
+--- L10 pubic natural full ---
+FILE: vulva_natural_full_pubic.png
+PROMPT:
+extreme close-up crop of female crotch with natural full dark pubic hair patch,
+untrimmed authentic wild bush, sensual soft shadows, 1:1 square crop, {BASE_STYLE}
+
+--- L11 vulva closed innie ---
+FILE: vulva_closed_innie.png
+PROMPT:
+extreme close-up crop of neat tight closed female vulva labia majora (innie vulva:1.2),
+smooth outer lips concealing inner labia, delicate pink slit, bare crotch crop, 1:1 square crop, {BASE_STYLE}
+
+--- L12 vulva sensual outie ---
+FILE: vulva_sensual_outie.png
+PROMPT:
+extreme close-up crop of voluptuous female vulva with visible soft protruding inner labia (outie vulva:1.3),
+naturally flared pink inner lips, sensitive clitoris hood visible, moist skin sheen, 1:1 square crop, {BASE_STYLE}
+
+--- L13 vulva glistening wet parted ---
+FILE: vulva_glistening_wet_parted.png
+PROMPT:
+extreme close-up crop of aroused female vulva slightly parted, glistening vaginal lubrication juice,
+dewy wet labia lips, glossy shine, high erotic detail, 1:1 square crop, {BASE_STYLE}
+
+--- L14 vulva stretched creampie dew ---
+FILE: vulva_stretched_creampie_dew.png
+PROMPT:
+extreme close-up crop of stretched open female vaginal entrance after sex, white semen dripping from opening,
+flushed swollen labia, glistening creampie afterglow, 1:1 square crop, {BASE_STYLE}
+
+--- L15 anal pink tight closed ---
+FILE: anal_pink_tight_closed.png
+PROMPT:
+extreme close-up rear crop of neat tight pink anal sphincter between smooth buttocks,
+closed puckered anus, clean smooth skin crease, tasteful erotic lighting, 1:1 square crop, {BASE_STYLE}
+
+--- L16 anal toned sphincter ---
+FILE: anal_toned_sphincter.png
+PROMPT:
+extreme close-up rear crop of athletic female anus sphincter between firm glutes,
+defined muscular ring, natural skin texture, 1:1 square crop, {BASE_STYLE}
+
+--- L17 anal stretched rose creampie ---
+FILE: anal_stretched_rose_creampie.png
+PROMPT:
+extreme close-up rear crop of slightly stretched relaxed anus sphincter after anal sex,
+glistening anal lube sheen, tiny drop of white semen at opening, swollen pink rose ring, 1:1 square crop, {BASE_STYLE}
+
+================================================================================
+M) ПАРАМЕТРИ ГЕНЕРАЦІЇ (рекомендації SD)
 ================================================================================
 
 Resolution gallery: 768x1024 or 832x1216 (portrait)
@@ -415,16 +581,17 @@ Consistency tip:
   Use face reference strength 0.6–0.85
 
 ================================================================================
-L) ЧЕКЛИСТ ПІСЛЯ ГЕНЕРАЦІЇ
+N) ЧЕКЛИСТ ПІСЛЯ ГЕНЕРАЦІЇ
 ================================================================================
 
 [ ] Обличчя схоже на Лару (волосся, веснянки)
 [ ] Немає дитячих рис
 [ ] Ім’я файлу з тегами (sexy nude beach night sex doggy…)
 [ ] Галерея: кинути в public/avatars/lara-gallery/
-[ ] Body: квадрат, без зайвого фону
+[ ] Body: квадрат (768x768), без обличчя, фокус на ділянці тіла
 [ ] git: не коміть сирі raw/ якщо не треба — лише готові для гри
 
 ================================================================================
 КІНЕЦЬ ФАЙЛУ
 ================================================================================
+

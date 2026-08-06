@@ -37,6 +37,18 @@ export const GALLERY_TAG_KEYWORDS: Record<string, string[]> = {
   tee: ['tee', 'tshirt', 't_shirt', 'shirt', 'майк', 'white_tee'],
   fullbody: ['fullbody', 'full_body', 'body', 'standing'],
   portrait: ['portrait', 'face', 'bust', 'headshot'],
+  tane: ['tane', 'тане'],
+  jack: ['jack', 'джек'],
+  makai: ['makai', 'макаї'],
+  centaur: ['centaur', 'кентавр'],
+  minotaur: ['minotaur', 'мінотавр'],
+  werewolf: ['werewolf', 'вовкулака', 'hyenoid'],
+  cowgirl: ['cowgirl', 'riding'],
+  doggy: ['doggy', 'doggystyle', 'behind'],
+  missionary: ['missionary'],
+  oral: ['oral', 'blowjob', 'cunnilingus', 'sucking'],
+  creampie: ['creampie', 'semen'],
+  knot: ['knot', 'locked'],
 }
 
 export type LaraGalleryItem = {
@@ -59,6 +71,8 @@ export type GalleryPickContext = {
   isPregnant?: boolean | null
   clothing?: string | null
   chapter?: string | null
+  companionName?: string | null
+  partner?: string | null
   /** Sex scene currently open in UI */
   inSexScene?: boolean | null
   dayNumber?: number | null
@@ -184,6 +198,24 @@ export function scoreGalleryItem(
     if (tags.has('sexy') || tags.has('intimate') || tags.has('nude') || tags.has('afterglow')) {
       score += 22
       reasons.push('Секс-сцена')
+    }
+  }
+
+  // --- Companion / Partner matching ---
+  const comp = loc(ctx.companionName || ctx.partner)
+  if (comp) {
+    if (comp.includes('тане') || comp.includes('tane')) {
+      if (tags.has('tane')) { score += 25; reasons.push('Партнер: Тане'); }
+    } else if (comp.includes('джек') || comp.includes('jack')) {
+      if (tags.has('jack')) { score += 25; reasons.push('Партнер: Джек'); }
+    } else if (comp.includes('макаї') || comp.includes('makai')) {
+      if (tags.has('makai')) { score += 25; reasons.push('Партнер: Макаї'); }
+    } else if (comp.includes('кентавр') || comp.includes('centaur')) {
+      if (tags.has('centaur')) { score += 25; reasons.push('Партнер: Кентавр'); }
+    } else if (comp.includes('мінотавр') || comp.includes('minotaur')) {
+      if (tags.has('minotaur')) { score += 25; reasons.push('Партнер: Мінотавр'); }
+    } else if (comp.includes('вовк') || comp.includes('werewolf') || comp.includes('гієн') || comp.includes('hyenoid')) {
+      if (tags.has('werewolf')) { score += 25; reasons.push('Партнер: Вовкулака/Хижак'); }
     }
   }
 
@@ -325,7 +357,7 @@ export function pickActiveGalleryImage(
 /** Build context from gameState-like object + optional sex flag. */
 export function galleryContextFromState(
   state: Record<string, unknown> | null | undefined,
-  extra?: { inSexScene?: boolean }
+  extra?: { inSexScene?: boolean; partner?: string }
 ): GalleryPickContext {
   const s = state || {}
   return {
@@ -341,6 +373,8 @@ export function galleryContextFromState(
     clothing: (s.clothing as string) ?? null,
     chapter: (s.chapter as string) ?? null,
     dayNumber: typeof s.dayNumber === 'number' ? s.dayNumber : null,
+    companionName: (s.companionName as string) ?? extra?.partner ?? null,
+    partner: extra?.partner ?? (s.companionName as string) ?? null,
     inSexScene: extra?.inSexScene ?? false,
   }
 }

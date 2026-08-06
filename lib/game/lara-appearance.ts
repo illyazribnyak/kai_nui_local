@@ -24,6 +24,7 @@ export type LaraLookKey =
   | 'seductive'
   | 'afterglow'
   | 'intimate'
+  | 'nude'
 
 export type LaraLookDef = {
   key: LaraLookKey
@@ -125,6 +126,14 @@ export const LARA_LOOKS: Record<LaraLookKey, LaraLookDef> = {
     accent: 'ring-fuchsia-500/50',
     erotic: true,
   },
+  nude: {
+    key: 'nude',
+    label: 'Повністю оголена',
+    description: 'Оголений портрет у повний зріст',
+    avatar: '/avatars/lara_nude_fullbody.png',
+    accent: 'ring-rose-600/70',
+    erotic: true,
+  },
 }
 
 export type LaraAppearance = {
@@ -219,7 +228,10 @@ export function getUnlockedLaraLooks(state?: Partial<GameState> | null): LaraLoo
   const cloth = clothingTier(state.clothing)
   if (cloth === 'ritual' || (state.amuletEnergy ?? 0) >= 40) keys.add('ritual')
   if (cloth === 'tribal' || state.bodyPaint) keys.add('tribal')
-  if (cloth === 'none') keys.add('intimate')
+  if (cloth === 'none') {
+    keys.add('intimate')
+    keys.add('nude')
+  }
 
   const conf = Number(state.confidence ?? 50)
   if (conf >= 55) keys.add('confident')
@@ -230,6 +242,7 @@ export function getUnlockedLaraLooks(state?: Partial<GameState> | null): LaraLoo
   if (desire >= 40) keys.add('aroused')
   if (desire >= 50) keys.add('afterglow')
   if (desire >= 55) keys.add('seductive')
+  if (desire >= 65) keys.add('nude')
 
   const hunger = Number(state.hunger ?? 0)
   if (hunger >= 40 || (state.dayNumber ?? 1) >= 2) keys.add('exhausted')
@@ -242,6 +255,7 @@ export function getUnlockedLaraLooks(state?: Partial<GameState> | null): LaraLoo
     'classic',
     'default',
     'intimate',
+    'nude',
     'seductive',
     'aroused',
     'afterglow',

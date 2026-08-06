@@ -35,8 +35,10 @@ export async function GET(request: NextRequest) {
       clothing: sp.get('clothing'),
       chapter: sp.get('chapter'),
       dayNumber: sp.has('dayNumber') ? Number(sp.get('dayNumber')) : null,
+      companionName: sp.get('companionName') || sp.get('partner'),
     }, {
       inSexScene: sp.get('inSexScene') === '1' || sp.get('inSexScene') === 'true',
+      partner: sp.get('partner') || sp.get('companionName') || undefined,
     })
 
     const active = pickActiveGalleryImage(items, ctx)
