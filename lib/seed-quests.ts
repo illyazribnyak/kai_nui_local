@@ -36,6 +36,13 @@ const STARTER_FACTS = [
     dayNumber: 1,
   },
   {
+    key: 'centaur_arc_hook',
+    category: 'world',
+    content:
+      'Арка кентаврів: землі лук → Ксерон вимагає trial → повага → близькість / Іпполіта → місячний біг → союз табуна або вигнання. Без перемоги — «легка здобич».',
+    dayNumber: 1,
+  },
+  {
     key: 'jack_mission_hook',
     category: 'plot',
     content:

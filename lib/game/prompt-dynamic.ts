@@ -5,6 +5,7 @@
 
 import {
   formatCanonEventsForPrompt,
+  formatCentaurArcForPrompt,
   formatSideQuestsForPrompt,
   formatTaneLeyaArcForPrompt,
   formatTribeEntriesForPrompt,
@@ -72,6 +73,25 @@ export function shouldIncludeJackChain(input: PromptDynamicInput): boolean {
   return [...facts].some((k) => k.includes('jack'))
 }
 
+export function shouldIncludeCentaurArc(input: PromptDynamicInput): boolean {
+  const facts = setOf(input.factKeys)
+  const loc = input.location || ''
+  const met = setOf(input.metNpc)
+  if (met.has('ксерон') || met.has('іпполіта') || met.has('ипполита')) return true
+  if (
+    [...facts].some(
+      (k) =>
+        k.includes('centaur') ||
+        k.includes('xeron') ||
+        k.includes('hippolyta')
+    )
+  ) {
+    return true
+  }
+  if (locHas(loc, 'кентавр', 'centaur', 'луки', 'східн')) return true
+  return false
+}
+
 /** Compact “what is true now” for the GM — prefers plot/npc over starter hooks. */
 export function formatActiveStoryBrief(
   worldFacts: { key: string; category?: string; content?: string }[],
@@ -123,15 +143,19 @@ export function formatDynamicLoreBlocks(input: PromptDynamicInput): string {
   const zek = shouldIncludeZekArc(input)
   const tane = shouldIncludeTaneFamilyArc(input)
   const jack = shouldIncludeJackChain(input)
+  const centaur = shouldIncludeCentaurArc(input)
 
   // Fewer canon lines early / when arcs not open
   const factCount = [...setOf(input.factKeys)].length
   const canonMax = factCount < 8 ? 45 : factCount < 25 ? 70 : 90
 
-  const chains: Array<'jack' | 'zek' | 'tane_family' | 'tribe_entry'> = ['tribe_entry']
+  const chains: Array<'jack' | 'zek' | 'tane_family' | 'centaur' | 'tribe_entry'> = [
+    'tribe_entry',
+  ]
   if (jack) chains.push('jack')
   if (zek) chains.push('zek')
   if (tane) chains.push('tane_family')
+  if (centaur) chains.push('centaur')
 
   const parts: string[] = []
   parts.push(formatTribeEntriesForPrompt())
@@ -139,7 +163,7 @@ export function formatDynamicLoreBlocks(input: PromptDynamicInput): string {
   parts.push(
     formatSideQuestsForPrompt({
       chains,
-      includeOther: jack || tane || zek,
+      includeOther: jack || tane || zek || centaur,
     })
   )
 
@@ -163,10 +187,19 @@ export function formatDynamicLoreBlocks(input: PromptDynamicInput): string {
     )
   }
 
-  if (!jack && !zek && !tane) {
+  if (centaur) {
+    parts.push(formatCentaurArcForPrompt())
+  } else {
+    parts.push(
+      `\n--- АРКА КЕНТАВРІВ (стисло) ---\n` +
+        `Повний бріф на землях кентаврів / met_xeron. Спочатку trial, потім близькість.\n---\n`
+    )
+  }
+
+  if (!jack && !zek && !tane && !centaur) {
     parts.push(
       `\n--- ПОБІЧНІ АРКИ ---\n` +
-        `Джек / Зек / рід Тане активуються за слідами та зустрічами — не форсуй усі одразу.\n---\n`
+        `Джек / Зек / рід Тане / кентаври — за слідами; не форсуй усі одразу.\n---\n`
     )
   }
 

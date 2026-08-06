@@ -4,6 +4,7 @@ import {
   shouldIncludeZekArc,
   shouldIncludeTaneFamilyArc,
   shouldIncludeJackChain,
+  shouldIncludeCentaurArc,
   formatActiveStoryBrief,
   formatDynamicLoreBlocks,
 } from './prompt-dynamic'
@@ -38,6 +39,18 @@ describe('prompt-dynamic gates', () => {
   it('jack on jack facts', () => {
     assert.equal(shouldIncludeJackChain({ factKeys: ['met_jack'] }), true)
     assert.equal(shouldIncludeJackChain({ factKeys: [] }), false)
+  })
+
+  it('centaur on lands or met_xeron', () => {
+    assert.equal(
+      shouldIncludeCentaurArc({ factKeys: [], location: 'Землі кентаврів' }),
+      true
+    )
+    assert.equal(shouldIncludeCentaurArc({ factKeys: ['met_xeron'] }), true)
+    assert.equal(
+      shouldIncludeCentaurArc({ factKeys: ['shipwrecked'], location: 'Берег' }),
+      false
+    )
   })
 })
 

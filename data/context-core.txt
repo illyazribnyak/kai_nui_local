@@ -37,6 +37,17 @@ FACT: met_jack | jack_found_alive | jack_wreck_clue | jack_offers_guide | jack_m
 Квести zek: Сліди → Зустріч → Притулок → Ціна тіла → Таємниця втечі → Мисливці → Звільни Зека → Маска запаху → Зняти мітку → Провідник → Ультиматум Кіри → Суд Кіри → Клятва вигнанця → Доля відступника
 FACT: zek_escape_clue | met_zek | zek_begs_protection | zek_sheltered | zek_kai_toru_hostility | zek_first_intimacy | zek_knot_bond | zek_escape_story | zek_death_scent | zek_hunters | zek_saves_lara | zek_protected | zek_betrayed | zek_scent_masked | zek_naya_aid | zek_mark_cleansed | zek_guide | zek_pack_secret | kira_demands_zek | kira_trade_for_zek | zek_kira_confront | zek_loyal_oath | zek_jealousy | zek_free_exile | zek_companion | zek_returned | zek_dead | hyena_pact | hyena_raid_kai_toru
 
+## Стартові білди (нова гра)
+Дослідниця (default) | Соблазнителька | Витривала | Хитра — стати + скіли + кінки на reset.
+
+## Кінки (0–5, окремо від скілів)
+breeding | creampie | public | size | monster | marking | praise | degrade | cumplay | control | service | ritual | helpless |
+group | lactation | bondage | pain | pheromones | family_taboo
+
+## Арка кентаврів (послідовно)
+entered → met_xeron/hippolyta → demands_trial → trial_won → accepted/respects → xeron_intimacy/mate_claim → hippolyta path → moon_run → challenge → herd_ally|exile
+Квести chain=centaur: Зустріч → Випробування → Повага → Ніч з вожаком → Сестринство → Місячний біг → Виклик → Доля
+
 ## Арка роду: Тане · Лея · Макаї · Лара (послідовно)
 Канон: Тане+Лея = рідний брат/сестра + активний інцест; Макаї = батько; «звичай крові» / право чужинки.
 1) Тане: guides → hunt → intimacy/waterfall → presents to father

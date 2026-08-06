@@ -251,6 +251,80 @@ export const CANON_EVENTS: CanonEvent[] = [
     trigger: 'Після trial або високої поваги кентаврів',
   },
 
+  // --- АРКА КЕНТАВРІВ: Ксерон · Іпполіта · табун · Лара ---
+  {
+    key: 'xeron_demands_trial',
+    category: 'npc',
+    chapter: 'depths',
+    content:
+      'Ксерон відкрито вимагає випробування (біг/сила) перед повагою — інакше Лара «легка здобич».',
+    trigger: 'Перший серйозний діалог із Ксероном на землях табуна',
+  },
+  {
+    key: 'xeron_first_intimacy',
+    category: 'npc',
+    chapter: 'depths',
+    content:
+      'Перша інтимна близькість із Ксероном (зазвичай після перемоги/поваги; великий розмір, верхова анатомія).',
+    trigger: 'SEX_SCENE з партнером Ксерон',
+  },
+  {
+    key: 'xeron_respects_lara',
+    category: 'npc',
+    chapter: 'depths',
+    content: 'Ксерон визнав Лару рівною / вартою — не здобиччю (слова, жест табуна, дозвіл).',
+    trigger: 'Після trial + чесна сцена / високий respect',
+  },
+  {
+    key: 'hippolyta_jealousy',
+    category: 'npc',
+    chapter: 'depths',
+    content: 'Іпполіта виявила ревнощі через близькість Лари з Ксероном або статус у табуні.',
+    trigger: 'Конфлікт/діалог після xeron_intimacy або високого bond з Ксероном',
+  },
+  {
+    key: 'hippolyta_first_intimacy',
+    category: 'npc',
+    chapter: 'depths',
+    content: 'Перша інтимна близькість із Іпполітою (лесбі / сестринство тіла).',
+    trigger: 'SEX_SCENE з партнером Іпполіта',
+  },
+  {
+    key: 'hippolyta_teaches_riding',
+    category: 'npc',
+    chapter: 'depths',
+    content: 'Іпполіта вчила Лару триматись / «їздити» з кентавром (баланс, ритм, довіра).',
+    trigger: 'Спільне тренування / урок верхової з Іпполітою',
+  },
+  {
+    key: 'centaur_herd_challenge',
+    category: 'tribe',
+    chapter: 'depths',
+    content: 'Інші кентаври оскаржили статус Лари — виклик табуна (біг, бій, ритуал).',
+    trigger: 'Конфлікт із членами табуна після прийняття',
+  },
+  {
+    key: 'centaur_mate_claim',
+    category: 'npc',
+    chapter: 'depths',
+    content: 'Ксерон (або табун) заявив «claim» / сезонну пару / право на Лару як обраницю.',
+    trigger: 'Публічна заява вожака після близькості',
+  },
+  {
+    key: 'centaur_herd_ally',
+    category: 'tribe',
+    chapter: 'depths',
+    content: 'Табун став союзником Лари (військо/провід/захист лук).',
+    trigger: 'Висока репутація + trial + (moon run або mate path)',
+  },
+  {
+    key: 'centaur_exile_path',
+    category: 'tribe',
+    chapter: 'depths',
+    content: 'Лара пішла шляхом відмови/вигнання від табуна (ворожість або самостійність).',
+    trigger: 'Відмова від claim / провал trial / образа Ксерона',
+  },
+
   {
     key: 'entered_minotaur_labyrinth',
     category: 'tribe',
@@ -1183,7 +1257,15 @@ export type SideQuestDef = {
   completeFactKeys?: string[]
   unlockHint: string
   /** Optional tag for grouping in prompts */
-  chain?: 'jack' | 'zek' | 'tane_family' | 'tribe_entry' | 'romance' | 'temple' | 'other'
+  chain?:
+    | 'jack'
+    | 'zek'
+    | 'tane_family'
+    | 'centaur'
+    | 'tribe_entry'
+    | 'romance'
+    | 'temple'
+    | 'other'
 }
 
 export const SIDE_QUESTS: SideQuestDef[] = [
@@ -1453,15 +1535,7 @@ export const SIDE_QUESTS: SideQuestDef[] = [
     chain: 'tane_family',
   },
 
-  {
-    title: 'Нічний забіг табуна',
-    description: 'Приєднатися до ритуального бігу кентаврів під місячним сяйвом по східних луках.',
-    givenBy: 'Ксерон / Іпполіта',
-    chapter: 'depths',
-    completeFactKeys: ['centaur_moon_run', 'hippolyta_sisterhood'],
-    unlockHint: 'Перемога у випробуванні кентаврів',
-    chain: 'other',
-  },
+
   {
     title: 'Бунт Міри',
     description: 'Допомогти воїнці Мірі підготувати повалення брутального ватажка Гор-Ака.',
@@ -1492,14 +1566,84 @@ export const SIDE_QUESTS: SideQuestDef[] = [
     unlockHint: 'Локація Землі кентаврів — одразу QUEST_UPDATE add',
     chain: 'tribe_entry',
   },
+
+  // ——— АРКА КЕНТАВРІВ: Ксерон · Іпполіта · табун ———
+  {
+    title: 'Зустріч із табуном',
+    description: 'Офіційна зустріч: met_xeron / met_hippolyta, тон «випробуй або йди».',
+    givenBy: 'Ксерон',
+    chapter: 'depths',
+    completeFactKeys: ['met_xeron', 'met_hippolyta', 'xeron_demands_trial'],
+    unlockHint: 'Після entered_centaur_lands',
+    chain: 'centaur',
+  },
   {
     title: 'Випробування швидкості',
     description: 'Ксерон вимагає перемоги в бігу/змаганні перед повагою і близькістю.',
     givenBy: 'Ксерон',
     chapter: 'depths',
-    completeFactKeys: ['centaur_trial_won', 'centaur_accepted'],
-    unlockHint: 'Після входу на землі кентаврів',
-    chain: 'other',
+    completeFactKeys: ['centaur_trial_won', 'xeron_challenge_race', 'xeron_demands_trial'],
+    unlockHint: 'Після зустрічі з Ксероном',
+    chain: 'centaur',
+  },
+  {
+    title: 'Повага табуна',
+    description: 'Табун визнає Лару вартою — centaur_accepted / xeron_respects_lara.',
+    givenBy: 'Ксерон',
+    chapter: 'depths',
+    completeFactKeys: ['centaur_accepted', 'xeron_respects_lara'],
+    unlockHint: 'Після trial won',
+    chain: 'centaur',
+  },
+  {
+    title: 'Ніч з вожаком',
+    description: 'Близькість із Ксероном після поваги — розмір, ритм, claim-натяк.',
+    givenBy: 'Ксерон',
+    chapter: 'depths',
+    completeFactKeys: ['xeron_first_intimacy', 'centaur_mate_claim'],
+    unlockHint: 'Після поваги / високий bond з Ксероном',
+    chain: 'centaur',
+  },
+  {
+    title: 'Сестринство Іпполіти',
+    description: 'Союз або ревнощі Іпполіти; можлива близькість / урок «їзди».',
+    givenBy: 'Іпполіта',
+    chapter: 'depths',
+    completeFactKeys: [
+      'hippolyta_sisterhood',
+      'hippolyta_jealousy',
+      'hippolyta_first_intimacy',
+      'hippolyta_teaches_riding',
+    ],
+    unlockHint: 'met_hippolyta + (trial або близькість із Ксероном)',
+    chain: 'centaur',
+  },
+  {
+    title: 'Нічний забіг табуна',
+    description: 'Ритуальний місячний біг — єдність з табуном.',
+    givenBy: 'Ксерон / Іпполіта',
+    chapter: 'depths',
+    completeFactKeys: ['centaur_moon_run'],
+    unlockHint: 'Після поваги табуна',
+    chain: 'centaur',
+  },
+  {
+    title: 'Виклик табуна',
+    description: 'Інші кентаври оскаржують статус — бій/біг/ритуал.',
+    givenBy: 'Система',
+    chapter: 'depths',
+    completeFactKeys: ['centaur_herd_challenge'],
+    unlockHint: 'Після claim або moon run',
+    chain: 'centaur',
+  },
+  {
+    title: 'Доля з табуном',
+    description: 'Фінал: союз табуна (centaur_herd_ally) АБО шлях відмови/вигнання (centaur_exile_path).',
+    givenBy: 'Ксерон',
+    chapter: 'depths',
+    completeFactKeys: ['centaur_herd_ally', 'centaur_exile_path'],
+    unlockHint: 'Після moon run / challenge / mate claim',
+    chain: 'centaur',
   },
   {
     title: 'Вхід: Лабіринт мінотаврів',
@@ -1760,7 +1904,20 @@ export const SIDE_QUESTS: SideQuestDef[] = [
 
 /** Compact block for the GM system prompt. */
 export function formatCanonEventsForPrompt(max = 90): string {
-  const lines = CANON_EVENTS.slice(0, max).map(
+  const criticalTail = [
+    'found_temple',
+    'temple_opened',
+    'treasure_found',
+    'ending_freedom',
+    'ending_priestess',
+    'ending_goddess',
+    'ending_destroyer',
+    'ending_dark_queen',
+  ]
+  const picked = CANON_EVENTS.slice(0, max)
+  const have = new Set(picked.map((e) => e.key))
+  const extra = CANON_EVENTS.filter((e) => criticalTail.includes(e.key) && !have.has(e.key))
+  const lines = [...picked, ...extra].map(
     (e) => `• ${e.key} [${e.chapter}/${e.category}]: ${e.trigger}`
   )
   return (
@@ -1802,6 +1959,7 @@ export function formatSideQuestsForPrompt(opts: SideQuestPromptOpts = {}): strin
     'jack',
     'zek',
     'tane_family',
+    'centaur',
     'tribe_entry',
   ]
   const want = opts.chains?.length
@@ -1827,6 +1985,9 @@ export function formatSideQuestsForPrompt(opts: SideQuestPromptOpts = {}): strin
   if (want.has('zek')) {
     sections.push(`## Арка Зека (гієноїд-відступник)\n${byChain('zek').map(fmt).join('\n')}`)
   }
+  if (want.has('centaur')) {
+    sections.push(`## Арка кентаврів\n${byChain('centaur').map(fmt).join('\n')}`)
+  }
   if (want.has('tribe_entry')) {
     sections.push(`## Вхід у території\n${byChain('tribe_entry').map(fmt).join('\n')}`)
   }
@@ -1842,6 +2003,9 @@ export function formatSideQuestsForPrompt(opts: SideQuestPromptOpts = {}): strin
         : '') +
       (want.has('tane_family')
         ? `Арка роду: послідовно (Тане→батько→Лея→звичай крові→розв'язок); не відкривай «Вогнище роду» до викриття інцесту.\n`
+        : '') +
+      (want.has('centaur')
+        ? `Арка кентаврів: trial → повага → близькість (Ксерон/Іпполіта) → moon run → союз|вигнання.\n`
         : '') +
       `---`
   )
@@ -1934,6 +2098,34 @@ export function formatTaneLeyaArcForPrompt(): string {
     `(+ caught_tane_leya_intimate якщо очевидець); секс з Макаї → makai_sex_with_lara; ` +
     `благословення vs відмова — взаємовиключні гілки.\n` +
     `Не відкривай «Вогнище роду» / тріаду до викриття таємниці брата й сестри. Не роби Тане/Лею «просто друзями».\n---\n`
+  )
+}
+
+/** Full GM brief: centaur herd arc (Xeron · Hippolyta · Lara). */
+export function formatCentaurArcForPrompt(): string {
+  return (
+    `\n--- АРКА КЕНТАВРІВ: КСЕРОН · ІППОЛІТА · ТАБУН · ЛАРА ---\n` +
+    `⚠️ КАНОН:\n` +
+    `• Ксерон — вожак, гордий; секс/повага ЛИШЕ після випробування (інакше «легка здобич»).\n` +
+    `• Іпполіта — найшвидша; лесбі/сестринство; може ревнувати до Ксерона або захистити Лару.\n` +
+    `• Анатомія: великий розмір, «верхова» близькість; скіл Верхова їзда / Гра з розміром критичні.\n` +
+    `• Не копіюй Кай-Тору: спочатку змагання, потім близькість.\n` +
+    `\n## Етапи\n` +
+    `1) entered_centaur_lands → met_xeron / met_hippolyta → xeron_demands_trial\n` +
+    `2) centaur_trial_won / xeron_challenge_race → centaur_accepted / xeron_respects_lara\n` +
+    `3) xeron_first_intimacy → (centaur_mate_claim) → hippolyta_jealousy | hippolyta_sisterhood\n` +
+    `4) hippolyta_first_intimacy / hippolyta_teaches_riding → centaur_moon_run\n` +
+    `5) centaur_herd_challenge → centaur_herd_ally АБО centaur_exile_path\n` +
+    `\n## Квести chain=centaur\n` +
+    `Зустріч із табуном → Випробування швидкості → Повага табуна → Ніч з вожаком → ` +
+    `Сестринство Іпполіти → Нічний забіг табуна → Виклик табуна → Доля з табуном.\n` +
+    `\n## FACT\n` +
+    `entered_centaur_lands | met_xeron | met_hippolyta | xeron_demands_trial | centaur_trial_won | ` +
+    `xeron_challenge_race | centaur_accepted | xeron_respects_lara | xeron_first_intimacy | ` +
+    `centaur_mate_claim | hippolyta_jealousy | hippolyta_sisterhood | hippolyta_first_intimacy | ` +
+    `hippolyta_teaches_riding | centaur_moon_run | centaur_herd_challenge | ` +
+    `centaur_herd_ally | centaur_exile_path | other_tribe_contact.\n` +
+    `Фінали herd_ally vs exile_path — взаємовиключні.\n---\n`
   )
 }
 

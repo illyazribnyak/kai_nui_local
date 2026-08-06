@@ -6,6 +6,7 @@ import {
   TRIBE_ENTRIES,
   formatCanonEventsForPrompt,
   formatSideQuestsForPrompt,
+  formatCentaurArcForPrompt,
   formatTaneLeyaArcForPrompt,
   formatTribeEntriesForPrompt,
   formatZekArcForPrompt,
@@ -208,6 +209,19 @@ describe('SIDE_QUESTS', () => {
     }
   })
 
+  it('has full centaur chain', () => {
+    const c = SIDE_QUESTS.filter((q) => q.chain === 'centaur')
+    assert.ok(c.length >= 6)
+    assert.ok(c.some((q) => q.title === 'Випробування швидкості'))
+    assert.ok(c.some((q) => q.title === 'Доля з табуном'))
+    const known = new Set(CANON_EVENTS.map((e) => e.key))
+    for (const q of c) {
+      for (const k of q.completeFactKeys ?? []) {
+        assert.ok(known.has(k), `centaur quest «${q.title}» unknown fact ${k}`)
+      }
+    }
+  })
+
   it('has full Tane family chain', () => {
     const fam = SIDE_QUESTS.filter((q) => q.chain === 'tane_family')
     assert.ok(fam.length >= 12)
@@ -285,5 +299,13 @@ describe('prompt formatters', () => {
     assert.match(block, /Арка роду/)
     assert.match(block, /Таємниця брата й сестри/)
     assert.match(block, /Право батька/)
+  })
+
+  it('describes centaur arc', () => {
+    const block = formatCentaurArcForPrompt()
+    assert.match(block, /Ксерон/)
+    assert.match(block, /Іпполіта/)
+    assert.match(block, /centaur_trial_won/)
+    assert.match(block, /centaur_herd_ally/)
   })
 })

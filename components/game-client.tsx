@@ -673,11 +673,22 @@ export default function GameClient() {
     }
   }
 
-  const resetGame = async () => {
+  const resetGame = async (buildId?: string) => {
     if (!confirm('Почати нову гру? Весь прогрес буде втрачено!')) return
     try {
-      const res = await fetch('/api/reset-game', { method: 'POST' })
+      const res = await fetch('/api/reset-game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ buildId: buildId || 'balanced' }),
+      })
       if (!res.ok) throw new Error('Помилка скидання')
+      let buildName = ''
+      try {
+        const data = await res.json()
+        buildName = data?.build?.name ? ` (${data.build.name})` : ''
+      } catch {
+        /* ignore */
+      }
       // Clear sex HUD first (before reload) so sticky scene cannot reappear
       setSexScene(null)
       setPleasure({ lara: 0, partner: 0 })
@@ -714,11 +725,31 @@ export default function GameClient() {
       // Reload seeded skills / canon — server activeSexJson already cleared
       await loadGameState()
       setActiveTempo('medium')
-      toast.success('Нову гру розпочато!')
+      toast.success(`Нову гру розпочато${buildName}!`)
     } catch (error: any) {
       console.error('Reset error:', error)
       toast.error('Помилка скидання гри')
     }
+  }
+
+  /** New game with build pick (used from menu → modal) */
+  const resetGameWithBuildPicker = () => {
+    const choice = window.prompt(
+      'Стартовий білд:\n1 — Дослідниця (default)\n2 — Соблазнителька\n3 — Витривала\n4 — Хитра\n\nВведи 1–4:',
+      '1'
+    )
+    const map: Record<string, string> = {
+      '1': 'balanced',
+      '2': 'seductress',
+      '3': 'enduring',
+      '4': 'cunning',
+      balanced: 'balanced',
+      seductress: 'seductress',
+      enduring: 'enduring',
+      cunning: 'cunning',
+    }
+    const id = map[(choice || '1').trim().toLowerCase()] || 'balanced'
+    void resetGame(id)
   }
 
   const openSaveModal = async (mode: 'save' | 'load') => {
@@ -1427,7 +1458,10 @@ export default function GameClient() {
                     <button
                       type="button"
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left text-red-400"
-                      onClick={() => { setShowHeaderMenu(false); void resetGame() }}
+                      onClick={() => {
+                        setShowHeaderMenu(false)
+                        resetGameWithBuildPicker()
+                      }}
                     >
                       <RotateCcw className="w-4 h-4" /> Нова гра
                     </button>

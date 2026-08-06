@@ -90,6 +90,31 @@ export function computeKinkModifiers(
       shameRelief += lv
       dominationFloorBonus -= lv
     }
+    if (def.key === 'group') {
+      partnerPleasureBonusPct += 2 * lv
+      laraPleasureBonusPct += lv
+    }
+    if (def.key === 'lactation') {
+      laraPleasureBonusPct += 3 * lv
+      amuletGainMult *= 1 + 0.02 * lv
+    }
+    if (def.key === 'bondage') {
+      dominationFloorBonus += lv
+      laraPleasureBonusPct += lv
+    }
+    if (def.key === 'pain') {
+      laraPleasureBonusPct += 2 * lv
+      shameRelief += Math.floor(lv / 2)
+    }
+    if (def.key === 'pheromones') {
+      laraPleasureBonusPct += 2 * lv
+      sizeDcRelief += Math.floor(lv / 2) // scent overload softens resistance
+    }
+    if (def.key === 'family_taboo') {
+      laraPleasureBonusPct += 3 * lv
+      shameRelief += lv // processes taboo into desire
+      partnerPleasureBonusPct += lv
+    }
   }
 
   return {

@@ -1,41 +1,45 @@
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic'
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { applyStartingBuild, getStartingBuild } from '@/lib/game/starting-builds'
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
-    // Delete all messages
+    let buildId: string | undefined
+    try {
+      const body = await req.json()
+      if (body && typeof body.buildId === 'string') buildId = body.buildId
+    } catch {
+      /* empty body OK */
+    }
+
     await prisma.message.deleteMany({})
-    // Delete all relationships
     await prisma.relationship.deleteMany({})
-    // Delete all diseases
     await prisma.disease.deleteMany({})
-    // Delete all inventory
     await prisma.inventoryItem.deleteMany({})
-    // Delete all quests
     await prisma.quest.deleteMany({})
-    // Delete all diary entries
     await prisma.diaryEntry.deleteMany({})
-    // Delete all skills
     await prisma.skill.deleteMany({})
-    // Delete story summaries
     await prisma.storySummary.deleteMany({})
-    // Delete locations, tribes, achievements
     await prisma.location.deleteMany({})
     await prisma.tribeReputation.deleteMany({})
     await prisma.achievement.deleteMany({})
     await prisma.worldFact.deleteMany({})
     await prisma.turnSnapshot.deleteMany({}).catch(() => {})
-    // Reset game state
+    // Reset kinks levels/discovered (keep catalog rows if any — reseed fixes)
+    try {
+      await prisma.kink.deleteMany({})
+    } catch {
+      /* ignore */
+    }
+
+    const defaults = getStartingBuild(buildId || 'balanced').stats
+
     await prisma.gameState.upsert({
       where: { id: 'singleton' },
       update: {
-        strength: 6,
-        agility: 8,
-        endurance: 7,
-        charisma: 7,
-        willpower: 8,
+        ...defaults,
         desire: 0,
         shame: 0,
         confidence: 50,
@@ -63,23 +67,25 @@ export async function POST() {
         endingPath: null,
         turnCount: 0,
         totalTokensUsed: 0,
-        // Must clear sex HUD persistence or new game keeps old scene
         activeSexJson: '',
+        bodyProfileJson: '',
       },
       create: {
         id: 'singleton',
         gameStarted: true,
         activeSexJson: '',
+        ...defaults,
       },
     })
 
-    // Seed initial skills, locations, tribes, quests, facts
     const { seedSkills } = await import('@/lib/seed-skills')
     await seedSkills()
     try {
       const { seedKinks } = await import('@/lib/seed-kinks')
       await seedKinks()
-    } catch { /* ignore if migrate pending */ }
+    } catch {
+      /* ignore if migrate pending */
+    }
     const { seedLocations, seedTribes } = await import('@/lib/seed-locations')
     await seedLocations()
     await seedTribes()
@@ -89,7 +95,10 @@ export async function POST() {
     const { seedCanonNpcs } = await import('@/lib/seed-npcs')
     await seedCanonNpcs()
 
-    return NextResponse.json({ success: true })
+    // Apply chosen build on top of fresh seed
+    const build = await applyStartingBuild(buildId || 'balanced')
+
+    return NextResponse.json({ success: true, build: { id: build.id, name: build.name } })
   } catch (error: any) {
     console.error('Reset game error:', error)
     return NextResponse.json({ error: error?.message ?? 'Помилка скидання' }, { status: 500 })

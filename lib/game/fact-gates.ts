@@ -82,8 +82,24 @@ export const FACT_PREREQUISITES: Record<string, readonly string[]> = {
   // Tribe entries
   guest_of_tribe: ['entered_village'],
   tribe_accepted: ['entered_village'],
-  centaur_trial_won: ['entered_centaur_lands'],
   hyena_pact: ['entered_hyena_territory'],
+
+  // Centaur arc
+  xeron_demands_trial: ['met_xeron'],
+  centaur_trial_won: ['entered_centaur_lands', 'met_xeron'],
+  xeron_challenge_race: ['met_xeron'],
+  centaur_accepted: ['centaur_trial_won'],
+  xeron_respects_lara: ['met_xeron'],
+  xeron_first_intimacy: ['met_xeron'],
+  centaur_mate_claim: ['met_xeron'],
+  hippolyta_jealousy: ['met_hippolyta'],
+  hippolyta_first_intimacy: ['met_hippolyta'],
+  hippolyta_sisterhood: ['met_hippolyta'],
+  hippolyta_teaches_riding: ['met_hippolyta'],
+  centaur_moon_run: ['entered_centaur_lands'],
+  centaur_herd_challenge: ['entered_centaur_lands'],
+  centaur_herd_ally: ['entered_centaur_lands'],
+  centaur_exile_path: ['entered_centaur_lands'],
 }
 
 /**
@@ -96,6 +112,7 @@ export const FACT_MUTEX_GROUPS: readonly (readonly string[])[] = [
   ['jack_loyalty_ally', 'jack_loyalty_rival'],
   ['blood_custom_broken', 'blood_custom_continued'],
   ['zek_protected', 'zek_betrayed'],
+  ['centaur_herd_ally', 'centaur_exile_path'],
 ]
 
 export type FactGatePlan = {
