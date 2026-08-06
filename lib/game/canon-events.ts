@@ -75,14 +75,16 @@ export const CANON_EVENTS: CanonEvent[] = [
     key: 'met_tane',
     category: 'npc',
     chapter: 'tribe',
-    content: 'Лара зустріла Тане — молодого воїна Кай-Тору. Він зацікавлений і ніжний.',
+    content:
+      'Лара зустріла Тане — молодого воїна/мисливця Кай-Тору, сина вождівської лінії. Ніжний, пристрасний; має сестру Лею.',
     trigger: 'Перша поява Тане',
   },
   {
     key: 'met_leya',
     category: 'npc',
     chapter: 'tribe',
-    content: 'Лара зустріла Лею — жінку Кай-Тору, сестру Тане, пов\'язану з Джеком.',
+    content:
+      'Лара зустріла Лею — принцесу Кай-Тору, доньку вождя Макаї, рідну сестру Тане. Горда, ревнива; «подруга» Джека.',
     trigger: 'Перша поява Леї',
   },
   {
@@ -577,54 +579,69 @@ export const CANON_EVENTS: CanonEvent[] = [
     trigger: 'Сильний сором+впевненість, темний ритуал, вибір насильства',
   },
 
-  // --- tane & leya sibling arc ---
+  // --- tane & leya: siblings + secret incest lovers arc ---
   {
-    key: 'tane_leya_father_clue',
+    key: 'tane_leya_siblings',
+    category: 'npc',
+    chapter: 'tribe',
+    content:
+      'Підтверджено: Тане і Лея — рідний брат і сестра (діти вождівської лінії Макаї / великого мисливця).',
+    trigger: 'Діалог, чутка в селищі, або зізнання когось із них',
+  },
+  {
+    key: 'tane_leya_secret_lovers',
     category: 'secret',
     chapter: 'tribe',
-    content: 'Знайдено сліди зниклого батька Тане та Леї у руїнах острова.',
-    trigger: 'Пошук речей/знаків батька Тане й Леї',
+    content:
+      'Лара дізналася заборонену таємницю: рідний брат Тане і сестра Лея — таємні коханці (інцестуальний зв\'язок уже активний до появи Лари).',
+    trigger: 'Свідчення, підглядання, або зізнання про інтим між Тане й Леєю',
   },
   {
     key: 'leya_past_with_jack',
     category: 'secret',
     chapter: 'tribe',
-    content: 'Лея розкрила Ларі правду про її старі стосунки та образу на Джека.',
+    content:
+      'Принцеса Лея розкрила Ларі правду про її старі сексуальні стосунки з Джеком Вейном і образу на нього (поруч із таємницею з братом).',
     trigger: 'Глибокий діалог із Леєю про Джека',
   },
   {
     key: 'tane_leya_confrontation',
     category: 'npc',
     chapter: 'tribe',
-    content: 'Напружена розмова-суперечка між Тане та Леєю через Лару й Джека.',
-    trigger: 'Сцена конфлікту брата й сестри перед Ларою',
+    content:
+      'Спалах ревнощів Леї: сестра-коханка Тане бачить у Ларі загрозу їхньому забороненому зв\'язку і/або ролі «першої» в серці брата.',
+    trigger: 'Сцена конфронтації Леї з Ларою через Тане',
   },
   {
     key: 'tane_leya_reconciliation',
     category: 'npc',
     chapter: 'tribe',
-    content: 'Примирення Тане й Леї — родинний союз на боці Лари.',
-    trigger: "Розв'язання конфлікту між братом і сестрою",
+    content:
+      'Примирення з Леєю — розв\'язання ревнощів сестри-коханки (союз, правила «ділити» Тане, або інший компроміс).',
+    trigger: "Розв'язання конфлікту між Леєю, Тане й Ларою",
   },
   {
     key: 'leya_accepts_lara',
     category: 'npc',
     chapter: 'tribe',
-    content: 'Лея визнала Лару «сестрою по вогню» та членом родини.',
-    trigger: 'Високий bond із Леєю / проходження випробування',
+    content:
+      'Лея (сестра й коханка Тане) визнала Лару й дозволила розділити брата / увійти в їхнє коло пристрасті.',
+    trigger: 'Високий bond із Леєю / згода ділити Тане',
   },
   {
     key: 'tane_leya_triad_ritual',
     category: 'ritual',
     chapter: 'tribe',
-    content: 'Спільний ритуал очищення вогнища та єднання з Тане та Леєю.',
-    trigger: 'Інтимний/магічний ритуал родинного вогнища',
+    content:
+      'Спільний племінний (або таємний) ритуал пристрасті: брат Тане + сестра Лея + Лара в одній сцені.',
+    trigger: 'Інтимний ритуал троє за участю Тане, Леї та Лари',
   },
   {
     key: 'tane_leya_father_journal',
     category: 'secret',
     chapter: 'depths',
-    content: 'Знайдено щоденник/реліквію батька Тане й Леї біля Храму.',
+    content:
+      'Знайдено щоденник/реліквію батька Тане й Леї (вождь Макаї / великий мисливець) у руїнах — натяки на звичаї крові й таємниці роду.',
     trigger: 'Знаходження реліквії батька у руїнах',
   },
   {
@@ -970,10 +987,10 @@ export const SIDE_QUESTS: SideQuestDef[] = [
   {
     title: 'Джек і Лея',
     description:
-      'Розрулити трикутник: Лея — «подруга» Джека; Тане — її брат. Ревнощі, шантаж або союз.',
+      'Розрулити вузол: Лея — сестра Тане і його таємна коханка + «подруга» Джека. Ревнощі, шантаж, викриття або союз.',
     givenBy: 'Система',
     chapter: 'tribe',
-    completeFactKeys: ['jack_leya_confrontation', 'jack_secret', 'leya_rivalry'],
+    completeFactKeys: ['jack_leya_confrontation', 'jack_secret', 'leya_rivalry', 'tane_leya_secret_lovers'],
     unlockHint: 'met_jack + met_leya',
     chain: 'jack',
   },
@@ -1065,11 +1082,12 @@ export const SIDE_QUESTS: SideQuestDef[] = [
   },
   {
     title: 'Сестра по вогню',
-    description: 'Здобути повагу й довіру Леї, зробивши її вірною союзницею та родинною сестрою.',
+    description:
+      'Здобути довіру Леї — рідної сестри й таємної коханки Тане — і стати «сестрою по вогню» (союз / розділити брата).',
     givenBy: 'Лея',
     chapter: 'tribe',
-    completeFactKeys: ['leya_accepts_lara', 'tane_leya_reconciliation'],
-    unlockHint: 'Після виконання Спадок Батька або порятунку Тане',
+    completeFactKeys: ['leya_accepts_lara', 'tane_leya_reconciliation', 'tane_leya_siblings'],
+    unlockHint: 'Після викриття/прийняття таємниці Тане–Лея або порятунку Тане',
     chain: 'romance',
   },
   {
@@ -1137,11 +1155,12 @@ export const SIDE_QUESTS: SideQuestDef[] = [
   },
   {
     title: 'Таємниця Леї',
-    description: 'Розплутати трикутник Тане–Лея–Джек і зрозуміти, на чиєму боці Лея.',
+    description:
+      'Розкрити, що Тане і Лея — брат і сестра та таємні коханці; розплутати вузол з Джеком і ревнощами.',
     givenBy: 'Система',
     chapter: 'tribe',
-    completeFactKeys: ['leya_rivalry', 'jack_secret'],
-    unlockHint: 'Після зустрічі з двома з трьох',
+    completeFactKeys: ['tane_leya_siblings', 'tane_leya_secret_lovers', 'leya_rivalry', 'jack_secret'],
+    unlockHint: 'Після зустрічі з двома з трьох (Тане / Лея / Джек)',
     chain: 'other',
   },
 
@@ -1444,15 +1463,22 @@ export function formatZekArcForPrompt(): string {
   )
 }
 
-/** Dedicated GM brief for the Tane & Leya sibling arc. */
+/** Dedicated GM brief for the Tane & Leya sibling + incest lovers arc. */
 export function formatTaneLeyaArcForPrompt(): string {
   return (
-    `\n--- АРКА: ТАНЕ ТА ЛЕЯ (Брат і Сестра Кай-Тору) ---\n` +
-    `Канон: Тане — молодий воїн, закоханий і ніжний до Лари. Лея — його сестра, горда мисливиця Кай-Тору.\n` +
-    `Минуле з Джеком: Лея мала пристрасний зв'язок із Джеком Вейном до аварії. Вона відчуває образу й спочатку ревнує Лару до Джека та Тане.\n` +
-    `Таємниця батька: Батько Тане та Леї (колишній великий мисливець) зник біля руїн Атлантиди. Знаходження щоденника батька об'єднує родину.\n` +
-    `Визнання: Якщо Лара допомагає Леї або залишається вірною Тане, Лея визнає її «сестрою по вогню» та членом родинного вогнища.\n` +
-    `FACT keys: tane_leya_father_clue | leya_past_with_jack | tane_leya_confrontation | tane_leya_reconciliation | leya_accepts_lara | tane_leya_triad_ritual | tane_leya_father_journal.\n---\n`
+    `\n--- АРКА: ТАНЕ І ЛЕЯ (БРАТ І СЕСТРА + ІНТИМ) ---\n` +
+    `⚠️ КАНОН (не супереч):\n` +
+    `• Тане і Лея — РІДНІ БРАТ І СЕСТРА (діти вождівської лінії / Макаї).\n` +
+    `• Між ними вже є активні ІНЦЕСТУАЛЬНІ сексуальні/романтичні стосунки на старті гри (таємниця племені або «звичаї крові» — не випадковий флірт).\n` +
+    `• Тане: ніжний, закохується в Лару; соромиться/рветься між сестрою-коханкою і Ларою.\n` +
+    `• Лея: горда, ревнива; сестра-коханка Тане + «подруга»/колишня Джека Вейна.\n` +
+    `• Джек: сексуальний зв'язок із Леєю; не обов'язково знає про інцест одразу.\n` +
+    `• Трикутники: (Тане–Лея–Лара) і (Джек–Лея–Лара). Ревнощі Леї природні — вона не «просто суперниця», а сестра, яка ділить ліжко з братом.\n` +
+    `• Можливі розв'язки: викриття → шок; прийняття Лари в їхнє коло; ритуал трьох; розрив; шантаж.\n` +
+    `• Батько: щоденник/реліквія в руїнах (tane_leya_father_journal) — родинні таємниці.\n` +
+    `FACT: tane_leya_siblings | tane_leya_secret_lovers | leya_past_with_jack | tane_leya_confrontation | ` +
+    `tane_leya_reconciliation | leya_accepts_lara | tane_leya_triad_ritual | tane_leya_father_journal | tane_leya_father_clue.\n` +
+    `При FACT_ADD на свідчення інтиму між ними — використовуй tane_leya_secret_lovers; на «вони брат і сестра» — tane_leya_siblings.\n---\n`
   )
 }
 
