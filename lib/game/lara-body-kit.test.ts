@@ -35,8 +35,8 @@ describe('BODY_PARTS', () => {
 describe('suggestBodyKit', () => {
   it('picks fuller AI parts when aroused', () => {
     const k = suggestBodyKit({ lookKey: 'aroused', desire: 80 })
-    assert.equal(k.bust, 'bust_full')
-    assert.equal(k.hips, 'hips_curvy')
+    assert.equal(k.bust, 'bust_full_nude')
+    assert.equal(k.hips, 'hips_curvy_front')
   })
 
   it('uses curvy hips in sex scene', () => {
@@ -45,8 +45,8 @@ describe('suggestBodyKit', () => {
       inSexScene: true,
       sexSceneType: 'coercion',
     })
-    assert.equal(k.hips, 'hips_curvy')
-    assert.equal(k.bust, 'bust_full')
+    assert.equal(k.hips, 'hips_curvy_butt')
+    assert.equal(k.bust, 'bust_full_nude')
   })
 
   it('uses beach AI on shore', () => {
