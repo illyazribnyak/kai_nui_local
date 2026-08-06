@@ -20,6 +20,7 @@ import {
   formatSideQuestsForPrompt,
   formatTribeEntriesForPrompt,
   formatZekArcForPrompt,
+  formatTaneLeyaArcForPrompt,
 } from '@/lib/game/canon-events'
 import {
   formatRandomEventCatalogHint,
@@ -157,6 +158,7 @@ ${formatCanonEventsForPrompt()}
 ${formatTribeEntriesForPrompt()}
 ${formatSideQuestsForPrompt()}
 ${formatZekArcForPrompt()}
+${formatTaneLeyaArcForPrompt()}
 ${formatRaceSexStatsForPrompt()}
 ${formatLaraAppearanceForPrompt(gameState, skills)}
 ${formatRandomEventCatalogHint()}

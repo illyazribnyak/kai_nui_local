@@ -577,7 +577,56 @@ export const CANON_EVENTS: CanonEvent[] = [
     trigger: 'Сильний сором+впевненість, темний ритуал, вибір насильства',
   },
 
-  // --- companion & romance arcs ---
+  // --- tane & leya sibling arc ---
+  {
+    key: 'tane_leya_father_clue',
+    category: 'secret',
+    chapter: 'tribe',
+    content: 'Знайдено сліди зниклого батька Тане та Леї у руїнах острова.',
+    trigger: 'Пошук речей/знаків батька Тане й Леї',
+  },
+  {
+    key: 'leya_past_with_jack',
+    category: 'secret',
+    chapter: 'tribe',
+    content: 'Лея розкрила Ларі правду про її старі стосунки та образу на Джека.',
+    trigger: 'Глибокий діалог із Леєю про Джека',
+  },
+  {
+    key: 'tane_leya_confrontation',
+    category: 'npc',
+    chapter: 'tribe',
+    content: 'Напружена розмова-суперечка між Тане та Леєю через Лару й Джека.',
+    trigger: 'Сцена конфлікту брата й сестри перед Ларою',
+  },
+  {
+    key: 'tane_leya_reconciliation',
+    category: 'npc',
+    chapter: 'tribe',
+    content: 'Примирення Тане й Леї — родинний союз на боці Лари.',
+    trigger: "Розв'язання конфлікту між братом і сестрою",
+  },
+  {
+    key: 'leya_accepts_lara',
+    category: 'npc',
+    chapter: 'tribe',
+    content: 'Лея визнала Лару «сестрою по вогню» та членом родини.',
+    trigger: 'Високий bond із Леєю / проходження випробування',
+  },
+  {
+    key: 'tane_leya_triad_ritual',
+    category: 'ritual',
+    chapter: 'tribe',
+    content: 'Спільний ритуал очищення вогнища та єднання з Тане та Леєю.',
+    trigger: 'Інтимний/магічний ритуал родинного вогнища',
+  },
+  {
+    key: 'tane_leya_father_journal',
+    category: 'secret',
+    chapter: 'depths',
+    content: 'Знайдено щоденник/реліквію батька Тане й Леї біля Храму.',
+    trigger: 'Знаходження реліквії батька у руїнах',
+  },
   {
     key: 'tane_first_hunt',
     category: 'npc',
@@ -997,6 +1046,42 @@ export const SIDE_QUESTS: SideQuestDef[] = [
     chain: 'romance',
   },
   {
+    title: 'Спадок Батька',
+    description: 'Відшукати сліди зниклого батька Тане та Леї у стародавніх руїнах острова.',
+    givenBy: 'Тане / Лея',
+    chapter: 'tribe',
+    completeFactKeys: ['tane_leya_father_clue', 'tane_leya_father_journal'],
+    unlockHint: 'Розмова з Леєю або Тане про їхню родину',
+    chain: 'romance',
+  },
+  {
+    title: 'Минуле Леї та Джека',
+    description: 'Розкрити приховану історію між Леєю та Джеком Вейном і владнати непорозуміння.',
+    givenBy: 'Лея',
+    chapter: 'tribe',
+    completeFactKeys: ['leya_past_with_jack', 'tane_leya_confrontation'],
+    unlockHint: 'Зустріч з Леєю та Джеком у селищі',
+    chain: 'other',
+  },
+  {
+    title: 'Сестра по вогню',
+    description: 'Здобути повагу й довіру Леї, зробивши її вірною союзницею та родинною сестрою.',
+    givenBy: 'Лея',
+    chapter: 'tribe',
+    completeFactKeys: ['leya_accepts_lara', 'tane_leya_reconciliation'],
+    unlockHint: 'Після виконання Спадок Батька або порятунку Тане',
+    chain: 'romance',
+  },
+  {
+    title: 'Вогнище Кай-Тору',
+    description: 'Пройти племінний ритуал єднання родинного вогнища разом із Тане та Леєю.',
+    givenBy: 'Тане / Лея',
+    chapter: 'tribe',
+    completeFactKeys: ['tane_leya_triad_ritual'],
+    unlockHint: 'Висока репутація Кай-Тору + довіра обох',
+    chain: 'romance',
+  },
+  {
     title: 'Священне полювання',
     description: 'Піти з Тане у глиб джунглів на спільне полювання — випробування згуртованості та пристрасті.',
     givenBy: 'Тане',
@@ -1356,6 +1441,18 @@ export function formatZekArcForPrompt(): string {
     `zek_hunters | zek_mark_cleansed | zek_guide | zek_protected | zek_betrayed | zek_kira_confront | ` +
     `zek_free_exile | zek_companion | zek_returned | zek_dead.\n` +
     `Не плутай з звичайним патрулем. Зек ≠ Кіра. Кай-Тору можуть зневажати «пса» біля селища.\n---\n`
+  )
+}
+
+/** Dedicated GM brief for the Tane & Leya sibling arc. */
+export function formatTaneLeyaArcForPrompt(): string {
+  return (
+    `\n--- АРКА: ТАНЕ ТА ЛЕЯ (Брат і Сестра Кай-Тору) ---\n` +
+    `Канон: Тане — молодий воїн, закоханий і ніжний до Лари. Лея — його сестра, горда мисливиця Кай-Тору.\n` +
+    `Минуле з Джеком: Лея мала пристрасний зв'язок із Джеком Вейном до аварії. Вона відчуває образу й спочатку ревнує Лару до Джека та Тане.\n` +
+    `Таємниця батька: Батько Тане та Леї (колишній великий мисливець) зник біля руїн Атлантиди. Знаходження щоденника батька об'єднує родину.\n` +
+    `Визнання: Якщо Лара допомагає Леї або залишається вірною Тане, Лея визнає її «сестрою по вогню» та членом родинного вогнища.\n` +
+    `FACT keys: tane_leya_father_clue | leya_past_with_jack | tane_leya_confrontation | tane_leya_reconciliation | leya_accepts_lara | tane_leya_triad_ritual | tane_leya_father_journal.\n---\n`
   )
 }
 
