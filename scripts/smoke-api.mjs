@@ -127,10 +127,50 @@ async function main() {
     check('chat rejects long message', tooLong.status === 400, `status=${tooLong.status}`)
   }
 
+  // Server combat (no LLM)
+  {
+    const start = await req('/api/combat', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'start', enemyId: 'generic_beast', seed: 42 }),
+    })
+    check('combat start 200', start.status === 200 && start.json?.success, start.text)
+    check('combat has enemy HP', (start.json?.combat?.enemyHp ?? 0) > 0)
+
+    const turn = await req('/api/combat', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'turn', actionType: 'unarmed' }),
+    })
+    check('combat turn 200', turn.status === 200 && turn.json?.success, turn.text)
+    check('combat turn has roll', (turn.json?.result?.roll ?? 0) >= 1)
+
+    const end = await req('/api/combat', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'end' }),
+    })
+    check('combat end 200', end.status === 200 && end.json?.success, end.text)
+  }
+
+  // Server craft (expect missing ingredients without items)
+  {
+    const craft = await req('/api/craft', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'craft', recipeId: 'not-a-real-recipe' }),
+    })
+    check(
+      'craft unknown recipe 4xx',
+      craft.status === 404 || craft.status === 400,
+      `status=${craft.status}`
+    )
+  }
+
   // Reset + re-seed path
   {
-    const r = await req('/api/reset-game', { method: 'POST' })
+    const r = await req('/api/reset-game', {
+      method: 'POST',
+      body: JSON.stringify({ buildId: 'balanced' }),
+    })
     check('reset-game 200', r.status === 200 && r.json?.success, r.text)
+    check('reset returns build', !!r.json?.build?.id, String(r.json?.build?.id))
     const gs = await req('/api/game-state')
     check('after reset day=1', gs.json?.gameState?.dayNumber === 1, `day=${gs.json?.gameState?.dayNumber}`)
     check('after reset has quests', (gs.json?.quests?.length ?? 0) > 0)

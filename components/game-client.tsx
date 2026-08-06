@@ -1902,9 +1902,10 @@ export default function GameClient() {
                     messages={messages}
                     inventory={inventory}
                     gameState={gameState}
-                    laraHp={Math.max(10, Math.round(100 - (gameState?.hunger ?? 0) * 0.4))}
-                    laraMaxHp={100}
                     onCombatAction={(action) => sendMessage(action)}
+                    onServerUpdate={() => {
+                      void loadGameState()
+                    }}
                   />
                 </motion.div>
               )}

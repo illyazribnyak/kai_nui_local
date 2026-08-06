@@ -16,7 +16,8 @@
     "smoke": "node scripts/smoke-api.mjs",
     "smoke:3000": "node scripts/smoke-api.mjs http://localhost:3000",
     "smoke:3001": "node scripts/smoke-api.mjs http://localhost:3001",
-    "ci": "npm run typecheck && npm test",
+    "story-smoke": "tsx --test lib/game/story-smoke.test.ts lib/game/fact-gates.test.ts lib/game/combat.test.ts",
+    "ci": "npm run typecheck && npm test && npm run story-smoke",
     "postinstall": "prisma generate"
   },
   "prisma": {

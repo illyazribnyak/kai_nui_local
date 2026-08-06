@@ -58,6 +58,8 @@ model GameState {
   totalTokensUsed Int    @default(0)
   /// Active sex scene UI state (JSON). Empty = not in sex. Survives reload.
   activeSexJson String   @default("")
+  /// Active tactical combat session (JSON). Empty = not in combat.
+  activeCombatJson String @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

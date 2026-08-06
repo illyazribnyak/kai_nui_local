@@ -13,7 +13,12 @@ import {
 } from '@/lib/game/crafting'
 
 export type CraftResult =
-  | { ok: true; recipe: CraftingRecipe; message: string }
+  | {
+      ok: true
+      recipe: CraftingRecipe
+      message: string
+      inventory?: { name: string; quantity: number; category: string; description: string }[]
+    }
   | { ok: false; error: string; code?: string }
 
 export type ConsumeResult =
@@ -79,10 +84,41 @@ export async function craftRecipeById(recipeId: string): Promise<CraftResult> {
     })
   })
 
+  // Small skill XP for crafting success (server-side, no LLM)
+  try {
+    const skillName = 'Торгівля' // barter/craft-adjacent social skill
+    const existing = await prisma.skill.findUnique({ where: { name: skillName } })
+    if (existing && existing.level < 5) {
+      const maxXpByLevel = [100, 150, 225, 350, 500]
+      let newXp = existing.xp + 8
+      let newLevel = existing.level
+      let newMaxXp = existing.maxXp
+      while (newXp >= newMaxXp && newLevel < 5) {
+        newXp -= newMaxXp
+        newLevel++
+        newMaxXp = maxXpByLevel[Math.min(newLevel, 4)] ?? 500
+      }
+      if (newLevel >= 5) {
+        newLevel = 5
+        newXp = 0
+        newMaxXp = 500
+      }
+      await prisma.skill.update({
+        where: { name: skillName },
+        data: { xp: newXp, level: newLevel, maxXp: newMaxXp },
+      })
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const inventoryAfter = await prisma.inventoryItem.findMany()
+
   return {
     ok: true,
     recipe,
     message: `Створено: ${recipe.name}${recipe.resultQuantity > 1 ? ` ×${recipe.resultQuantity}` : ''}`,
+    inventory: inventoryAfter,
   }
 }
 

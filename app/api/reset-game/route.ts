@@ -68,12 +68,14 @@ export async function POST(req: NextRequest) {
         turnCount: 0,
         totalTokensUsed: 0,
         activeSexJson: '',
+        activeCombatJson: '',
         bodyProfileJson: '',
       },
       create: {
         id: 'singleton',
         gameStarted: true,
         activeSexJson: '',
+        activeCombatJson: '',
         ...defaults,
       },
     })

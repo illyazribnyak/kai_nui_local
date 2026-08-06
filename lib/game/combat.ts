@@ -263,16 +263,28 @@ export interface CombatActionResult {
   lootEarned?: Array<{ name: string; quantity: number }>
 }
 
+/** 0..1 RNG; inject for tests / server determinism. */
+export type CombatRng = () => number
+
+export function createSeededRng(seed: number): CombatRng {
+  let s = seed >>> 0
+  return () => {
+    s = (Math.imul(1664525, s) + 1013904223) >>> 0
+    return s / 0x100000000
+  }
+}
+
 export function resolveCombatTurn(
   actionType: CombatActionType,
   enemy: EnemyProfile,
   currentEnemyHp: number,
   currentLaraHp: number,
   inventory: InventoryItemData[],
-  gameState: GameState | null
+  gameState: GameState | null,
+  rng: CombatRng = Math.random
 ): CombatActionResult {
   const fx = computeWardrobeEffects(gameState)
-  const roll = Math.floor(Math.random() * 20) + 1
+  const roll = Math.min(20, Math.max(1, Math.floor(rng() * 20) + 1))
   const isCrit = roll === 20
   const isFail = roll === 1
 

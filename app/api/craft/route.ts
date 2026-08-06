@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
         success: true,
         message: result.message,
         recipe: { id: result.recipe.id, name: result.recipe.name },
+        inventory: result.inventory ?? null,
       })
     }
 

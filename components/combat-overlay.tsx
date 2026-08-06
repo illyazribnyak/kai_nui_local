@@ -1,18 +1,17 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Swords, Shield, Zap, Sparkles, Heart, Trophy, AlertCircle, RefreshCw } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
 import type { GameState, InventoryItemData, MessageData } from '@/lib/types'
 import {
   detectEnemyFromContext,
   getPlayerCombatArsenal,
-  resolveCombatTurn,
-  type EnemyProfile,
   type CombatActionType,
+  type EnemyProfile,
   type TacticalAction,
 } from '@/lib/game/combat'
 import { computeWardrobeEffects } from '@/lib/game/wardrobe-effects'
+import { toast } from 'sonner'
 
 interface CombatOverlayProps {
   enemy?: EnemyProfile | null
@@ -23,6 +22,8 @@ interface CombatOverlayProps {
   laraMaxHp?: number
   onCombatAction: (actionText: string) => void
   onClose?: () => void
+  /** Refresh inventory/skills after server loot */
+  onServerUpdate?: () => void
 }
 
 export function CombatOverlay({
@@ -30,62 +31,129 @@ export function CombatOverlay({
   messages = [],
   inventory = [],
   gameState = null,
-  laraHp: initialLaraHp = 80,
-  laraMaxHp = 100,
   onCombatAction,
+  onServerUpdate,
 }: CombatOverlayProps) {
-  const activeEnemy = useMemo(() => {
+  const previewEnemy = useMemo(() => {
     if (enemy) return enemy
     return detectEnemyFromContext(messages, gameState)
   }, [enemy, messages, gameState])
 
-  const arsenal = useMemo(
+  const localArsenal = useMemo(
     () => getPlayerCombatArsenal(inventory, gameState),
     [inventory, gameState]
   )
 
   const wardrobeFx = useMemo(() => computeWardrobeEffects(gameState), [gameState])
 
-  // Combat Arena State
-  const [currentEnemyHp, setCurrentEnemyHp] = useState(activeEnemy.hp)
-  const [currentLaraHp, setCurrentLaraHp] = useState(initialLaraHp)
+  const [enemyProfile, setEnemyProfile] = useState<EnemyProfile>(previewEnemy)
+  const [currentEnemyHp, setCurrentEnemyHp] = useState(previewEnemy.hp)
+  const [currentLaraHp, setCurrentLaraHp] = useState(80)
+  const [laraMaxHp, setLaraMaxHp] = useState(100)
   const [combatLogs, setCombatLogs] = useState<string[]>([])
   const [lastRoll, setLastRoll] = useState<{ roll: number; isCrit: boolean } | null>(null)
   const [isFinished, setIsFinished] = useState(false)
   const [isVictory, setIsVictory] = useState(false)
-  const [earnedLoot, setEarnedLoot] = useState<Array<{ name: string; quantity: number }> | null>(null)
+  const [earnedLoot, setEarnedLoot] = useState<Array<{ name: string; quantity: number }> | null>(
+    null
+  )
+  const [arsenal, setArsenal] = useState(localArsenal)
+  const [busy, setBusy] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
 
-  const handleTurn = (actionType: CombatActionType, labelText: string) => {
-    if (isFinished) return
-
-    const result = resolveCombatTurn(
-      actionType,
-      activeEnemy,
-      currentEnemyHp,
-      currentLaraHp,
-      inventory,
-      gameState
-    )
-
-    setCurrentEnemyHp(result.enemyHpRemaining)
-    setCurrentLaraHp(result.laraHpRemaining)
-    setLastRoll({ roll: result.roll, isCrit: result.isCrit })
-    setCombatLogs((prev) => [result.logText, ...prev.slice(0, 4)])
-
-    if (result.isFinished) {
-      setIsFinished(true)
-      setIsVictory(result.isVictory)
-      if (result.isVictory && result.lootEarned) {
-        setEarnedLoot(result.lootEarned)
+  // Start server combat session on mount
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const contextText = messages
+          .slice(-4)
+          .map((m) => m.content)
+          .join('\n')
+        const res = await fetch('/api/combat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'start',
+            enemyId: enemy?.id || previewEnemy.id,
+            contextText,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.success) {
+          toast.error(data.error || 'Не вдалося почати бій на сервері')
+          return
+        }
+        if (cancelled) return
+        const c = data.combat
+        setEnemyProfile(c.enemy)
+        setCurrentEnemyHp(c.enemyHp)
+        setCurrentLaraHp(c.laraHp)
+        setLaraMaxHp(c.laraMaxHp)
+        setArsenal(data.arsenal || localArsenal)
+        setSessionReady(true)
+      } catch (e) {
+        console.error(e)
+        toast.error('Помилка старту бою')
       }
+    })()
+    return () => {
+      cancelled = true
+      void fetch('/api/combat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'end' }),
+      }).catch(() => {})
     }
+    // only once per open
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-    // Pass turn text to AI narrative stream
-    onCombatAction(`${result.logText}`)
+  const handleTurn = async (actionType: CombatActionType) => {
+    if (isFinished || busy || !sessionReady) return
+    setBusy(true)
+    try {
+      const res = await fetch('/api/combat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'turn', actionType }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        toast.error(data.error || 'Хід не прийнято')
+        return
+      }
+      const result = data.result
+      setCurrentEnemyHp(result.enemyHpRemaining)
+      setCurrentLaraHp(result.laraHpRemaining)
+      setLastRoll({ roll: result.roll, isCrit: result.isCrit })
+      setCombatLogs((prev) => [result.logText, ...prev.slice(0, 4)])
+      if (data.arsenal) setArsenal(data.arsenal)
+
+      if (result.isFinished) {
+        setIsFinished(true)
+        setIsVictory(result.isVictory)
+        if (result.isVictory && result.lootEarned) {
+          setEarnedLoot(result.lootEarned)
+          toast.success('Перемога! Лут на сервері.')
+        }
+        onServerUpdate?.()
+      }
+
+      onCombatAction(result.logText)
+    } catch (e) {
+      console.error(e)
+      toast.error('Помилка бойового ходу')
+    } finally {
+      setBusy(false)
+    }
   }
 
   const hpPercent = Math.max(0, Math.min(100, (currentLaraHp / laraMaxHp) * 100))
-  const enemyHpPercent = Math.max(0, Math.min(100, (currentEnemyHp / activeEnemy.maxHp) * 100))
+  const enemyHpPercent = Math.max(
+    0,
+    Math.min(100, (currentEnemyHp / enemyProfile.maxHp) * 100)
+  )
 
   return (
     <motion.div
@@ -94,109 +162,80 @@ export function CombatOverlay({
       exit={{ opacity: 0, y: -10 }}
       className="rounded-2xl border-2 border-red-500/50 bg-slate-950/95 p-4 sm:p-5 shadow-2xl backdrop-blur-md max-w-3xl mx-auto my-3 overflow-hidden relative text-slate-100"
     >
-      {/* Background Glow */}
       <div className="absolute -top-12 -right-12 w-56 h-56 bg-red-600/15 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-red-900/50 pb-2.5 mb-3">
-        <div className="flex items-center gap-2">
-          <Swords className="w-5 h-5 text-red-400 animate-pulse" />
-          <h3 className="font-extrabold text-red-200 text-sm tracking-wide">
-            ⚔️ ТАКТИЧНА БОЙОВА АРЕНА 3.0
+      <div className="flex items-start justify-between gap-3 mb-3 relative z-10">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-red-300/90 font-bold">
+            Тактичний бій · сервер
+          </div>
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <span>{enemyProfile.icon}</span> {enemyProfile.name}
           </h3>
+          <p className="text-[11px] text-slate-400">
+            {enemyProfile.weapon} · слабкість: {enemyProfile.weakness}
+            {wardrobeFx.defenseBonus > 0 ? ` · захист одягу +${wardrobeFx.defenseBonus}` : ''}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          {lastRoll && (
-            <span
-              className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border ${
-                lastRoll.isCrit
-                  ? 'bg-amber-500 text-slate-950 border-amber-300 animate-bounce'
-                  : 'bg-slate-800 text-slate-200 border-slate-700'
-              }`}
-            >
-              🎲 d20: {lastRoll.roll} {lastRoll.isCrit ? 'CRIT!' : ''}
-            </span>
-          )}
-          {wardrobeFx.defenseBonus > 0 && (
-            <span className="text-[10px] bg-emerald-950/80 text-emerald-300 font-semibold px-2 py-0.5 rounded border border-emerald-500/40">
-              🛡️ Захист одягу +{wardrobeFx.defenseBonus}
-            </span>
-          )}
-        </div>
+        {lastRoll && (
+          <div
+            className={`text-center rounded-lg px-2 py-1 border ${
+              lastRoll.isCrit
+                ? 'border-amber-400 bg-amber-950/50'
+                : 'border-slate-600 bg-slate-900/80'
+            }`}
+          >
+            <div className="text-[9px] text-muted-foreground">d20</div>
+            <div className="text-xl font-mono font-bold">{lastRoll.roll}</div>
+          </div>
+        )}
       </div>
 
-      {/* Health Bars Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-        {/* Lara Status */}
-        <div className="bg-slate-900/90 p-3.5 rounded-xl border border-emerald-900/40 shadow-inner">
-          <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="font-bold text-emerald-300 flex items-center gap-1">
-              👩 Лара Крафт
-            </span>
-            <span className="text-emerald-400 font-mono font-bold">
-              {currentLaraHp}/{laraMaxHp} HP
+      {/* HP bars */}
+      <div className="space-y-2 mb-3 relative z-10">
+        <div>
+          <div className="flex justify-between text-[10px] mb-0.5">
+            <span>Лара</span>
+            <span className="font-mono">
+              {currentLaraHp}/{laraMaxHp}
             </span>
           </div>
-          <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-emerald-950 p-0.5">
-            <motion.div
-              className="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full rounded-full"
-              style={{ width: `${hpPercent}%` }}
-              animate={{ width: `${hpPercent}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2 font-medium">
-            <span>Витривалість: {gameState?.endurance ?? 7}/10</span>
-            <span className="text-amber-300 flex items-center gap-1">
-              <Zap className="w-3.5 h-3.5 text-amber-400" /> Амулет: {gameState?.amuletEnergy ?? 0}
-            </span>
+          <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+            <div className="h-full bg-emerald-500 transition-all" style={{ width: `${hpPercent}%` }} />
           </div>
         </div>
-
-        {/* Enemy Status */}
-        <div className="bg-slate-900/90 p-3.5 rounded-xl border border-red-900/40 shadow-inner">
-          <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="font-bold text-red-300 flex items-center gap-1.5 truncate">
-              <span className="text-base">{activeEnemy.icon}</span> {activeEnemy.name}
-            </span>
-            <span className="text-red-400 font-mono font-bold">
-              {currentEnemyHp}/{activeEnemy.maxHp} HP
+        <div>
+          <div className="flex justify-between text-[10px] mb-0.5">
+            <span>Ворог</span>
+            <span className="font-mono">
+              {currentEnemyHp}/{enemyProfile.maxHp}
             </span>
           </div>
-          <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-red-950 p-0.5">
-            <motion.div
-              className="bg-gradient-to-r from-red-600 to-rose-400 h-full rounded-full"
+          <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+            <div
+              className="h-full bg-red-500 transition-all"
               style={{ width: `${enemyHpPercent}%` }}
-              animate={{ width: `${enemyHpPercent}%` }}
             />
-          </div>
-          <div className="text-[10px] text-muted-foreground mt-2 flex items-center justify-between">
-            <span className="truncate">Зброя: {activeEnemy.weapon}</span>
-            {activeEnemy.weakness && (
-              <span className="text-amber-300/90 bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-500/20 shrink-0 ml-1">
-                ⚡ Слабкість: {activeEnemy.weakness}
-              </span>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Victory / Defeat Overlay Banner */}
+      {!sessionReady && (
+        <p className="text-xs text-muted-foreground mb-2">Ініціалізація серверного бою…</p>
+      )}
+
       {isFinished ? (
-        <div className="p-4 rounded-xl bg-slate-900 border border-amber-500/40 text-center space-y-3 my-2">
+        <div className="rounded-xl border border-border/50 bg-slate-900/70 p-3 text-center relative z-10">
           {isVictory ? (
             <div>
               <span className="text-2xl">🏆</span>
-              <h4 className="text-base font-bold text-amber-300 mt-1">
-                ПЕРЕМОГА У БОЮ!
-              </h4>
-              <p className="text-xs text-muted-foreground">
-                Ворога здолано! Отримано ігровий досвід та трофеї з поля бою.
-              </p>
+              <h4 className="text-base font-bold text-emerald-400 mt-1">ПЕРЕМОГА</h4>
+              <p className="text-xs text-muted-foreground">Лут і XP нараховані на сервері.</p>
               {earnedLoot && (
-                <div className="flex justify-center gap-2 mt-2">
-                  {earnedLoot.map((item, idx) => (
+                <div className="flex flex-wrap gap-1 justify-center mt-2">
+                  {earnedLoot.map((item) => (
                     <span
-                      key={idx}
+                      key={item.name}
                       className="text-xs bg-amber-950/60 text-amber-200 border border-amber-500/30 px-2 py-1 rounded-lg"
                     >
                       🎁 {item.name} x{item.quantity}
@@ -216,25 +255,23 @@ export function CombatOverlay({
           )}
         </div>
       ) : (
-        /* Action Buttons Grid */
-        <div>
+        <div className="relative z-10">
           <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-2 block">
-            Виберіть тактичний хід арсеналу:
+            Тактичний хід (серверний roll):
           </span>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {arsenal.availableActions.map((action: TacticalAction) => (
+            {(arsenal.availableActions || []).map((action: TacticalAction) => (
               <button
                 key={action.id}
                 type="button"
-                onClick={() => handleTurn(action.id as CombatActionType, action.label)}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/60 hover:border-emerald-500/50 text-slate-100 text-xs font-semibold shadow-md transition-all transform hover:scale-[1.01] active:scale-95 group text-left"
+                disabled={busy || !sessionReady}
+                onClick={() => void handleTurn(action.id as CombatActionType)}
+                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/60 hover:border-emerald-500/50 text-slate-100 text-xs font-semibold shadow-md transition-all disabled:opacity-50 text-left"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-base shrink-0">{action.icon}</span>
                   <div className="min-w-0">
-                    <div className="font-bold text-white group-hover:text-emerald-300 truncate">
-                      {action.label}
-                    </div>
+                    <div className="font-bold text-white truncate">{action.label}</div>
                     <div className="text-[9px] font-medium text-emerald-400/90 truncate">
                       {action.bonusText}
                     </div>
@@ -243,18 +280,16 @@ export function CombatOverlay({
               </button>
             ))}
 
-            {/* Special Seduce Button */}
             <button
               type="button"
-              onClick={() => handleTurn('seduce', 'Чари Зваби')}
-              className="flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-rose-950/80 to-purple-950/80 hover:from-rose-900 hover:to-purple-900 border border-rose-500/40 text-rose-100 text-xs font-semibold shadow-md transition-all transform hover:scale-[1.01] active:scale-95 group text-left col-span-1 sm:col-span-2 lg:col-span-1"
+              disabled={busy || !sessionReady}
+              onClick={() => void handleTurn('seduce')}
+              className="flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-rose-950/80 to-purple-950/80 border border-rose-500/40 text-rose-100 text-xs font-semibold disabled:opacity-50 text-left col-span-1 sm:col-span-2 lg:col-span-1"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-base shrink-0">💋</span>
                 <div className="min-w-0">
-                  <div className="font-bold text-rose-200 group-hover:text-rose-100 truncate">
-                    Чари Зваби / Підкорення
-                  </div>
+                  <div className="font-bold text-rose-200 truncate">Чари Зваби / Підкорення</div>
                   <div className="text-[9px] font-medium text-rose-300/90 truncate">
                     Перевести бій у чуттєве підкорення
                   </div>
@@ -265,11 +300,10 @@ export function CombatOverlay({
         </div>
       )}
 
-      {/* Combat Feed Logs */}
       {combatLogs.length > 0 && (
-        <div className="mt-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] font-mono space-y-1">
+        <div className="mt-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] font-mono space-y-1 relative z-10">
           <span className="text-[9px] uppercase font-bold text-muted-foreground block">
-            Лог бойових ходів:
+            Лог (сервер):
           </span>
           {combatLogs.map((log, i) => (
             <div key={i} className="text-slate-300/90 leading-tight">
