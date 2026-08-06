@@ -11,7 +11,7 @@
     "db:seed": "tsx --require dotenv/config scripts/seed.ts",
     "db:setup": "prisma generate && npm run db:push && npm run db:seed",
     "db:setup:env": "node -e \"const fs=require('fs'); if(!fs.existsSync('.env')){fs.copyFileSync('.env.example','.env'); console.log('Created .env from .env.example');} else {console.log('.env already exists');}\"",
-    "test": "tsx --test \"lib/**/*.test.ts\"",
+    "test": "tsx --test $(find lib -name \"*.test.ts\")",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke-api.mjs",
     "smoke:3000": "node scripts/smoke-api.mjs http://localhost:3000",

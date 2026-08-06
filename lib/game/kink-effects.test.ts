@@ -9,8 +9,8 @@ import {
 import { detectKinkKeysFromText } from './kink-catalog'
 
 describe('kink catalog', () => {
-  it('has 13 core kinks with 5 level meanings each', () => {
-    assert.equal(KINK_CATALOG.length, 13)
+  it('has expanded kink catalog with 5 level meanings each', () => {
+    assert.ok(KINK_CATALOG.length >= 19, `got ${KINK_CATALOG.length}`)
     for (const k of KINK_CATALOG) {
       assert.equal(k.levelMeanings.length, 5, k.key)
     }
