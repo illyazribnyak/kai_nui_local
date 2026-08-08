@@ -203,6 +203,7 @@ const DEEPSEEK_TIMEOUT = 60000
 
 /**
  * Legacy DeepSeek streaming call helper (retained for backward compatibility).
+ * Does NOT retry on 401/402/403 (auth/billing) — wastes seconds for nothing.
  */
 export async function callDeepSeekWithRetry(
   messages: any[],
@@ -235,7 +236,6 @@ export async function callDeepSeekWithRetry(
       if (response.ok && response.body) {
         return response
       }
-      // 402 Payment Required = no credits — no point retrying
       const status = response.status
       let bodyHint = ''
       try {
@@ -243,22 +243,28 @@ export async function callDeepSeekWithRetry(
       } catch {
         /* ignore */
       }
-      console.warn(`DeepSeek attempt ${attempt + 1} failed: HTTP ${status}`, bodyHint)
+      console.warn(`[DeepSeek] HTTP ${status} (attempt ${attempt + 1})`, bodyHint)
       lastError = new Error(
         status === 402
-          ? `DeepSeek HTTP 402 (немає коштів / підписка) ${bodyHint}`
-          : `DeepSeek HTTP ${status}`
+          ? `DeepSeek HTTP 402 — немає коштів на балансі (platform.deepseek.com)`
+          : status === 401
+            ? `DeepSeek HTTP 401 — невірний API-ключ`
+            : `DeepSeek HTTP ${status}`
       )
-      if (status === 401 || status === 402 || status === 403) break
+      // Auth / payment: never retry
+      if (status === 401 || status === 402 || status === 403) {
+        throw lastError
+      }
     } catch (e: any) {
+      if (e?.message?.includes('DeepSeek HTTP')) throw e
       if (e?.name === 'AbortError') {
-        console.warn(`DeepSeek attempt ${attempt + 1} timed out`)
+        console.warn(`[DeepSeek] timeout (attempt ${attempt + 1})`)
         lastError = new Error('DeepSeek timeout')
       } else {
         lastError = e
       }
     }
-    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)))
+    await new Promise((r) => setTimeout(r, 400 * (attempt + 1)))
   }
   throw lastError ?? new Error('DeepSeek API failed after retries')
 }
@@ -370,6 +376,7 @@ export async function callGeminiStream(
 
 /**
  * Main narrator stream builder supporting provider selection & fallback.
+ * Tries providers in order; on DeepSeek 402 always falls through to Gemini if configured.
  */
 export async function callNarratorLLMStream(
   options: LLMStreamOptions
@@ -378,23 +385,52 @@ export async function callNarratorLLMStream(
 
   const geminiKey = process.env.GEMINI_API_KEY?.trim()
   const deepseekKey = process.env.DEEPSEEK_API_KEY?.trim()
+  // Optional: DEEPSEEK_DISABLED=1 to skip DeepSeek entirely (e.g. no balance)
+  const deepseekDisabled =
+    process.env.DEEPSEEK_DISABLED === '1' ||
+    process.env.DEEPSEEK_DISABLED === 'true' ||
+    process.env.DEEPSEEK_DISABLED === 'yes'
 
   const hasGemini = Boolean(geminiKey && !geminiKey.includes('встав') && geminiKey.length >= 8)
-  const hasDeepSeek = Boolean(deepseekKey && !deepseekKey.includes('встав') && deepseekKey.length >= 8)
+  const hasDeepSeek = Boolean(
+    !deepseekDisabled &&
+      deepseekKey &&
+      !deepseekKey.includes('встав') &&
+      deepseekKey.length >= 8
+  )
 
   if (!hasGemini && !hasDeepSeek) {
-    throw new Error('Жоден з API ключів (GEMINI_API_KEY / DEEPSEEK_API_KEY) не налаштований у .env!')
+    throw new Error(
+      deepseekDisabled && geminiKey
+        ? 'DeepSeek вимкнено (DEEPSEEK_DISABLED), а GEMINI_API_KEY невалідний.'
+        : 'Жоден з API ключів (GEMINI_API_KEY / DEEPSEEK_API_KEY) не налаштований у .env!'
+    )
   }
 
-  let primary: 'gemini' | 'deepseek' = 'deepseek'
-  if (provider === 'gemini' && hasGemini) primary = 'gemini'
-  else if (provider === 'deepseek' && hasDeepSeek) primary = 'deepseek'
-  else if (provider === 'auto') {
-    primary = hasDeepSeek ? 'deepseek' : 'gemini'
+  /** Order to try. auto/dual: Gemini first (free tier more reliable), then DeepSeek. */
+  const order: Array<'gemini' | 'deepseek'> = []
+  if (provider === 'gemini') {
+    if (hasGemini) order.push('gemini')
+    else if (hasDeepSeek) order.push('deepseek')
+  } else if (provider === 'deepseek') {
+    if (hasDeepSeek) order.push('deepseek')
+    // Even if user picked deepseek, fall back to Gemini on hard failure
+    if (hasGemini) order.push('gemini')
+  } else {
+    // auto | dual | anything else
+    // Prefer Gemini when both exist — avoids hard fail when DeepSeek has no balance
+    if (hasGemini) order.push('gemini')
+    if (hasDeepSeek) order.push('deepseek')
   }
+
+  if (order.length === 0) {
+    throw new Error('Немає доступного LLM-провайдера для цього вибору.')
+  }
+
+  console.log(`[Narrator LLM] provider=${provider} try order: ${order.join(' → ')}`)
 
   const runGemini = async (): Promise<LLMStreamResult> => {
-    console.log('[Narrator LLM] Using Gemini 2.0 Flash')
+    console.log('[Narrator LLM] → Gemini 2.0 Flash')
     const result = await callGeminiStream(messages, geminiKey!, { temperature, maxTokens })
     return {
       stream: result.stream,
@@ -406,7 +442,7 @@ export async function callNarratorLLMStream(
   }
 
   const runDeepSeek = async (): Promise<LLMStreamResult> => {
-    console.log('[Narrator LLM] Using DeepSeek Chat')
+    console.log('[Narrator LLM] → DeepSeek Chat')
     const response = await callDeepSeekWithRetry(messages, deepseekKey!)
     let promptTokens = 0
     let completionTokens = 0
@@ -471,57 +507,23 @@ export async function callNarratorLLMStream(
     }
   }
 
-  /** 402 = Payment Required (no balance); 401 = bad key; 429 = rate limit */
-  const isBillingOrAuthError = (err: unknown) => {
-    const msg = String((err as Error)?.message || err || '')
-    return /HTTP (401|402|403|429)/i.test(msg) || /Payment|insufficient|balance|quota/i.test(msg)
+  const errors: string[] = []
+  for (const p of order) {
+    try {
+      if (p === 'gemini') return await runGemini()
+      if (p === 'deepseek') return await runDeepSeek()
+    } catch (err: any) {
+      const msg = err?.message || String(err)
+      errors.push(`${p}: ${msg}`)
+      console.warn(`[Narrator LLM] ${p} failed → ${msg}`)
+      // continue to next provider
+    }
   }
 
-  // Primary attempt
-  try {
-    if (primary === 'gemini' && hasGemini) {
-      return await runGemini()
-    }
-    if (primary === 'deepseek' && hasDeepSeek) {
-      return await runDeepSeek()
-    }
-  } catch (err: any) {
-    console.warn(
-      `[Narrator LLM] Primary (${primary}) failed:`,
-      err?.message,
-      hasGemini && primary === 'deepseek' ? '→ Fallback to Gemini' : hasDeepSeek && primary === 'gemini' ? '→ Fallback to DeepSeek' : ''
-    )
-    // Don't retry same provider on billing errors
-    if (isBillingOrAuthError(err) && primary === 'deepseek' && hasGemini) {
-      try {
-        return await runGemini()
-      } catch (e2: any) {
-        throw new Error(
-          `DeepSeek недоступний (${err?.message}). Gemini теж: ${e2?.message}. ` +
-            `Поповни баланс на platform.deepseek.com або перевір GEMINI_API_KEY.`
-        )
-      }
-    }
-    if (primary === 'gemini' && hasDeepSeek) {
-      try {
-        return await runDeepSeek()
-      } catch (e2: any) {
-        throw new Error(`Gemini failed; DeepSeek fallback: ${e2?.message}`)
-      }
-    }
-    // Generic: try the other provider if any
-    if (primary === 'deepseek' && hasGemini) {
-      return await runGemini()
-    }
-    if (primary === 'gemini' && hasDeepSeek) {
-      return await runDeepSeek()
-    }
-    throw err
-  }
-
-  // auto / misconfig: prefer whatever is left
-  if (hasGemini) return await runGemini()
-  if (hasDeepSeek) return await runDeepSeek()
-
-  throw new Error('Не вдалося виконати запит через обраний LLM провайдер.')
+  throw new Error(
+    `Усі LLM-провайдери недоступні. ${errors.join(' | ')}. ` +
+      (errors.some((e) => e.includes('402'))
+        ? 'DeepSeek: поповни баланс на platform.deepseek.com або постав у меню Gemini / DEEPSEEK_DISABLED=1 у .env.'
+        : 'Перевір GEMINI_API_KEY і DEEPSEEK_API_KEY у .env, перезапусти npm run dev.')
+  )
 }
