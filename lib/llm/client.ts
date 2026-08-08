@@ -75,6 +75,25 @@ export function estimateTokens(text: string): number {
 }
 
 /**
+ * Gemini model ids to try (2.0-flash is retired for many keys → HTTP 404).
+ * Override primary via GEMINI_MODEL=gemini-2.5-flash
+ */
+export function getGeminiModelCandidates(): string[] {
+  const preferred = (process.env.GEMINI_MODEL || '').trim()
+  const defaults = [
+    'gemini-2.5-flash',
+    'gemini-flash-latest',
+    'gemini-3.5-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-2.5-flash-lite',
+  ]
+  if (preferred) {
+    return [preferred, ...defaults.filter((m) => m !== preferred)]
+  }
+  return defaults
+}
+
+/**
  * Call analyzer LLM (Gemini 2.0 Flash with DeepSeek fallback) for JSON extraction or summarization.
  */
 export async function callAnalyzerLLM(
@@ -94,48 +113,52 @@ export async function callAnalyzerLLM(
     { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
   ]
 
-  // 1. Try Gemini
+  // 1. Try Gemini (multiple model ids — 2.0-flash often 404 now)
   if (geminiKey && !geminiKey.includes('встав') && geminiKey.length >= 8) {
-    try {
-      const geminiBody: any = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: maxTokens, temperature },
-        safetySettings: geminiSafetySettings,
-      }
-      if (jsonMode) geminiBody.generationConfig.responseMimeType = 'application/json'
-
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(geminiBody),
-        }
-      )
-
-      if (res.ok) {
-        const data = await res.json()
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? null
-        const meta = data?.usageMetadata
-        const promptTokens = meta?.promptTokenCount ?? estimateTokens(prompt)
-        const completionTokens = meta?.candidatesTokenCount ?? estimateTokens(text || '')
-        const totalTokens = meta?.totalTokenCount ?? (promptTokens + completionTokens)
-
-        if (text && text.length > 5) {
-          console.log('[LLM Analyzer] Gemini 2.0 Flash succeeded')
-          return {
-            text,
-            usage: { promptTokens, completionTokens, totalTokens },
-            provider: 'gemini',
-            model: 'gemini-2.0-flash',
-          }
-        }
-      } else {
-        console.warn(`[LLM Analyzer] Gemini failed: HTTP ${res.status}, falling back to DeepSeek`)
-      }
-    } catch (e: any) {
-      console.warn('[LLM Analyzer] Gemini error:', e?.message, '→ fallback to DeepSeek')
+    const geminiBody: any = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: maxTokens, temperature },
+      safetySettings: geminiSafetySettings,
     }
+    if (jsonMode) geminiBody.generationConfig.responseMimeType = 'application/json'
+
+    for (const model of getGeminiModelCandidates()) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(geminiBody),
+          }
+        )
+
+        if (res.ok) {
+          const data = await res.json()
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? null
+          const meta = data?.usageMetadata
+          const promptTokens = meta?.promptTokenCount ?? estimateTokens(prompt)
+          const completionTokens = meta?.candidatesTokenCount ?? estimateTokens(text || '')
+          const totalTokens = meta?.totalTokenCount ?? promptTokens + completionTokens
+
+          if (text && text.length > 5) {
+            console.log(`[LLM Analyzer] Gemini ${model} succeeded`)
+            return {
+              text,
+              usage: { promptTokens, completionTokens, totalTokens },
+              provider: 'gemini',
+              model,
+            }
+          }
+        } else {
+          console.warn(`[LLM Analyzer] Gemini ${model} HTTP ${res.status}`)
+          if (res.status !== 404) break
+        }
+      } catch (e: any) {
+        console.warn(`[LLM Analyzer] Gemini ${model} error:`, e?.message)
+      }
+    }
+    console.warn('[LLM Analyzer] All Gemini models failed → fallback to DeepSeek')
   }
 
   // 2. Fallback to DeepSeek
@@ -270,13 +293,13 @@ export async function callDeepSeekWithRetry(
 }
 
 /**
- * Stream Gemini 2.0 Flash response via SSE.
+ * Stream Gemini response via SSE. Tries several model ids until one works.
  */
 export async function callGeminiStream(
   messages: Array<{ role: string; content: string }>,
   apiKey: string,
-  options: { maxTokens?: number; temperature?: number } = {}
-): Promise<{ stream: ReadableStream<Uint8Array>; getUsage: () => TokenUsage }> {
+  options: { maxTokens?: number; temperature?: number; model?: string } = {}
+): Promise<{ stream: ReadableStream<Uint8Array>; getUsage: () => TokenUsage; model: string }> {
   const { maxTokens = 4000, temperature = 0.85 } = options
   const formatted = convertMessagesToGemini(messages)
 
@@ -294,84 +317,113 @@ export async function callGeminiStream(
     body.system_instruction = formatted.systemInstruction
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 60000)
+  const models = options.model
+    ? [options.model, ...getGeminiModelCandidates().filter((m) => m !== options.model)]
+    : getGeminiModelCandidates()
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    }
-  )
-  clearTimeout(timeout)
+  let lastErr = 'no models tried'
+  for (const model of models) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 60000)
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        }
+      )
+      clearTimeout(timeout)
 
-  if (!res.ok || !res.body) {
-    throw new Error(`Gemini stream failed with HTTP ${res.status}`)
-  }
+      if (!res.ok || !res.body) {
+        const hint = await res.text().catch(() => '')
+        lastErr = `HTTP ${res.status} ${model} ${hint.slice(0, 120)}`
+        console.warn(`[Gemini stream] ${lastErr}`)
+        if (res.status !== 404) {
+          // 400/403 etc — try next model anyway for 404 only is common; still try others
+        }
+        continue
+      }
 
-  let promptTokens = 0
-  let completionTokens = 0
-  let totalTokens = 0
-  let accumulatedText = ''
+      console.log(`[Gemini stream] using model ${model}`)
+      let promptTokens = 0
+      let completionTokens = 0
+      let totalTokens = 0
+      let accumulatedText = ''
 
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
-  const encoder = new TextEncoder()
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      const encoder = new TextEncoder()
 
-  const stream = new ReadableStream({
-    async start(controllerStream) {
-      let buffer = ''
-      try {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n')
-          buffer = lines.pop() ?? ''
+      const stream = new ReadableStream({
+        async start(controllerStream) {
+          let buffer = ''
+          try {
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              buffer += decoder.decode(value, { stream: true })
+              const lines = buffer.split('\n')
+              buffer = lines.pop() ?? ''
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const rawData = line.slice(6).trim()
-              if (!rawData || rawData === '[DONE]') continue
-              try {
-                const parsed = JSON.parse(rawData)
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const rawData = line.slice(6).trim()
+                  if (!rawData || rawData === '[DONE]') continue
+                  try {
+                    const parsed = JSON.parse(rawData)
 
-                // Track token usage
-                if (parsed.usageMetadata) {
-                  promptTokens = parsed.usageMetadata.promptTokenCount ?? promptTokens
-                  completionTokens = parsed.usageMetadata.candidatesTokenCount ?? completionTokens
-                  totalTokens = parsed.usageMetadata.totalTokenCount ?? (promptTokens + completionTokens)
+                    if (parsed.usageMetadata) {
+                      promptTokens = parsed.usageMetadata.promptTokenCount ?? promptTokens
+                      completionTokens =
+                        parsed.usageMetadata.candidatesTokenCount ?? completionTokens
+                      totalTokens =
+                        parsed.usageMetadata.totalTokenCount ?? promptTokens + completionTokens
+                    }
+
+                    // Collect all text parts (skip thought-only blobs)
+                    const parts = parsed?.candidates?.[0]?.content?.parts
+                    if (Array.isArray(parts)) {
+                      for (const part of parts) {
+                        const chunkText = part?.text
+                        if (chunkText) {
+                          accumulatedText += chunkText
+                          controllerStream.enqueue(encoder.encode(chunkText))
+                        }
+                      }
+                    }
+                  } catch {
+                    // Ignore SSE parse errors for incomplete chunks
+                  }
                 }
-
-                const chunkText = parsed?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-                if (chunkText) {
-                  accumulatedText += chunkText
-                  controllerStream.enqueue(encoder.encode(chunkText))
-                }
-              } catch (e) {
-                // Ignore SSE parse errors for incomplete chunks
               }
             }
+          } catch (err) {
+            controllerStream.error(err)
+          } finally {
+            if (!promptTokens) promptTokens = estimateTokens(JSON.stringify(messages))
+            if (!completionTokens) completionTokens = estimateTokens(accumulatedText)
+            if (!totalTokens) totalTokens = promptTokens + completionTokens
+            controllerStream.close()
           }
-        }
-      } catch (err) {
-        controllerStream.error(err)
-      } finally {
-        if (!promptTokens) promptTokens = estimateTokens(JSON.stringify(messages))
-        if (!completionTokens) completionTokens = estimateTokens(accumulatedText)
-        if (!totalTokens) totalTokens = promptTokens + completionTokens
-        controllerStream.close()
-      }
-    },
-  })
+        },
+      })
 
-  return {
-    stream,
-    getUsage: () => ({ promptTokens, completionTokens, totalTokens }),
+      return {
+        stream,
+        model,
+        getUsage: () => ({ promptTokens, completionTokens, totalTokens }),
+      }
+    } catch (e: any) {
+      clearTimeout(timeout)
+      lastErr = e?.message || String(e)
+      console.warn(`[Gemini stream] ${model} error:`, lastErr)
+    }
   }
+
+  throw new Error(`Gemini stream failed: ${lastErr}`)
 }
 
 /**
@@ -430,13 +482,13 @@ export async function callNarratorLLMStream(
   console.log(`[Narrator LLM] provider=${provider} try order: ${order.join(' → ')}`)
 
   const runGemini = async (): Promise<LLMStreamResult> => {
-    console.log('[Narrator LLM] → Gemini 2.0 Flash')
+    console.log('[Narrator LLM] → Gemini (auto model)')
     const result = await callGeminiStream(messages, geminiKey!, { temperature, maxTokens })
     return {
       stream: result.stream,
       provider: 'gemini',
-      providerLabel: 'Gemini 2.0 Flash',
-      model: 'gemini-2.0-flash',
+      providerLabel: `Gemini (${result.model})`,
+      model: result.model,
       getUsage: result.getUsage,
     }
   }
