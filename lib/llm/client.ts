@@ -459,7 +459,7 @@ export async function callNarratorLLMStream(
     )
   }
 
-  /** Order to try. auto/dual: Gemini first (free tier more reliable), then DeepSeek. */
+  /** Order to try. auto/dual: DeepSeek primary, Gemini fallback. */
   const order: Array<'gemini' | 'deepseek'> = []
   if (provider === 'gemini') {
     if (hasGemini) order.push('gemini')
@@ -469,10 +469,9 @@ export async function callNarratorLLMStream(
     // Even if user picked deepseek, fall back to Gemini on hard failure
     if (hasGemini) order.push('gemini')
   } else {
-    // auto | dual | anything else
-    // Prefer Gemini when both exist — avoids hard fail when DeepSeek has no balance
-    if (hasGemini) order.push('gemini')
+    // auto | dual | anything else — DeepSeek first (main narrator)
     if (hasDeepSeek) order.push('deepseek')
+    if (hasGemini) order.push('gemini')
   }
 
   if (order.length === 0) {

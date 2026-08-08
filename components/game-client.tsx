@@ -138,7 +138,7 @@ export default function GameClient() {
   const [showCraftingModal, setShowCraftingModal] = useState(false)
   const [showWardrobeModal, setShowWardrobeModal] = useState(false)
   const [showTimelineModal, setShowTimelineModal] = useState(false)
-  const [selectedProvider, setSelectedProvider] = useState<LlmProviderChoice>('auto')
+  const [selectedProvider, setSelectedProvider] = useState<LlmProviderChoice>('deepseek')
   const [promptModeLabel, setPromptModeLabel] = useState<string | null>(null)
   const headerMenuRef = useRef<HTMLDivElement>(null)
   const processedTagsRef = useRef(0)
@@ -1394,10 +1394,10 @@ export default function GameClient() {
                         </button>
                       </div>
                       <p className="mt-1.5 text-[9px] text-muted-foreground/80 leading-snug">
-                        {selectedProvider === 'auto' && 'Смарт: DeepSeek оповідає, Gemini — лише коли треба глибокий аналіз.'}
-                        {selectedProvider === 'dual' && 'Дует: DeepSeek + Gemini завжди аналізує кожен хід.'}
-                        {selectedProvider === 'gemini' && 'Лише Gemini 2.0 Flash.'}
-                        {selectedProvider === 'deepseek' && 'Лише DeepSeek Chat.'}
+                        {selectedProvider === 'auto' && 'Смарт: DeepSeek основний, Gemini — fallback + розумний аналіз.'}
+                        {selectedProvider === 'dual' && 'Дует: DeepSeek оповідає, Gemini аналізує кожен хід.'}
+                        {selectedProvider === 'gemini' && 'Лише Gemini 2.5 Flash (fallback-моделі за потреби).'}
+                        {selectedProvider === 'deepseek' && 'DeepSeek Chat основний; при 402/помилці — Gemini.'}
                       </p>
                       <div className="mt-2 pt-2 border-t border-border/60">
                         <div className="flex items-center justify-between mb-1">
